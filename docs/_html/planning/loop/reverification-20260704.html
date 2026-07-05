@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Re-verification Report (2026-07-04)</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">Re-verification Report (2026-07-04)</div><div class="sub">reverification-20260704.md</div><a class="lvl1" href="#re-verification-report-2026-07-04">Re-verification Report (2026-07-04)</a><a class="lvl2" href="#1-결론">1. 결론</a><a class="lvl2" href="#2-신규-확인-결함-감독관-원문-대조-완료">2. 신규 확인 결함 (감독관 원문 대조 완료)</a><a class="lvl2" href="#3-기존-리스크-재확인-변동-없음-세부-추가">3. 기존 리스크 재확인 (변동 없음 + 세부 추가)</a><a class="lvl2" href="#4-기획-레벨-신규-모호점-비차단-기록">4. 기획 레벨 신규 모호점 (비차단, 기록)</a><a class="lvl2" href="#5-수정-실행-결과-2026-07-04-사용자-승인-후-감독관-직접-패치">5. 수정 실행 결과 (2026-07-04, 사용자 승인 후 감독관 직접 패치)</a><a class="lvl2" href="#6-잔여-액션-수정-후">6. 잔여 액션 (수정 후)</a></nav>
+<main><h1 id="re-verification-report-2026-07-04">Re-verification Report (2026-07-04)</h1>
+<blockquote>planning-loop-supervisor 재검증. 최종 승인(2026-07-02, Ready) 이후 문서 변경 없음 — 4개 클러스터(제품/기술/UX/태스크·게이트) 병렬 신선 재검증 + 감독관 직접 원문 대조.</blockquote>
+<h2 id="1-결론">1. 결론</h2>
+<ul><li><strong>판정 유지: Ready (with Risks)</strong> — 신규 발견은 전부 비차단 문서 드리프트이나,</li></ul>
+<p><strong>P3/P4 착수 전 수정 권장 3건</strong>이 있다 (아래 §2 F-1~F-3).</p>
+<ul><li>이전 라운드 패치 항목은 전부 반영 확인: keyword_clusters <code>opportunity_memo_id</code> 단일화(04:207),</li></ul>
+<p>decision <code>on_hold</code>(06-tasks:279), stale 7일 정렬(03 + products.yaml:96), relation @map/String[] 일관.</p>
+<ul><li>REQ-001~013 전부 태스크 매핑 유지, 게이트 전부 측정 가능(비측정 기준 0건).</li></ul>
+<h2 id="2-신규-확인-결함-감독관-원문-대조-완료">2. 신규 확인 결함 (감독관 원문 대조 완료)</h2>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>심각도</th><th>내용</th><th>근거</th><th>수정 위치</th></tr></thead><tbody><tr><td>F-1</td><td>High</td><td>CostLog 필드 누락 — 02-trd §5가 <code>pipeline_step</code>·<code>blocked_by_cap</code>을 &quot;새로 추가&quot;로 명시했으나 04 CostLog에 미반영. 비용 서킷브레이커(A2) 구현 시 스키마 결함</td><td>02-trd:505-506 ↔ 04:472-483</td><td>04-database-design.md CostLog</td></tr><tr><td>F-2</td><td>High</td><td>CompanyMemory 어휘 3원화 — 02-trd는 <code>pattern_type</code> enum {homefeed<em>hook, search</em>keyword, product<em>angle, pricing</em>strategy, seasonal<em>theme} + <code>pattern_text</code>/<code>tags</code>, 04는 <code>memoryType</code> &quot;winning</em>hook/winning<em>product/failure</em>pattern&quot;, 06-tasks:501은 <code>memory_type: 'hook_type'</code>. REQ-012 게이트 판정 시 정본 불명</td><td>02-trd:310-322 ↔ 04:507 ↔ 06-tasks:501</td><td>02/04/06-tasks 중 정본 확정 후 정렬</td></tr><tr><td>F-3</td><td>Medium</td><td>content_packages API 계약의 <code>opportunity_memo_id</code> — resources.yaml은 응답 필드로 명시하나 04 ContentPackage는 <code>paperclip_decision_id</code> 경유만 있고 파생(조인) 주석 없음. 구현자가 컬럼 추가/조인 중 무엇인지 알 수 없음</td><td>resources.yaml:70 ↔ 04:218-248</td><td>04에 파생 주석 또는 resources.yaml에 derived 표기</td></tr><tr><td>F-4</td><td>Medium</td><td>content-detail.yaml 편집 탭에 [저장][취소] 버튼 정의 잔존 — 06-screens D5 결정(&quot;자동 저장만, [저장][취소] 제거&quot;)과 모순. yaml 내부에서도 저장 버튼 trigger가 &quot;자동 저장 2초&quot;로 자기모순</td><td>content-detail.yaml:129-134 ↔ 06-screens:765,773</td><td>content-detail.yaml actions 정리</td></tr><tr><td>F-5</td><td>Low</td><td>E1 가드 UI 표현 3문서 불일치 — hq-main.yaml &quot;/settings 리디렉트&quot; vs 03-user-flow &quot;팝업 경고+[설정하기]&quot; vs settings.yaml &quot;모달 알림&quot;</td><td>hq-main.yaml:96 / 03:584 / settings.yaml:15</td><td>UX 패턴 1개로 단일화</td></tr><tr><td>F-6</td><td>Low</td><td>06-tasks.md 헤더 &quot;총 Phase: 4개 (P0~P4)&quot; — 실제 5개. 표기 오류(구조 자체는 정상)</td><td>06-tasks:5 ↔ :562</td><td>06-tasks 헤더</td></tr><tr><td>F-7</td><td>Low</td><td>ComplianceCheck — resources.yaml은 <code>issues[]</code> 중첩 계약, 04는 ComplianceIssue 별도 테이블. 계약↔스키마 파생 관계 주석 없음</td><td>resources.yaml:127-139 ↔ 04:381-397</td><td>04에 &quot;API 응답에서 issues[]로 직렬화&quot; 주석</td></tr></tbody></table></div>
+<p><strong>오탐 기각</strong>: drafts <code>body_html</code>은 resources.yaml field_note가 &quot;E5 — Export 경계에서만 생성, 저장하지 않음&quot;으로 04의 bodyHtml 컬럼 폐지(B2)와 정합 — 불일치 아님.</p>
+<h2 id="3-기존-리스크-재확인-변동-없음-세부-추가">3. 기존 리스크 재확인 (변동 없음 + 세부 추가)</h2>
+<ol><li><strong>08-business-model 수익 자기모순 유지</strong> — 계산 결과 ₩6,000/월(:109) vs Month 1~3 재정 리스트 ₩500,000/월(:270), 약 83배 격차.</li></ol>
+<p>신규 세부: 간접 실적 ₩200,000(:271)의 계산 근거 부재(수수료율 1.8%만 명시). 사업 가정 — 2주 실측 후 재평가.</p>
+<ol><li><strong>P3-R1 과대</strong> — 7 엔드포인트 + AI 생성 7종. 빌더 내부 3분할 권고 유지(00-loop.md §2).</li><li><strong>로딩/빈/에러 상태</strong> — 5화면 전부 화면 레벨 미정의(05 토큰/토스트 일반 규칙만 존재). 구현 시 05 기본값 흡수 가능.</li><li><strong>네이버 검색 API 쿼터/정확도 미검증</strong> — P0-T2 실측. 신규 세부: Day-1 폴백 공백(첫 스캔엔 &quot;이전 결과&quot; 없음 — 시드 전략 미정, 00-source-plan:787).</li><li><strong>council 잔여 쟁점 6건(§4-3~4-8) 비차단 유지</strong> — 단 §4-6(P2-S1 URL 상품등록 존속)은 P2 스코프를 바꾸므로 <strong>P2 착수 전 결정 권장</strong>(방어 요건 자체는 반영됨, council-report:162).</li></ol>
+<h2 id="4-기획-레벨-신규-모호점-비차단-기록">4. 기획 레벨 신규 모호점 (비차단, 기록)</h2>
+<ul><li>성과 기록 타이밍 — 09-personas &quot;저녁 5분&quot; vs 게시 2시간 후 데이터 가용 (09:162-169)</li><li>Paperclip HQ 역할 경계 — AI 자동 판단 레이어 vs 사용자 조작 인터페이스 표현 혼재 (00:36,232-250 / 01:66)</li><li>&quot;게시 준비 완료&quot;의 정의(Export까지? 승인까지?) 불명 (01:164)</li><li>Phase 2 진입 시 &quot;채널 수 조정&quot;의 우선순위 기준 미정 (00:18)</li><li>AI 모델 선택 Open Question이 council 미합의 목록에 부재 (00:16)</li></ul>
+<h2 id="5-수정-실행-결과-2026-07-04-사용자-승인-후-감독관-직접-패치">5. 수정 실행 결과 (2026-07-04, 사용자 승인 후 감독관 직접 패치)</h2>
+<p><strong>F-1~F-7 전건 수정 완료</strong> + 수정 중 추가 발견 1건(F-8) 동시 수정:</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>수정 내용</th></tr></thead><tbody><tr><td>F-1</td><td>04 CostLog에 <code>pipelineStep</code>·<code>blockedByCap</code> 추가 + 인덱스 (02-trd §5 A2 정렬)</td></tr><tr><td>F-2</td><td><strong>정본 = 02-trd §2.6 A9 확정.</strong> 04 CompanyMemory → patternType(5종 enum)/patternText + A9 통계·가시성 필드(avgViews·avgClicks·avgRevenueUsd·createdPatternIds·usedInRecommendations·updatedAt) 추가, SQL 인덱스 정렬. resources.yaml·06-tasks:501·00-source-plan:454 동일 어휘로 정렬. user_id는 §4-3 대기로 미포함(주석 명시)</td></tr><tr><td>F-3</td><td>04 ContentPackage + resources.yaml 양쪽에 opportunity<em>memo</em>id 조인 파생 주석</td></tr><tr><td>F-4</td><td>content-detail.yaml 편집 탭 [저장][취소] 제거, undo만 유지 + D5 자동저장 note</td></tr><tr><td>F-5</td><td>hq-main.yaml E1 가드 → &quot;모달 경고 + [설정하기] → /settings&quot; (03-user-flow 예외 5 정본)</td></tr><tr><td>F-6</td><td>06-tasks 헤더 &quot;총 Phase: 5개&quot; 정정</td></tr><tr><td>F-7</td><td>04 ComplianceCheck에 issues[] 직렬화 주석</td></tr><tr><td><strong>F-8</strong></td><td>(수정 중 발견) hq-main.yaml:99 <code>create decision (hold)</code> → <code>(on_hold)</code> — 이전 라운드 06-tasks만 고치고 yaml 누락분</td></tr></tbody></table></div>
+<p><strong>검증</strong>: 정본 문서 전체 grep 스윕 — <code>memory_type</code>/<code>(hold)</code>/<code>save_draft</code> 잔존 0건 (loop/ 이력 리포트 제외).</p>
+<h2 id="6-잔여-액션-수정-후">6. 잔여 액션 (수정 후)</h2>
+<ul><li><strong>P2 착수 전</strong>: council §4-6 (P2-S1 URL 상품등록 존속) 사용자 결정</li><li>08-business-model 수익 가정 — 2주 실측 후 재평가 (문서 수정 아닌 사업 검증)</li><li>로딩/빈/에러 상태 — 구현 시 05 디자인 시스템 기본값 흡수</li><li>P3-R1 — 빌더 내부 3분할</li><li>빌드 진입 시 완료 정의는 기존대로 <code>00-loop.md</code> + <code>08-derived-gates.md</code>.</li></ul>
+<div class="meta-foot">원본: <code>reverification-20260704.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

@@ -1,0 +1,53 @@
+id: performance
+path: /performance
+source: docs/planning/06-screens.md#4
+
+data_requirements:
+  - recently_published_content
+  - performance_logs
+  - revenue_summary
+  - company_memory
+
+form:
+  required:
+    - post_url
+    - views
+    - clicks
+  optional:
+    - direct_revenue
+    - hook_type
+  max_total_fields: 5
+
+actions:
+  create_performance_log:
+    endpoint: POST /api/performance-logs
+  load_week_summary:
+    endpoint: GET /api/performance-logs?period=week
+
+tests:
+  - id: performance_form_load
+    given: recently_published_content
+    when: GET /performance
+    then:
+      - recent_content_selected
+      - required_three_optional_two_fields_visible
+  - id: required_field_validation
+    given: missing_views_or_clicks
+    when: submit
+    then:
+      - validation_message_visible
+      - no_api_call
+  - id: save_performance_log
+    given: valid_fields
+    when: submit
+    then:
+      - POST /api/performance-logs called
+      - platform_detected_from_url
+      - company_memory_learning_enqueued
+  - id: week_summary_updates
+    given: saved_log
+    when: week_summary_loads
+    then:
+      - average_views_clicks_revenue_visible
+      - best_hook_type_visible
+

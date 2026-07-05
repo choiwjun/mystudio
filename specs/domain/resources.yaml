@@ -1,0 +1,229 @@
+version: 1
+source_documents:
+  - docs/planning/02-trd.md
+  - docs/planning/04-database-design.md
+  - docs/planning/06-tasks.md
+
+resources:
+  hq_status:
+    kind: derived
+    endpoints:
+      - GET /api/hq/status
+    fields:
+      - status
+      - reason
+      - pending_approvals
+      - compliance_failures
+      - needs_performance_log
+
+  hq_briefing:
+    table: hq_briefing
+    endpoints:
+      - GET /api/hq/today
+      - POST /api/hq/daily-briefing
+    fields:
+      - id
+      - date
+      - goals
+      - focus_categories
+      - priority_angle
+      - strategy_note
+      - status
+
+  opportunity_memos:
+    table: opportunity_memos
+    endpoints:
+      - POST /api/hermes/scan
+      - GET /api/hermes/opportunity-memos
+      - GET /api/hermes/opportunity-memos/:id
+    fields:
+      - id
+      - topic
+      - why_now
+      - homefeed_angle
+      - search_angle
+      - interest_tags
+      - homefeed_score
+      - search_score
+      - revenue_score
+      - risk_score
+      - score_reasons
+      - status
+      - keyword_clusters
+    constraints:
+      max_daily_cards: 5
+      cron_requires_header: CRON_SECRET
+      idempotency_key: trigger_execution_id
+
+  keyword_clusters:
+    table: keyword_clusters
+    parent: opportunity_memos
+    fields:
+      - opportunity_memo_id
+      - primary_keyword
+      - related_keywords
+      - search_volume
+      - competition_score
+
+  content_packages:
+    table: content_packages
+    endpoints:
+      - POST /api/content-packages
+      - GET /api/content-packages
+      - GET /api/content-packages/:id
+      - POST /api/content-packages/:id/generate
+    fields:
+      - id
+      - paperclip_decision_id
+      - opportunity_memo_id
+      - topic_id
+      - homefeed_score
+      - search_score
+      - revenue_score
+      - risk_score
+      - publish_readiness
+      - progress
+      - status
+    derived_fields:
+      opportunity_memo_id: "Join through paperclip_decisions.opportunity_memo_id; do not add a duplicate column."
+
+  drafts:
+    table: drafts
+    endpoints:
+      - PATCH /api/drafts/:id
+    fields:
+      - id
+      - content_package_id
+      - channel
+      - homefeed_title
+      - search_title
+      - thumbnail_text
+      - first_screen
+      - body_markdown
+      - comparison_table
+      - faq
+      - disclosure_text
+      - price_notice
+      - original_body
+      - status
+    field_notes:
+      body_markdown: "Canonical stored content."
+      body_html: "Not stored. Generate at preview/export boundary only."
+      faq: "JSON array of { question, answer }."
+
+  title_candidates:
+    table: title_candidates
+    fields:
+      - content_package_id
+      - kind
+      - text
+      - hook_type
+      - selected
+
+  products:
+    table: products
+    endpoints:
+      - POST /api/products
+      - POST /api/products/import
+      - GET /api/products
+      - PATCH /api/products/:id
+      - DELETE /api/products/:id
+    fields:
+      - product_name
+      - product_url
+      - source
+      - price
+      - price_checked_at
+      - image_url
+      - category
+      - memo
+    import_security:
+      allowlist_domains:
+        - search.shopping.naver.com
+        - shopping.naver.com
+      block_private_ips: true
+      max_redirects: 2
+      fallback: manual_product_form
+    stale_after_days: 7
+
+  shopping_connect_links:
+    table: shopping_connect_links
+    fields:
+      - product_id
+      - content_package_id
+      - shopping_connect_url
+      - commission_rate
+      - bonus_commission
+      - link_checked_at
+      - is_active
+    stale_after_days: 7
+
+  compliance_checks:
+    table: compliance_checks
+    endpoints:
+      - POST /api/compliance/check
+      - GET /api/compliance/checks/:id
+    fields:
+      - id
+      - content_package_id
+      - draft_id
+      - risk_level
+      - pass
+      - export_allowed
+      - issues
+    serialization:
+      issues: "Nested from compliance_issues table."
+
+  compliance_issues:
+    table: compliance_issues
+    endpoints:
+      - POST /api/compliance/issues/:id/dismiss
+    fields:
+      - issue_type
+      - severity
+      - message
+      - suggested_fix
+      - dismissed_at
+      - dismissed_by
+      - dismiss_reason
+    rules:
+      high: "Dismiss forbidden."
+      medium: "Dismiss reason required."
+      low: "One-click dismiss allowed with audit record."
+
+  exports:
+    table: exports
+    endpoint:
+      - POST /api/content-packages/:id/export
+    formats:
+      - markdown
+      - html
+      - copy
+      - zip
+    precondition: compliance_checks.export_allowed == true
+
+  performance_logs:
+    table: performance_logs
+    endpoints:
+      - POST /api/performance-logs
+      - GET /api/performance-logs
+      - GET /api/performance/content/:id
+    required_fields:
+      - post_url
+      - views
+      - clicks
+    optional_fields:
+      - direct_revenue
+      - hook_type
+
+  company_memory:
+    table: company_memory
+    endpoints:
+      - GET /api/memory/winning-patterns
+    canonical_pattern_type:
+      - homefeed_hook
+      - search_keyword
+      - product_angle
+      - pricing_strategy
+      - seasonal_theme
+

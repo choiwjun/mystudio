@@ -1,0 +1,70 @@
+id: content-detail
+path: /packages/:id
+source: docs/planning/06-screens.md#2
+
+data_requirements:
+  - opportunity_memo
+  - keyword_clusters
+  - products
+  - shopping_connect_links
+  - content_package
+  - drafts
+  - title_candidates
+  - compliance_checks
+  - exports
+
+tabs:
+  - preview
+  - compliance
+  - edit
+
+actions:
+  auto_save_draft:
+    endpoint: PATCH /api/drafts/:id
+    trigger: body_markdown_changed_for_2s
+    note: "No manual save/cancel buttons."
+  undo_to_original:
+    source: drafts.original_body
+  run_compliance:
+    endpoint: POST /api/compliance/check
+  approve:
+    endpoint: POST /api/hq/decisions/:id/approve
+  reject:
+    endpoint: POST /api/hq/decisions/:id/reject
+  export:
+    endpoint: POST /api/content-packages/:id/export
+    precondition: compliance_checks.export_allowed == true
+
+tests:
+  - id: content_detail_load
+    given: package_with_draft
+    when: GET /packages/:id
+    then:
+      - opportunity_memo_visible
+      - keyword_clusters_visible
+      - products_visible
+      - preview_compliance_edit_tabs_visible
+  - id: edit_autosave
+    given: edit_tab_open
+    when: body_markdown_changes_and_2s_passes
+    then:
+      - PATCH /api/drafts/:id called
+      - no_manual_save_button_rendered
+  - id: export_allowed
+    given: compliance_export_allowed_true
+    when: export_panel_loads
+    then:
+      - markdown_html_copy_zip_enabled
+  - id: high_risk_export_blocked
+    given: compliance_checks.risk_level == high
+    when: export_panel_loads
+    then:
+      - export_button_disabled
+      - high_risk_message_visible
+  - id: approve_or_reject
+    given: owner_approval_required
+    when: click_approve_or_reject
+    then:
+      - paperclip_decision_updated
+      - status_transition_recorded
+

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revision Request 02 — Council 리뷰 합의사항 반영 (2026-07-02)</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">Revision Request 02 — Council 리뷰 합의사항 반영 (2026-07-02)</div><div class="sub">revision-request-02.md</div><a class="lvl1" href="#revision-request-02-council-리뷰-합의사항-반영-2026-07-02">Revision Request 02 — Council 리뷰 합의사항 반영 (2026-07-02)</a><a class="lvl2" href="#a-02-trdmd-패치-데이터-접근-경계-신설">A. `02-trd.md` 패치 (+ §데이터 접근 경계 신설)</a><a class="lvl2" href="#b-04-database-designmd-패치">B. `04-database-design.md` 패치</a><a class="lvl2" href="#c-06-tasksmd-docsplanningloop08-derived-gatesmd-패치">C. `06-tasks.md` + `docs/planning/loop/08-derived-gates.md` 패치</a><a class="lvl2" href="#d-05-design-systemmd-06-screensmd-패치">D. `05-design-system.md` + `06-screens.md` 패치</a><a class="lvl2" href="#e-03-user-flowmd-specs-패치">E. `03-user-flow.md` + `specs/` 패치</a><a class="lvl2" href="#f-07-coding-conventionmd-패치">F. `07-coding-convention.md` 패치</a><a class="lvl2" href="#반영-금지-미합의-쟁점-사용자-결정-대기-council-report-4">⚖️ 반영 금지 (미합의 쟁점 — 사용자 결정 대기, council-report §4)</a></nav>
+<main><h1 id="revision-request-02-council-리뷰-합의사항-반영-2026-07-02">Revision Request 02 — Council 리뷰 합의사항 반영 (2026-07-02)</h1>
+<blockquote>근거: <code>docs/planning/council-report.md</code> (3인 교차검증 합의 19건 + 개선 15건) 원칙: 전체 재생성 금지 — 지목 섹션만 패치. <strong>미합의 쟁점 8건(council-report §4)은 반영 금지</strong> — 해당 부분은 &quot;⚖️ 결정 대기 (council-report §4-N)&quot; 마커만 남긴다. 사용자 승인: 2026-07-02 (합의사항 기획 반영 선택)</blockquote>
+<hr>
+<h2 id="a-02-trdmd-패치-데이터-접근-경계-신설">A. <code>02-trd.md</code> 패치 (+ §데이터 접근 경계 신설)</h2>
+<ul><li><strong>A1 [P0] Cron 보안·멱등성</strong>: 보안 절에 추가 — ① 모든 cron 트리거 엔드포인트(<code>POST /api/hermes/scan</code> 등)는 <code>CRON_SECRET</code> 헤더 검증 필수 ② 멱등키는 <strong>트리거 실행 ID 단위</strong> (일자별 unique 금지 — 03 예외 흐름 2의 [새로 스캔] 수동 재스캔과 충돌하므로).</li><li><strong>A2 [P0] AI 비용 서킷브레이커</strong>: §5(AI 어댑터) 또는 비용 절에 추가 — 소프트 임계(알림) → 하드 캡(신규 생성 차단) 2단계. 진행 중 파이프라인은 <strong>단계 경계에서 예산 체크 후 soft-stop</strong>(중단=데이터 유실 금지). 차단 상태의 HQ 헤더 알림 UI 요구 명시.</li><li><strong>A3 [P0] 비동기 실행 모델 결정 항목 신설</strong>: 동기 <code>/generate</code>는 Vercel serverless 타임아웃과 충돌해 실행 불가 가능성 명시. 후보 2안(잡 큐: Inngest/QStash/Supabase Queues vs 경량: maxDuration 연장 + 클라이언트 단계별 순차 호출)을 Open Question으로 기재하고 <strong>&quot;결정 전 P3-R1 착수 금지&quot;</strong> 게이트 문구. ⚖️ 수단 선택은 결정 대기 (council-report §4-2).</li><li><strong>A4 [P0] 인증 단일화</strong>: &quot;API 인증: Bearer Token&quot; 문구 삭제 → <strong>NextAuth 세션 쿠키 단일 방식</strong>으로 확정 (env 단일 자격증명 Credentials provider, rate limit 적용, 공격적 lockout 금지 — 유일 사용자 자기잠금 방지). 상태 변경 API CSRF 보호 + &quot;세션 만료 중 자동 저장 실패 시 로컬 보존→재로그인 후 재전송&quot; 요구 명시.</li><li><strong>A5 [P0] 성능 기준 재정의</strong>: §9 &quot;Blog Draft 생성 &lt; 10초&quot; → <strong>&quot;생성 시작 피드백 &lt; 1초 + 단계별 진행 상태 가시화 + 완료 알림 도달&quot;</strong>로 교체 (수치 완화가 아닌 측정 대상 변경). 재생성 폭주 감지용 일일 AI 호출량 기준선 항목 추가.</li><li><strong>A6 [P0] 콘텐츠 정본 = Markdown</strong>: 콘텐츠 저장 정본은 body_markdown 단일. HTML은 <strong>Export 경계에서 생성</strong> (bodyHtml 상시 저장 폐지). sanitization 이원화 — 미리보기: DOMPurify 엄격 / Export: 네이버 에디터 호환 allowlist.</li><li><strong>A7 [신설] &quot;데이터 접근 경계&quot; 섹션</strong>: RLS 미사용 + 전 접근 서버(API Routes) 경유 + Supabase anon key 클라이언트 미사용 + Storage 버킷 비공개 + pgBouncer/DIRECT_URL 구분을 명문화 (선택 자체보다 명문화 부재가 결함).</li><li><strong>A8 AI 출력 검증</strong>: §5·§6에 — 모든 AI 출력 JSON은 zod 스키마 검증 필수(1차 적용: AI 출력 → 이후 상태변경·외부유입 엔드포인트 순 단계 적용). <strong>규칙 기반 컴플라이언스 판정이 LLM 판정을 override</strong>하는 원칙 명문화.</li><li><strong>A9 Company Memory 최소 실효선</strong>: 구조화 필드 + enum 태그(자유 텍스트 프롬프트 주입 면적 축소), 표본 N&lt;5이면 추천 억제(&quot;배우는 중&quot; 정직 표시), 패턴이 어느 생성에 쓰였는지 가시성.</li></ul>
+<h2 id="b-04-database-designmd-패치">B. <code>04-database-design.md</code> 패치</h2>
+<ul><li><strong>B1 [P0] 상태 실행 계약</strong>: ① <code>PackageStatus</code> 등 상태 컬럼을 String → <strong>Prisma enum</strong>으로 (4개 테이블 분산 String 금지) ② <code>StatusTransition</code> 이력 테이블 신설(package<em>id, from, to, actor, reason?, created</em>at) ③ &quot;모든 상태 변경은 단일 전이 서비스 경유(직접 UPDATE 금지)&quot; 주석. ⚠️ <strong>최종 상태 목록 확정은 승인 워크플로 쟁점(§4-1) 결정 후</strong> — 현 types.yaml 29상태를 enum으로 옮기되 &quot;운영 상태 축소(칸반 매핑 기준) + 승인 상태 방향은 결정 대기&quot; 주석 필수.</li><li><strong>B2 [P0] Draft.bodyHtml 폐지</strong>: A6 반영 — bodyHtml 컬럼 제거(또는 &quot;Export 경계 생성, 저장 안 함&quot; 주석으로 전환), <code>faq</code>는 <strong>JSON 구조 확정</strong>: <code>[{question, answer}]</code> (타입 미확정 시 이스케이프 규칙 설계 불가).</li><li><strong>B3 Draft.originalBody 스냅샷 1컬럼 추가</strong>: [되돌림] 버튼 지원용 (풀 리비전 테이블 금지 — 1인 도구 과잉). 보존 정책 표에 반영.</li><li><strong>B4 compliance<em>issues 감사 필드</strong>: dismissed</em>by, dismissed<em>at, dismiss</em>reason 추가. 차등 규칙 주석: low=원클릭+자동기록 / medium=사유 필수 / high=dismiss 불가(기존 유지).</li><li><strong>B5 error<em>logs 마스킹</strong>: context에 request</em>body 원문 저장 금지 — 민감 필드 거부목록(password, token, secret, authorization) 마스킹 후 저장 주석.</li><li><strong>B6 company<em>memory 구조화</strong>: A9 반영 — 자유 텍스트 단일 필드면 구조화 필드+enum 태그로 분해, sample</em>count 필드(N&lt;5 억제용).</li><li><strong>B7 보존 정책 모순 정정</strong>: raw_items 90일 vs 무제한 등 보존 정책 표 내 모순 확인·통일 (council 지적 &quot;90일 vs 무제한&quot;).</li></ul>
+<h2 id="c-06-tasksmd-docsplanningloop08-derived-gatesmd-패치">C. <code>06-tasks.md</code> + <code>docs/planning/loop/08-derived-gates.md</code> 패치</h2>
+<ul><li><strong>C1 [P0] P2-R1 acceptance 추가</strong>: CRON_SECRET 검증 G/W/T + 트리거 실행 ID 멱등성 G/W/T (동일 실행 ID 재호출 시 memo 중복 생성 0건).</li><li><strong>C2 [P0] 보안 체크리스트 편입</strong>: P0 수준 체크리스트(CRON<em>SECRET / sanitization 이원화 / error</em>logs 마스킹 / <code>npm audit</code> / env 시크릿 하드코딩 금지)를 해당 태스크 acceptance 또는 gates에 편입 (풀 위협모델은 과잉 — 전원 합의).</li><li><strong>C3 [P0] P3-R1 선행 조건</strong>: &quot;비동기 실행 모델 결정(A3) 전 착수 금지&quot; 명시.</li><li><strong>C4 gates 갱신</strong>: ① MG-008-1 &quot;Draft &lt; 10초&quot; → A5 기준으로 교체 ② REQ-002/013에 CRON<em>SECRET·멱등성 HG 추가 ③ <strong>DEC-007 신설</strong>: AI 비용 서킷브레이커(왜: 무상한 AI 호출은 경제적 DoS·재생성 폭주에 무방비 / 강제: 어댑터 레이어 예산 체크 + cost</em>logs 일일 집계 테스트 / 포인터: #DEC-007) ④ <strong>DEC-008 신설</strong>: AI 출력 zod 검증 + 규칙 기반 override(A8) ⑤ DEC-003 강제 수단에 &quot;Prisma enum + 단일 전이 서비스 + StatusTransition 이력&quot;(B1) 반영 ⑥ HG-009 계열에 [무시] 감사 이력 게이트 추가(B4).</li><li><strong>C5 성과 리마인드</strong>: cron 추가 금지 — &quot;접속 시 미기록 배지&quot; 방식 명시 (P4-R2/S2 acceptance 문구).</li></ul>
+<h2 id="d-05-design-systemmd-06-screensmd-패치">D. <code>05-design-system.md</code> + <code>06-screens.md</code> 패치</h2>
+<ul><li><strong>D1 토스트 심각도 분리</strong>: &quot;4초 자동 소멸&quot; 단일 규칙 → 정보성=자동 소멸 / 에러·컴플라이언스=수동 해제 + 재확인 경로.</li><li><strong>D2 헤더 상태 색상 문법</strong>: 정상 상태(Focus)=빨강 지정 수정 (경보 피로 방지 — 정상은 중립/긍정 색). 헤더 상태 개수 4 vs 5 문서 불일치 정정.</li><li><strong>D3 사이드바 Phase 1 숨김</strong>: 미구현 하위 메뉴(~20개)는 Phase 1에서 렌더하지 않음 명시 (스텁 라우트 생성 금지).</li><li><strong>D4 터치 타깃 반응형 분기</strong>: 모바일 한정 44px, 데스크톱 28px 유지(WCAG 2.5.8 AA). [폐기] 등 파괴적 액션에만 확인 단계 추가.</li><li><strong>D5 content-detail [저장][취소] 제거</strong>: 자동 저장 유지 시 중복 버튼 제거, [되돌림]은 originalBody 스냅샷 기반(B3) 명시. 탭 명칭 충돌·Phase 2 편집 탭 유실 표기 정정 (council 지적).</li><li><strong>D6 HQ 미기록 배지</strong>: C5와 쌍 — 게시 후 성과 미기록 콘텐츠 수 배지 표시.</li></ul>
+<h2 id="e-03-user-flowmd-specs-패치">E. <code>03-user-flow.md</code> + <code>specs/</code> 패치</h2>
+<ul><li><strong>E1 [P0] 빈 프로필 가드</strong>: company_profile 미설정 시 생성 파이프라인 fail-closed 차단 + 설정 유도 — 03에 &quot;예외 흐름 5: 첫 실행/프로필 미설정&quot; 신설, settings.yaml·hq-main.yaml에 해당 상태 명시.</li><li><strong>E2 products/import 방어+폴백</strong>: products.yaml(또는 03 7단계)에 — SSRF 방어(도메인 allowlist·내부 IP 차단·리다이렉트 제한) + 실패 시 &quot;지원하지 않는 주소예요. 직접 입력하시겠어요?&quot; 수동 입력 폼 폴백. ⚖️ 기능 존속 여부는 결정 대기 (council-report §4-6).</li><li><strong>E3 on<em>hold 재검토 경로</strong>: 03 + hq-main.yaml — Hermes Desk(memo 목록) 필터 탭으로 on</em>hold 재노출. 모바일에서 우측 패널(승인 대기열 등) 접근 동선 정의. &quot;키보드 내비게이션·reduced-motion은 MVP a11y 제외&quot; 명시적 문서화.</li><li><strong>E4 types.yaml 상태 주석</strong>: B1과 쌍 — &quot;구현 enum은 이 문서가 정본, 운영 상태 축소·승인 방향은 결정 대기(§4-1)&quot; 주석 추가.</li><li><strong>E5 resources.yaml drafts</strong>: body_html 필드 처리(A6/B2와 정합) — Export 경계 생성으로 주석 변경, faq JSON 구조 명시.</li><li><strong>E6 명칭 통일</strong>: compliance<em>rules vs policy</em>rules 혼용 → <code>policy_rules</code>(04 테이블명)로 통일 (전 문서 grep).</li></ul>
+<h2 id="f-07-coding-conventionmd-패치">F. <code>07-coding-convention.md</code> 패치</h2>
+<ul><li><strong>F1</strong>: sanitization 이원화 규칙(A6) — DOMPurify 미리보기/Export allowlist 유틸 규칙.</li><li><strong>F2</strong>: 로깅 마스킹 규칙(B5) — 민감 필드 거부목록 상수 + 로거 적용 예시.</li><li><strong>F3</strong>: zod 검증 규칙(A8) — AI 출력 파싱 표준 패턴 예시.</li><li><strong>F4</strong>: 상태 전이 서비스 규칙(B1) — <code>transitionStatus(packageId, to, actor)</code> 단일 진입점, 직접 <code>db.contentPackage.update({status})</code> 금지.</li><li><strong>F5</strong>: CSRF·rate limit 규칙(A4) 1절.</li></ul>
+<hr>
+<h2 id="반영-금지-미합의-쟁점-사용자-결정-대기-council-report-4">⚖️ 반영 금지 (미합의 쟁점 — 사용자 결정 대기, council-report §4)</h2>
+<ol><li>승인 워크플로 방향 (상태 추가 vs 화면 삭제)</li><li>비동기 실행 수단 (잡 큐 vs 경량 중간해)</li><li>멀티테넌시 owner_id 컬럼</li><li>4축 점수 이중 저장 의미론 (스냅샷 vs 라이브)</li><li>칸반 예외 상태 노출 방식</li><li>P2-S1 URL 붙여넣기 존속 여부 (E2는 방어 요건만)</li><li>raw_items 저장 범위·법률 검토 스코프</li><li>Prompt Injection 투자 수위 (A8 최소선 초과분)</li></ol>
+<p>처리 상태: <strong>완료</strong> (2026-07-02 — A~F 전 섹션 반영 + 감독관 후속 3건: 02-trd·00·gates policy<em>rules 통일 / resources.yaml original</em>body 표기 / 06-tasks P0-T1 스키마 참조를 04 정본(27모델)으로 갱신. 검증: Prisma 문법 grep 0건, 결정 대기 마커 5개 파일 확인)</p>
+<div class="meta-foot">원본: <code>revision-request-02.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

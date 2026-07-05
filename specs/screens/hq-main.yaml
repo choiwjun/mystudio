@@ -1,0 +1,60 @@
+id: hq-main
+path: /
+source: docs/planning/06-screens.md#1
+
+data_requirements:
+  - hq_status
+  - hq_briefing
+  - opportunity_memos
+  - content_packages
+  - compliance_checks
+  - revenue_summary
+  - winning_patterns
+  - refresh_needed
+
+actions:
+  select_memo:
+    endpoint: POST /api/hq/decisions
+    payload:
+      decision: selected
+    result: content_package_created
+  hold_memo:
+    endpoint: POST /api/hq/decisions
+    payload:
+      decision: on_hold
+  reject_memo:
+    endpoint: POST /api/hq/decisions
+    payload:
+      decision: rejected
+  open_settings_guard:
+    trigger: missing_company_profile
+    result: "modal warning + settings link"
+
+tests:
+  - id: morning_dashboard_load
+    given: authenticated_owner
+    when: GET /
+    then:
+      - render_four_main_blocks
+      - render_right_panel
+      - render_three_to_five_memo_cards
+  - id: topic_selection_action
+    given: opportunity_memo_card
+    when: click_select
+    then:
+      - POST /api/hq/decisions called
+      - content_package created
+      - navigate_to_package_detail
+  - id: kanban_status_sync
+    given: content_packages_with_varied_status
+    when: dashboard_loads
+    then:
+      - cards_match_types_yaml_kanban_mapping
+      - progress_gauge_rendered
+  - id: missing_profile_guard
+    given: no_company_profile
+    when: trigger_scan_or_select
+    then:
+      - show_modal_warning
+      - settings_link_visible
+

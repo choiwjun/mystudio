@@ -1,0 +1,36 @@
+version: 1
+source: docs/planning/06-screens.md
+
+screens:
+  - id: hq-main
+    path: /
+    spec: specs/screens/hq-main.yaml
+  - id: content-detail
+    path: /packages/:id
+    spec: specs/screens/content-detail.yaml
+  - id: products
+    path: /products
+    spec: specs/screens/products.yaml
+  - id: performance
+    path: /performance
+    spec: specs/screens/performance.yaml
+  - id: settings
+    path: /settings
+    spec: specs/screens/settings.yaml
+
+phase1_sidebar:
+  visible_routes:
+    - /
+    - /packages/:id
+    - /products
+    - /performance
+    - /settings
+  hidden_until_implemented:
+    - /hermes/keywords
+    - /hermes/competitors
+    - /compliance/policies
+    - /memory/patterns
+    - /reports/daily
+    - /reports/weekly
+    - /reports/monthly
+

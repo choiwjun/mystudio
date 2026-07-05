@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02-trd.md: 기술 요구사항 (TRD)</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">02-trd.md: 기술 요구사항 (TRD)</div><div class="sub">02-trd.md</div><a class="lvl1" href="#02-trdmd-기술-요구사항-trd">02-trd.md: 기술 요구사항 (TRD)</a><a class="lvl2" href="#기술-스택-확정">기술 스택 (확정)</a><a class="lvl2" href="#1-시스템-구조">1. 시스템 구조</a><a class="lvl2" href="#2-핵심-엔진-설계-6개">2. 핵심 엔진 설계 (6개)</a><a class="lvl3" href="#21-paperclip-hq-의사결정-레이어">2.1 Paperclip HQ (의사결정 레이어)</a><a class="lvl3" href="#22-hermes-research-division-기회-발굴">2.2 Hermes Research Division (기회 발굴)</a><a class="lvl3" href="#23-master-content-engine-콘텐츠-생성">2.3 Master Content Engine (콘텐츠 생성)</a><a class="lvl3" href="#24-channel-profiles-채널-규칙">2.4 Channel Profiles (채널 규칙)</a><a class="lvl3" href="#25-compliance-engine-검수-규칙">2.5 Compliance Engine (검수 규칙)</a><a class="lvl3" href="#26-analytics-cfo-engine-성과-분석">2.6 Analytics / CFO Engine (성과 분석)</a><a class="lvl2" href="#3-상태값-머신">3. 상태값 머신</a><a class="lvl2" href="#35-데이터-접근-경계-설계-a7">3.5 데이터 접근 경계 설계 (A7)</a><a class="lvl2" href="#4-데이터-흐름">4. 데이터 흐름</a><a class="lvl2" href="#5-ai-비용-관리-및-서킷브레이커-a2">5. AI 비용 관리 및 서킷브레이커 (A2)</a><a class="lvl2" href="#6-ai-모델-인터페이스-어댑터-패턴">6. AI 모델 인터페이스 (어댑터 패턴)</a><a class="lvl2" href="#6-api-응답-포맷-통일">6. API 응답 포맷 (통일)</a><a class="lvl2" href="#7-환경변수-관리-vercel">7. 환경변수 관리 (Vercel)</a><a class="lvl2" href="#8-에러-처리-및-로깅">8. 에러 처리 및 로깅</a><a class="lvl2" href="#9-성능-기준-a5">9. 성능 기준 (A5)</a><a class="lvl2" href="#10-보안-컴플라이언스">10. 보안 &amp; 컴플라이언스</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="02-trdmd-기술-요구사항-trd">02-trd.md: 기술 요구사항 (TRD)</h1>
+<blockquote>Paperclip Company OS v0.7 기준일: 2026-07-02</blockquote>
+<hr>
+<h2 id="기술-스택-확정">기술 스택 (확정)</h2>
+<div class="table-wrap"><table><thead><tr><th>영역</th><th>기술</th><th>이유</th></tr></thead><tbody><tr><td><strong>Frontend</strong></td><td>Next.js (App Router)</td><td>최신 React 패턴 + 서버 컴포넌트 활용, 빠른 개발</td></tr><tr><td><strong>Backend</strong></td><td>Next.js API Routes</td><td>Vercel 올인 전략, 별도 서버 관리 불필요</td></tr><tr><td><strong>데이터베이스</strong></td><td>PostgreSQL (Supabase)</td><td>관계형 데이터 + 벡터 확장 가능 (향후 임베딩)</td></tr><tr><td><strong>ORM</strong></td><td>Prisma</td><td>TypeScript 안전성, 마이그레이션 자동화</td></tr><tr><td><strong>배포</strong></td><td>Vercel + Supabase</td><td>Serverless 운영, 자동 스케일링</td></tr><tr><td><strong>Job Runner</strong></td><td>Vercel Cron</td><td>매일 Hermes 스캔 / 성과 집계 자동화</td></tr><tr><td><strong>Storage</strong></td><td>Supabase Storage</td><td>이미지, Export 파일 저장</td></tr><tr><td><strong>AI 모델</strong></td><td>Open Question</td><td>교체 가능한 인터페이스 뒤에 구현. 후보: Claude API / OpenAI API / 작업별 라우팅</td></tr><tr><td><strong>인증</strong></td><td>NextAuth.js (단일 사용자)</td><td>간단한 로그인, 멀티유저 불필요</td></tr><tr><td><strong>모니터링</strong></td><td>Error logs + Cost logs</td><td>기본 에러 추적, AI 호출 비용 기록</td></tr><tr><td><strong>Environment</strong></td><td>Vercel Environment Variables</td><td>API 키, DB 주소 등 보안 관리</td></tr></tbody></table></div>
+<hr>
+<h2 id="1-시스템-구조">1. 시스템 구조</h2>
+<pre class="code lang-text"><code>사용자 (Owner)
+    ↓
+Next.js Frontend (App Router)
+    ├── Pages: HQ, Hermes, Content, Revenue, Compliance, Memory, Reports
+    └── API Routes: /api/*
+    ↓
+API Layer (Next.js API Routes)
+    ├── /api/hq/*              → Paperclip HQ 의사결정
+    ├── /api/hermes/*          → Hermes Research Division
+    ├── /api/content-packages/* → 콘텐츠 패키지
+    ├── /api/products/*        → 상품/링크 관리
+    ├── /api/optimizers/*      → HomeFeed / Search 최적화
+    ├── /api/compliance/*      → Compliance Gate
+    ├── /api/performance/*     → 성과 로깅
+    └── /api/memory/*          → Company Memory
+    ↓
+Service Layer (Business Logic)
+    ├── HermesService          → 기회 발굴
+    ├── ContentEngine          → 콘텐츠 생성 (AI 호출)
+    ├── ComplianceEngine       → 검수 규칙
+    ├── AnalyticsService       → 성과 분석
+    └── CompanyMemoryService   → 패턴 저장
+    ↓
+Data Layer (Prisma ORM)
+    ├── Models: company_profile, opportunity_memos, paperclip_decisions, ...
+    └── Database: PostgreSQL (Supabase)
+    ↓
+External Services
+    ├── Naver Blog Search API  → 검색 데이터 수집
+    ├── Naver Shopping API     → 상품 데이터 수집
+    ├── AI Model API           → 콘텐츠 생성 (Claude / OpenAI)
+    └── Supabase Storage       → 파일 저장</code></pre>
+<hr>
+<h2 id="2-핵심-엔진-설계-6개">2. 핵심 엔진 설계 (6개)</h2>
+<h3 id="21-paperclip-hq-의사결정-레이어">2.1 Paperclip HQ (의사결정 레이어)</h3>
+<p><strong>역할</strong>: 오늘의 기회 선택, 작업 배정, 최종 승인, 위험 판단</p>
+<p><strong>주요 API</strong>:</p>
+<pre class="code"><code>GET  /api/hq/today                    → 일일 브리핑 (상태 요약)
+POST /api/hq/daily-briefing           → 오늘 브리핑 생성 (Hermes 결과 수집)
+GET  /api/hq/status                   → HQ 대시보드 데이터
+POST /api/hq/decisions                → 주제 선택/보류/폐기
+GET  /api/hq/decisions/:id            → 의사결정 상세
+POST /api/hq/decisions/:id/approve    → 최종 승인
+POST /api/hq/decisions/:id/reject     → 검수 실패 처리</code></pre>
+<p><strong>처리 로직</strong>:</p>
+<pre class="code lang-javascript"><code>// 1. Hermes 스캔 결과 수집
+// 2. 각 기회마다 4축 점수 계산
+// 3. 위험도 필터링 (high risk 제외 또는 사용자 알림)
+// 4. 사용자 선택 대기
+// 5. 선택 후 → ContentPackage 생성 + 모든 Desk에 task 배정</code></pre>
+<h3 id="22-hermes-research-division-기회-발굴">2.2 Hermes Research Division (기회 발굴)</h3>
+<p><strong>역할</strong>: 네이버 검색 API로 시장 데이터 수집 → Opportunity Memo 생성</p>
+<p><strong>주요 API</strong>:</p>
+<pre class="code"><code>POST /api/hermes/scan                 → 전체 스캔 시작 (Vercel Cron 호출)
+POST /api/hermes/scan/naver-blog      → 블로그 검색 API 호출
+POST /api/hermes/scan/naver-shopping  → 쇼핑 API 호출
+POST /api/hermes/opportunity-memos    → Memo 생성 (AI 처리)
+GET  /api/hermes/opportunity-memos    → 모든 Memo 목록
+GET  /api/hermes/opportunity-memos/:id → 상세</code></pre>
+<p><strong>보안 및 멱등성 (A1)</strong>:</p>
+<ul><li>모든 cron 트리거 엔드포인트(<code>POST /api/hermes/scan</code> 등)는 반드시 <code>CRON_SECRET</code> 헤더 검증 필수 (외부인에 의한 AI 비용 폭주 방지)</li><li>멱등키는 <strong>트리거 실행 ID 단위로</strong> 생성 (일자별 unique 금지 — 예외 흐름의 [새로 스캔] 수동 재스캔과 충돌하므로)</li><li>동일 트리거 실행 ID로 재호출 시 opportunity_memos 중복 생성 0건 guarantee</li></ul>
+<p><strong>처리 로직</strong>:</p>
+<pre class="code"><code>1. Vercel Cron 매일 아침 6시 실행
+2. company_profile의 primary_categories로 검색 키워드 생성
+3. 네이버 블로그 검색 API: 최근 7일 인기 글 수집
+4. 네이버 쇼핑 검색 API: 트렌드 상품 수집
+5. AI로 위 데이터를 기회 1개당:
+   - why_now (왜 지금인가)
+   - homefeed_angle (피드용 각도)
+   - search_angle (검색용 각도)
+   - interest_tags (관심사 태그)
+   - shopping_connect_fit_score (수익 가능성)
+   - risk_flags (컴플라이언스 위험)
+   변환하여 opportunity_memos 테이블에 저장
+6. blocked_categories에 걸리면 자동 필터</code></pre>
+<p><strong>에러 처리 (폴백)</strong>:</p>
+<pre class="code"><code>- Naver API 장애 시: &quot;이전 스캔 결과 사용 + AI 보완&quot;
+- API 응답 느림 시: 타임아웃 10초 설정</code></pre>
+<h3 id="23-master-content-engine-콘텐츠-생성">2.3 Master Content Engine (콘텐츠 생성)</h3>
+<p><strong>역할</strong>: 선택된 주제 → 채널별 콘텐츠 생성</p>
+<p><strong>설계 원칙</strong>:</p>
+<ul><li>채널별 Agent 물리 분리 하지 않음</li><li>1개 Core Engine + Channel Profile로 처리</li><li>입력: brief, products, shopping<em>connect</em>links, policy<em>rules, channel</em>profile</li><li>출력: draft (채널별)</li></ul>
+<p><strong>주요 API</strong>:</p>
+<pre class="code"><code>POST /api/content-packages/:id/generate         → 전체 생성 시작
+POST /api/content-packages/:id/generate-blog    → 블로그 본문만
+POST /api/content-packages/:id/generate-sns     → SNS 변환만
+POST /api/content-packages/:id/regenerate-draft → 특정 draft 재생성</code></pre>
+<p><strong>처리 로직</strong>:</p>
+<pre class="code"><code>입력 분석:
+- brief: 주제, 4축 점수, 각도
+- products: [{ name, url, price, price_checked_at, memo }]
+- shopping_connect_links: [{ product_id, link, commission_rate, direct_score }]
+- company_profile: tone_rules, content_principles
+- category_playbook: 카테고리별 포맷 (자취 / 계절 / 청소 등)
+- policy_rules: 피해야 할 표현 리스트
+
+AI에 전달:
+- Prompt: ContentEngine.nunjucks 템플릿
+- Context: 모든 입력 데이터
+- 제약: token limit 6000 (안전 마진), temperature 0.7
+
+출력 저장 (drafts 테이블, A6):
+- homefeed_title: 상위 3개
+- search_title: 검색용 1개
+- thumbnail_text: 5개
+- body_markdown: 블로그 원문 (Markdown) — **콘텐츠 정본** (AI 출력)
+- body_html: **(상시 저장 폐지)** HTML은 Export 경계에서만 생성
+- disclosure_text: 쇼핑커넥트 대가성 문구
+- price_notice: 가격 기준일 표기
+- status: 'draft'
+
+**Sanitization 이원화 (A6 — 신뢰 경계)**:
+| 영역 | 방식 | 도구 | 목표 |
+|-----|------|------|------|
+| **미리보기** (에디터 내 렌더) | 엄격한 화이트리스트 | DOMPurify (default config) | XSS 원천 차단 |
+| **Export** (산출물 생성) | 허용적 allowlist | 네이버 에디터 호환 태그 (ul/ol/li/strong/em/a/img/br/p 등) | 콘텐츠 품질·가독성 유지 |
+| raw_items (제3자 검색 결과) | 외부 신뢰 불가 | DOMPurify + CSP 헤더 | Stored XSS 방어 |</code></pre>
+<p><strong>✅ 비동기 실행 모델 — 확정: 경량 중간해 (2026-07-02, council-report §4-2 사용자 결정)</strong>: 동기식 단일 <code>POST /api/content-packages/:id/generate</code>는 Vercel Serverless 타임아웃과 충돌하므로 폐기하고, 아래 방식으로 확정합니다.</p>
+<ul><li><strong>실행 방식</strong>: Vercel <code>maxDuration</code> 연장 + <strong>클라이언트가 생성 단계를 순차 호출</strong> — 제목 생성 → 검색 구조 → 본문 생성 → 검수를 각각 별도 POST로 분리 (단계당 1 함수 실행, 타임아웃 내 완료)</li><li><strong>진행 가시성</strong>: 각 단계 응답이 다음 단계 트리거 — §9 성능 기준(시작 피드백 &lt;1초 + 단계별 진행 표시)과 자연 정합</li><li><strong>비용 정합</strong>: 단계 경계 = 서킷브레이커 예산 체크 지점(§5) — soft-stop이 단계 단위로 동작, 중단 시 데이터 유실 없음</li><li><strong>중단/재개</strong>: 브라우저 이탈 시 파이프라인 중단 — content_packages.progress + drafts 저장 상태 기준으로 <strong>완료된 단계 다음부터 재개</strong> (미완료 단계 재호출은 멱등)</li><li><strong>기각안 기록</strong>: 잡 큐(Inngest/QStash/Supabase Queues)는 새 벤더 종속 + 웹훅 서명 검증 공격면 + eventual consistency UX 복잡성으로 1인 MVP에 과잉 — Phase 2+ 재검토 가능</li></ul>
+<p>P3-R1 착수 조건 충족 (선행 결정 완료).</p>
+<h3 id="24-channel-profiles-채널-규칙">2.4 Channel Profiles (채널 규칙)</h3>
+<p>각 채널별로 프롬프트 변형만 다르게:</p>
+<p><strong>NaverBlogProfile</strong></p>
+<ul><li>목표: 홈피드 + 검색 동시 최적화</li><li>출력: homefeed<em>title, search</em>title, thumbnail<em>text, first</em>screen, blog<em>body, comparison</em>table, faq, price_notice</li><li>제약: 대가성 문구 상단, 미사용 상품 후기 금지</li></ul>
+<p><strong>NaverClipProfile</strong></p>
+<ul><li>목표: 20~30초 숏폼 (Phase 2)</li><li>출력: clip<em>script, opening</em>hook, scene<em>plan, tag</em>memo, blog_cta</li><li>제약: 빠른 문제 제기 + 해결 리스트</li></ul>
+<p><strong>InstagramProfile</strong></p>
+<ul><li>목표: 저장·공유 유도</li><li>출력: carousel_slides, caption, hashtags</li><li>제약: 첫 장 강한 후킹</li></ul>
+<p><strong>ThreadsProfile</strong></p>
+<ul><li>목표: 공감·답글 유도</li><li>출력: post<em>series, question</em>ending, soft_cta</li><li>제약: 요약체 금지, 질문형 끝</li></ul>
+<p><strong>XProfile</strong></p>
+<ul><li>목표: 선명한 관점, 반응 유도</li><li>출력: single<em>posts, thread, hook</em>variants</li><li>제약: 한 문장에 관점, 링크 첫 문장 금지</li></ul>
+<h3 id="25-compliance-engine-검수-규칙">2.5 Compliance Engine (검수 규칙)</h3>
+<p><strong>역할</strong>: 규칙 기반 + LLM 의미 검수</p>
+<p><strong>주요 API</strong>:</p>
+<pre class="code"><code>POST /api/compliance/check            → Draft 검수 시작
+GET  /api/compliance/checks/:id       → 검수 보고서
+POST /api/compliance/checks/:id/apply-fixes → 자동 수정 적용</code></pre>
+<p><strong>검수 규칙</strong> (policy_rules 테이블):</p>
+<pre class="code lang-javascript"><code>규칙 1: [쇼핑커넥트]
+- 링크 존재? → 필수
+- 대가성 문구? → 필수 (위치: 본문 상단)
+- 활동 제한 채널? → 블로그 OK, SNS는 채널별 확인
+
+규칙 2: [가격]
+- 가격 포함? → price_checked_at 필수
+- 변동 가능 표현? → &quot;기준일 기준, 변동 가능&quot; 추가
+
+규칙 3: [출처]
+- 상품명·스펙의 출처 명시?
+- 이미지 출처?
+- 클레임의 근거?
+
+규칙 4: [표현]
+- 금지: 100% / 무조건 / 완벽 / 최저가 / 1위 / 최고 / 0원
+- 금지: 미사용 상품 후기체
+- 금지: 건강·효능·안전성 단정
+- 금지: 의료·투자 조언
+
+규칙 5: [내용]
+- 본문 첫 화면에서 약속 회수?
+- 낚시성? (AI 루브릭)</code></pre>
+<p><strong>검수 출력</strong> (compliance_checks 테이블):</p>
+<pre class="code lang-json"><code>{
+  &quot;pass&quot;: false,
+  &quot;risk_level&quot;: &quot;medium&quot;,  // low / medium / high
+  &quot;issues&quot;: [
+    {
+      &quot;type&quot;: &quot;price_checked_at_missing&quot;,
+      &quot;field&quot;: &quot;body_markdown&quot;,
+      &quot;severity&quot;: &quot;medium&quot;,
+      &quot;message&quot;: &quot;상품 가격이 포함되어 있으나 가격 확인일이 없습니다.&quot;,
+      &quot;suggested_fix&quot;: &quot;가격은 2026년 7월 1일 확인 기준이며 변동될 수 있습니다.&quot;
+    }
+  ],
+  &quot;export_allowed&quot;: true  // high risk 0건 + medium 사용자 확인 완료
+}</code></pre>
+<h3 id="26-analytics-cfo-engine-성과-분석">2.6 Analytics / CFO Engine (성과 분석)</h3>
+<p><strong>역할</strong>: 게시 후 성과 기록 → Company Memory 반영</p>
+<p><strong>주요 API</strong>:</p>
+<pre class="code"><code>POST /api/performance-logs            → 성과 기록
+GET  /api/performance-logs            → 성과 목록
+GET  /api/performance/content/:id     → 글별 성과 분석
+GET  /api/revenue/summary             → 수익 요약
+GET  /api/memory/winning-patterns     → 잘 된 패턴</code></pre>
+<p><strong>처리 로직</strong>:</p>
+<pre class="code"><code>1. 사용자 입력: 게시 URL, 조회수, 클릭, 수익, 후킹 유형 (5개 필드만)
+2. performance_logs에 저장
+3. 동시에 content_packages의 publish_readiness 업데이트
+4. Company Memory 규칙:
+   - 후킹 유형별 성과 저장
+   - 상품 카테고리별 수익 저장
+   - 제목 유형별 CTR 저장
+   - 실패 패턴 저장 (조회수 &lt;100 글)
+5. 다음 의사결정 시 company_memory 조회해서 추천값 계산</code></pre>
+<p><strong>Company Memory 최소 실효선 (A9)</strong>:</p>
+<div class="table-wrap"><table><thead><tr><th>요구사항</th><th>설명</th><th>근거</th></tr></thead><tbody><tr><td><strong>구조화 필드</strong></td><td>자유 텍스트 단일 <code>pattern</code> 필드 → <code>pattern_type</code>(enum) + <code>pattern_text</code> + <code>tags</code>(배열) 분해</td><td>Prompt Injection 주입면 축소, 집계 가능성 확보</td></tr><tr><td><strong>Enum 태그</strong></td><td>pattern<em>type ∈ {homefeed</em>hook, search<em>keyword, product</em>angle, pricing<em>strategy, seasonal</em>theme}</td><td>자유 텍스트 금지</td></tr><tr><td><strong>표본 N&lt;5 제어</strong></td><td>sample_count &lt; 5이면 추천 배제, 대신 &quot;배우는 중&quot; 배지 표시</td><td>통계 신뢰도 확보</td></tr><tr><td><strong>패턴 가시성</strong></td><td>memory.created<em>pattern</em>ids 필드: &quot;이 패턴이 실제 #content<em>pkg</em>123번 생성에 쓰임&quot; 추적</td><td>추천의 근거 명시</td></tr></tbody></table></div>
+<p><strong>company_memory 테이블 확장</strong> (A9):</p>
+<pre class="code lang-typescript"><code>{
+  id: string,
+  user_id: string,
+  
+  // 구조화 필드 (A9)
+  pattern_type: &quot;homefeed_hook&quot; | &quot;search_keyword&quot; | &quot;product_angle&quot; | &quot;pricing_strategy&quot; | &quot;seasonal_theme&quot;,
+  pattern_text: string,           // AI가 추출한 핵심 문구
+  tags: string[],                  // enum 태그들
+  
+  // 통계
+  sample_count: number,            // 몇 개의 performance_logs 기반인가
+  avg_views: number,
+  avg_clicks: number,
+  avg_revenue_usd: number,
+  
+  // 신뢰도 추적
+  created_pattern_ids: string[],   // 이 패턴이 생성한 content_package IDs
+  used_in_recommendations: number, // 추천에 몇 번 쓰였나
+  
+  created_at: timestamp,
+  updated_at: timestamp
+}</code></pre>
+<hr>
+<h2 id="3-상태값-머신">3. 상태값 머신</h2>
+<p><strong>주요 상태 전이</strong>:</p>
+<pre class="code lang-text"><code>opportunity_found
+    ↓
+paperclip_review
+    ├→ selected (선택)
+    ├→ on_hold (보류)
+    └→ rejected (폐기)
+    ↓ (selected만 진행)
+assigned
+    ↓
+brief_created
+    ↓
+homefeed_packaged
+    ↓
+search_structured
+    ↓
+revenue_links_attached
+    ↓
+blog_draft_generated
+    ↓
+sns_repurposed (Phase 2)
+    ↓
+compliance_checked
+    ├→ compliance_failed (수정 필요)
+    │   └→ ... (재진행)
+    └→ compliance_passed
+        ↓
+        owner_approval_required
+        ├→ approved
+        └→ needs_revisions
+        ↓ (approved만 진행)
+        exported
+        ↓
+        published_manually
+        ↓
+        performance_recorded
+        ↓
+        memory_updated
+        ↓
+        archived</code></pre>
+<p><strong>예외 상태</strong>:</p>
+<ul><li><code>duplicate</code>: 비슷한 주제 최근 발행</li><li><code>stale</code>: 가격/링크 갱신 필요</li><li><code>needs_research</code>: 데이터 부족</li><li><code>low_revenue_fit</code>: 수익 가능성 낮음</li><li><code>low_homefeed_fit</code>: 홈피드 적합도 낮음</li><li><code>policy_risk</code>: 고위험 카테고리</li></ul>
+<hr>
+<h2 id="35-데이터-접근-경계-설계-a7">3.5 데이터 접근 경계 설계 (A7)</h2>
+<p><strong>원칙</strong>: Row-Level Security(RLS) 미사용 + 모든 데이터 접근은 서버 API Routes 경유</p>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>정책</th><th>근거</th></tr></thead><tbody><tr><td><strong>데이터베이스 RLS</strong></td><td>미사용</td><td>단일 사용자 + Prisma ORM 직결이므로 row-level filtering 불필요. 대신 서버측 API에서 검증</td></tr><tr><td><strong>Supabase Anon Key</strong></td><td>클라이언트 미사용</td><td>모든 DB 접근은 API Routes 경유. anon key는 Storage 서명 URL 생성 전용</td></tr><tr><td><strong>Connection Pooling</strong></td><td>PgBouncer 또는 Vercel Postgres</td><td>DATABASE<em>URL(풀) / DIRECT</em>URL(마이그레이션) 구분 명시</td></tr><tr><td><strong>Storage 버킷</strong></td><td>비공개 (Private)</td><td>임포트 이미지, Export 파일 모두 서명된 URL만 제공 (public read 금지)</td></tr><tr><td><strong>API Routes</strong></td><td>Vercel serverless 함수</td><td>모든 비즈니스 로직 검증·로깅·속도 제한은 이 계층에서 수행</td></tr></tbody></table></div>
+<p><strong>신뢰 경계 도식</strong>:</p>
+<pre class="code"><code>클라이언트 (브라우저)
+    ↓ (HTTPS + 쿠키 세션)
+API Routes (Next.js, env 시크릿 보유)
+    ├→ Prisma ORM (DATABASE_URL)
+    ├→ Supabase Storage (SERVICE_KEY로 서명 URL 생성)
+    └→ 외부 API (NAVER_*, OPENAI_*, 등)
+    
+❌ 클라이언트 → 데이터베이스 직결 (anon key 사용 금지)
+❌ 클라이언트 → Storage 직접 업로드 (presigned URL도 제한적)</code></pre>
+<hr>
+<h2 id="4-데이터-흐름">4. 데이터 흐름</h2>
+<pre class="code lang-text"><code>매일 아침 6시
+    ↓ Vercel Cron
+Hermes 스캔
+    ├→ Naver Blog API (최근 키워드 글)
+    ├→ Naver Shopping API (인기 상품)
+    └→ AI로 기회 종합 (3~5개)
+    ↓
+opportunity_memos 테이블에 저장
+    ↓
+사용자 HQ 접속 (아침 10시경)
+    ├→ 3~5개 기회 표시
+    ├→ 각 기회의 4축 점수 + 근거 문장
+    └→ [선택] 클릭
+    ↓
+Paperclip Decision 생성
+    ├→ content_packages 생성
+    ├→ 모든 Desk에 task 배정
+    └→ status = 'assigned'
+    ↓
+AI 차례대로 처리
+    ├→ HomeFeed Desk → homefeed_score, homefeed_title
+    ├→ Search Desk → search_score, search_title, keyword_cluster
+    ├→ ShoppingConnect Desk → revenue_score, link_placement
+    ├→ Blog Desk → blog_draft 생성
+    ├→ SNS Desk → sns_variants (Phase 2)
+    └→ Compliance Desk → compliance_check
+    ↓
+Export 가능 여부 결정
+    ├→ high risk 0건? → OK
+    ├→ medium risk? → 사용자 수동 확인
+    └→ 통과 → export_allowed = true
+    ↓
+사용자 [Export] 클릭
+    ├→ Markdown, HTML, Copy Block 4가지 형식
+    └→ exports 테이블에 기록
+    ↓
+사용자 수동 게시 (네이버, SNS)
+    ↓
+사용자 성과 기록 (URL, 조회수, 클릭, 수익, 후킹 유형)
+    ├→ performance_logs 저장
+    └→ company_memory 업데이트</code></pre>
+<hr>
+<h2 id="5-ai-비용-관리-및-서킷브레이커-a2">5. AI 비용 관리 및 서킷브레이커 (A2)</h2>
+<p><strong>역할</strong>: AI 호출 비용의 실시간 추적 및 예산 보호</p>
+<p><strong>2단계 서킷브레이커</strong>:</p>
+<pre class="code"><code>1. 소프트 임계 (Soft Alert)
+   - 일일 누적 비용이 설정 한도의 70% 도달 시
+   - HQ 헤더에 경고 배지 표시: &quot;AI 생성 비용 72% 사용 중&quot;
+   - 사용자 액션 계속 허용
+
+2. 하드 캡 (Hard Stop)
+   - 일일 누적 비용이 한도 100% 도달
+   - 신규 Content 생성 및 regenerate 호출 차단
+   - 응답: { success: false, error: { code: &quot;COST_LIMIT_EXCEEDED&quot;, message: &quot;오늘의 생성 한도를 모두 사용했습니다. 내일 다시 시도하세요.&quot; } }</code></pre>
+<p><strong>진행 중 파이프라인 안전성</strong>:</p>
+<ul><li>각 단계 경계(Hermes → Content → Compliance → Export)에서 예산 체크</li><li>남은 예산 &lt; 필요 토큰이면 current step 완주 + 다음 step은 soft-stop (중단 ≠ 데이터 유실 금지)</li><li>cost_logs에 step별 누적 기록 + &quot;차단된 상태&quot; flag</li></ul>
+<p><strong>cost_logs 테이블 확장</strong>:</p>
+<pre class="code lang-javascript"><code>{
+  id: string,
+  model: string,
+  task: string,
+  input_tokens: number,
+  output_tokens: number,
+  cost_usd: number,
+  pipeline_step: &quot;hermes&quot; | &quot;content&quot; | &quot;compliance&quot; | &quot;export&quot;,
+  blocked_by_cap: boolean,   // 새로 추가
+  created_at: timestamp
+}</code></pre>
+<hr>
+<h2 id="6-ai-모델-인터페이스-어댑터-패턴">6. AI 모델 인터페이스 (어댑터 패턴)</h2>
+<p><strong>현재 Open Question</strong>, 다음 원칙으로 설계:</p>
+<pre class="code lang-typescript"><code>// AI 호출은 항상 Adapter 뒤에
+interface AIAdapterInterface {
+  generateOpportunityMemo(input: HermesInput): Promise&lt;OpportunityMemo&gt;;
+  generateBlogDraft(input: ContentInput, profile: NaverBlogProfile): Promise&lt;Draft&gt;;
+  generateSNSVariant(input: ContentInput, profile: SNSProfile): Promise&lt;SNSVariant&gt;;
+  scoreHomefeed(draft: Draft): Promise&lt;HomefeedScore&gt;;
+  checkCompliance(draft: Draft, rules: ComplianceRules): Promise&lt;ComplianceCheck&gt;;
+}
+
+// 구현체 (모델별)
+class ClaudeAdapter implements AIAdapterInterface { ... }
+class OpenAIAdapter implements AIAdapterInterface { ... }
+class HybridAdapter implements AIAdapterInterface {
+  // 작업별 최적 모델 라우팅
+}</code></pre>
+<p><strong>모델 변경 시 최소한만 수정</strong>:</p>
+<ol><li>AIAdapter 구현체만 변경</li><li>프롬프트 템플릿만 변경</li><li>API 경로 / 비용 로깅만 수정</li><li>나머지 비즈니스 로직은 그대로</li></ol>
+<p><strong>Export 어댑터 (PublisherAdapter — v2 전방 호환, 2026-07-04)</strong>:</p>
+<p>Export 생성 로직도 AI와 같은 원칙으로 어댑터 뒤에 둔다. v0.7의 유일 구현체는 네이버 수동 게시용 Export지만, v2(Studio)의 Instagram/Threads/X 발행 확장 시 인터페이스는 불변이어야 한다.</p>
+<pre class="code lang-typescript"><code>interface PublisherAdapter {
+  render(pkg: ContentPackage, draft: Draft): Promise&lt;ExportBundle&gt;; // Markdown/HTML/Copy/ZIP
+  publish?(bundle: ExportBundle): Promise&lt;PublishResult&gt;;           // v0.7 미구현 (수동 게시)
+}
+
+class NaverExportAdapter implements PublisherAdapter { ... }  // v0.7 유일 구현체
+// v2: InstagramPublisherAdapter, ThreadsPublisherAdapter, XPublisherAdapter</code></pre>
+<p>원칙: 채널 추가 시 어댑터 구현체만 추가, Export API(P3-R3)·승인 플로우·Compliance Gate는 수정하지 않는다.</p>
+<hr>
+<p><strong>AI 출력 검증 (A8)</strong>:</p>
+<p><strong>원칙</strong>: 모든 AI 출력은 zod 스키마 검증 후 저장. 규칙 기반 컴플라이언스가 LLM 판정을 override.</p>
+<p><strong>단계별 적용 우선순위</strong>:</p>
+<ol><li><strong>AI 생성 JSON 파싱</strong> (최고 우선) — 모든 generateOpportunityMemo, generateBlogDraft 출력</li><li><strong>상태 변경·외부 데이터 유입</strong> — POST /api/products/import, POST /api/hermes/scan</li><li><strong>일반 사용자 입력</strong> (낮은 우선)</li><li><strong>JSON 컬럼 내부 구조</strong> (MVP 후순위)</li></ol>
+<p><strong>검증 흐름</strong>:</p>
+<pre class="code"><code>LLM 응답 → zod 스키마 파싱 (Validation) 
+  → 실패: 에러 로깅 + 재시도 또는 폴백
+  → 성공: DB 저장
+
+Compliance Check 실행:
+  → 규칙 기반 점수 (Rule Engine) ← 이것이 최종 권위
+  → LLM 의미 검수 (의견 참고용) 
+  → Rule 점수가 High/Critical 이면 LLM 판정 무시 (export_allowed = false)
+  → Rule 점수가 Low/Medium 이면 LLM 의견 포함</code></pre>
+<p><strong>zod 스키마 예시</strong> (lib/validators.ts):</p>
+<pre class="code lang-typescript"><code>import { z } from 'zod';
+
+export const OpportunityMemoSchema = z.object({
+  topic: z.string().min(1),
+  why_now: z.string().min(10),
+  homefeed_angle: z.string().min(5),
+  search_angle: z.string().min(5),
+  interest_tags: z.array(z.string()).min(1).max(5),
+  shopping_connect_fit: z.number().min(0).max(100),
+  homefeed_fit: z.number().min(0).max(100),
+  search_fit: z.number().min(0).max(100),
+  risk_flags: z.array(z.string()),
+});
+
+export type OpportunityMemo = z.infer&lt;typeof OpportunityMemoSchema&gt;;</code></pre>
+<hr>
+<h2 id="6-api-응답-포맷-통일">6. API 응답 포맷 (통일)</h2>
+<p>모든 엔드포인트:</p>
+<pre class="code lang-json"><code>{
+  &quot;success&quot;: true,
+  &quot;data&quot;: { /* 실제 데이터 */ },
+  &quot;error&quot;: null,
+  &quot;timestamp&quot;: &quot;2026-07-02T10:30:00Z&quot;,
+  &quot;request_id&quot;: &quot;req_xxx&quot;
+}</code></pre>
+<p>에러 응답:</p>
+<pre class="code lang-json"><code>{
+  &quot;success&quot;: false,
+  &quot;data&quot;: null,
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;HERMES_API_TIMEOUT&quot;,
+    &quot;message&quot;: &quot;Naver API가 응답하지 않습니다. 이전 스캔 결과를 사용합니다.&quot;,
+    &quot;details&quot;: { &quot;api&quot;: &quot;naver_shopping&quot;, &quot;timeout_ms&quot;: 10000 }
+  },
+  &quot;timestamp&quot;: &quot;2026-07-02T10:30:00Z&quot;,
+  &quot;request_id&quot;: &quot;req_xxx&quot;
+}</code></pre>
+<hr>
+<h2 id="7-환경변수-관리-vercel">7. 환경변수 관리 (Vercel)</h2>
+<pre class="code lang-env"><code># Database
+DATABASE_URL=postgresql://...@supabase.com/postgres
+
+# Auth
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=https://paperclip.vercel.app
+
+# AI Model (미결)
+# OPENAI_API_KEY=...
+# CLAUDE_API_KEY=...
+AI_ADAPTER=hybrid
+
+# External APIs
+NAVER_BLOG_SEARCH_API_KEY=...
+NAVER_SHOPPING_API_KEY=...
+
+# Storage
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_KEY=...
+
+# Logging
+SENTRY_DSN=...
+
+# Monitoring
+COST_LOG_ENABLED=true
+ERROR_LOG_ENABLED=true</code></pre>
+<hr>
+<h2 id="8-에러-처리-및-로깅">8. 에러 처리 및 로깅</h2>
+<p><strong>error_logs 테이블</strong>:</p>
+<pre class="code lang-javascript"><code>{
+  id: string,
+  error_code: string,
+  message: string,
+  stack_trace: string,
+  context: {
+    user_id: string,
+    api_path: string,
+    request_body: object,
+    request_id: string
+  },
+  severity: 'low' | 'medium' | 'high',
+  created_at: timestamp,
+  resolved_at: timestamp | null,
+  resolution_note: string | null
+}</code></pre>
+<p><strong>cost_logs 테이블</strong>:</p>
+<pre class="code lang-javascript"><code>{
+  id: string,
+  model: string,       // claude / gpt-4 / gpt-3.5
+  task: string,        // generate_memo / generate_blog / etc
+  input_tokens: number,
+  output_tokens: number,
+  cost_usd: number,
+  created_at: timestamp
+}</code></pre>
+<hr>
+<h2 id="9-성능-기준-a5">9. 성능 기준 (A5)</h2>
+<p><strong>기준 재정의</strong>: &quot;생성 시간&quot; 중심에서 &quot;사용자 피드백&quot; 중심으로 변경</p>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>기준 변경</th><th>근거</th></tr></thead><tbody><tr><td><strong>HQ 메인 로딩</strong></td><td>&lt; 2초</td><td>(변경 없음)</td></tr><tr><td><strong>Hermes 스캔 완료</strong></td><td>&lt; 30초 (매일 아침, 병렬 처리)</td><td>(변경 없음)</td></tr><tr><td><strong>Blog Draft 생성</strong></td><td><strong>생성 시작 피드백 &lt; 1초</strong> + <strong>단계별 진행 상태 가시화</strong> + <strong>완료 알림 도달</strong></td><td>기존 &quot;&lt; 10초&quot; 는 Vercel Pro maxDuration과 충돌. 측정 대상 변경으로 비동기 대기 UX를 먼저 설계</td></tr><tr><td><strong>Compliance 검수</strong></td><td>&lt; 5초</td><td>(변경 없음)</td></tr><tr><td><strong>Export 생성</strong></td><td>&lt; 3초</td><td>(변경 없음)</td></tr><tr><td><strong>API 응답 (일반)</strong></td><td>&lt; 500ms</td><td>(변경 없음)</td></tr><tr><td><strong>DB 쿼리</strong></td><td>&lt; 100ms</td><td>(변경 없음)</td></tr></tbody></table></div>
+<p><strong>추가 기준 (A5 — AI 호출량 추적)</strong>:</p>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>목표</th></tr></thead><tbody><tr><td><strong>일일 AI 호출량 기준선</strong></td><td>초기값 TBD (cost_logs 기반 진행)</td></tr><tr><td><strong>재생성 폭주 감지</strong></td><td>동일 content_package에서 2시간 내 3회 이상 regenerate 시 경고 배지 표시</td></tr></tbody></table></div>
+<hr>
+<h2 id="10-보안-컴플라이언스">10. 보안 &amp; 컴플라이언스</h2>
+<ul><li><strong>인증 (A4 — NextAuth 세션 쿠키 단일 방식으로 확정)</strong>:<ul><li>방식: NextAuth.js 중심의 <strong>쿠키 기반 세션 인증</strong> (Bearer Token 문구 폐기)</li><li>자격증명: env 환경변수 기반 단일 Credentials provider (사용자명/비밀번호)</li><li>보호: rate limit 미들웨어 (5회 실패 시 1분 lock, 자동 lockout 금지 — 유일 사용자 자기잠금 방지)</li><li>CSRF 방어: 상태 변경 API(<code>POST /api/hq/decisions</code>, <code>POST /api/compliance/*/apply-fixes</code> 등)는 CSRF 토큰 검증 필수</li><li>세션 만료 중 자동 저장 손실 방지: 에디터 자동 저장 실패 시 로컬 스토리지 보존 → 재로그인 후 재전송 경로 제공</li></ul></li><li><strong>HTTPS</strong>: 모든 통신 암호화</li><li><strong>환경변수</strong>: Vercel Secrets (노출 금지) + <code>CRON_SECRET</code> 추가 (A1)</li><li><strong>데이터 삭제</strong>: 아카이브 후 90일 자동 삭제 정책</li><li><strong>감시</strong>: error<em>logs / cost</em>logs 매일 리뷰</li></ul>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li><strong>Upstream documents referenced</strong>: 00-source-plan.md (시스템 구조, 엔진 설계, API 설계, 기술 스택, 상태값), 01-prd.md (기능 요구사항)</li><li><strong>Downstream documents affected</strong>: 04-database-design.md (Prisma 스키마), 07-coding-convention.md (API 구현 규칙), 08-business-model.md (비용 추적)</li><li><strong>Open questions</strong>: AI 모델 최종 선택 (Claude vs OpenAI vs 하이브리드), Naver API 쿼터 확정, 초기 배포 서버 선택 (Vercel만 vs 혼합)</li><li><strong>Assumptions</strong>: Vercel Cron의 신뢰성, Naver API의 안정성, PostgreSQL의 확장성 (초기 사용자 1인)</li></ul>
+<div class="meta-foot">원본: <code>02-trd.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

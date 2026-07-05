@@ -1,0 +1,504 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum PackageStatus {
+  opportunity_found
+  paperclip_review
+  selected
+  assigned
+  brief_created
+  homefeed_packaged
+  search_structured
+  revenue_links_attached
+  blog_draft_generated
+  sns_repurposed
+  compliance_checked
+  owner_approval_required
+  approved
+  exported
+  published_manually
+  performance_recorded
+  memory_updated
+  archived
+  rejected
+  duplicate
+  stale
+  needs_research
+  needs_link_refresh
+  compliance_failed
+  price_outdated
+  policy_risk
+  low_revenue_fit
+  low_homefeed_fit
+}
+
+enum DecisionValue {
+  selected
+  on_hold
+  rejected
+}
+
+enum ExportFormat {
+  markdown
+  html
+  copy
+  zip
+}
+
+model Workspace {
+  id              String           @id @default(cuid())
+  name            String           @default("default")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  companyProfiles CompanyProfile[]
+
+  @@map("workspaces")
+}
+
+model CompanyProfile {
+  id                 String    @id @default(cuid())
+  workspaceId        String    @map("workspace_id")
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  companyName        String    @default("My Company") @map("company_name")
+  primaryCategories  String[]  @map("primary_categories")
+  blockedCategories  String[]  @map("blocked_categories")
+  toneRules          String    @map("tone_rules")
+  contentPrinciples  String    @map("content_principles")
+  revenueGoalMonthly Int       @default(500000) @map("revenue_goal_monthly")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@map("company_profile")
+}
+
+model HqBriefing {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  goals           String
+  focusCategories String[] @map("focus_categories")
+  priorityAngle   String   @map("priority_angle")
+  strategyNote    String?  @map("strategy_note")
+  status          String
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("hq_briefing")
+}
+
+model Source {
+  id              String    @id @default(cuid())
+  sourceType      String    @map("source_type")
+  apiEndpoint     String    @map("api_endpoint")
+  lastScannedAt   DateTime? @map("last_scanned_at")
+  nextScheduledAt DateTime  @default(now()) @map("next_scheduled_at")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  rawItems        RawItem[]
+
+  @@map("sources")
+}
+
+model RawItem {
+  id          String   @id @default(cuid())
+  sourceId    String   @map("source_id")
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  itemType    String   @map("item_type")
+  title       String
+  url         String
+  content     String?
+  metadata    Json?
+  collectedAt DateTime @default(now()) @map("collected_at")
+  expiresAt   DateTime @map("expires_at")
+
+  @@index([sourceId, collectedAt])
+  @@map("raw_items")
+}
+
+model OpportunityMemo {
+  id                  String              @id @default(cuid())
+  topic               String
+  whyNow              String              @map("why_now")
+  homefeedAngle       String              @map("homefeed_angle")
+  searchAngle         String              @map("search_angle")
+  interestTags        String[]            @map("interest_tags")
+  homefeedScore       Int                 @map("homefeed_score")
+  homefeedReasons     String?             @map("homefeed_reasons")
+  searchScore         Int                 @map("search_score")
+  searchReasons       String?             @map("search_reasons")
+  revenueScore        Int                 @map("revenue_score")
+  revenueReasons      String?             @map("revenue_reasons")
+  riskScore           Int                 @map("risk_score")
+  scoreReasons        String?             @map("score_reasons")
+  recommendedPackages String[]            @map("recommended_packages")
+  status              String              @default("opportunity_found")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  paperclipDecisions  PaperclipDecision[]
+  keywordClusters     KeywordCluster[]
+
+  @@index([status, createdAt])
+  @@map("opportunity_memos")
+}
+
+model PaperclipDecision {
+  id                    String           @id @default(cuid())
+  opportunityMemoId     String?          @map("opportunity_memo_id")
+  opportunityMemo       OpportunityMemo? @relation(fields: [opportunityMemoId], references: [id], onDelete: SetNull)
+  decision              DecisionValue
+  reason                Json?            @map("reason_json")
+  assignedProfiles      String[]         @map("assigned_profiles")
+  priority              Int              @default(5)
+  requiresOwnerApproval Boolean          @default(true) @map("requires_owner_approval")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  topics                Topic[]
+  contentPackages       ContentPackage[]
+
+  @@index([decision, createdAt])
+  @@map("paperclip_decisions")
+}
+
+model Topic {
+  id                  String            @id @default(cuid())
+  paperclipDecisionId String            @map("paperclip_decision_id")
+  paperclipDecision   PaperclipDecision @relation(fields: [paperclipDecisionId], references: [id], onDelete: Cascade)
+  title               String
+  description         String?
+  selectedAt          DateTime          @default(now()) @map("selected_at")
+  contentPackage      ContentPackage?
+
+  @@index([selectedAt])
+  @@map("topics")
+}
+
+model KeywordCluster {
+  id                String          @id @default(cuid())
+  opportunityMemoId String          @map("opportunity_memo_id")
+  opportunityMemo   OpportunityMemo @relation(fields: [opportunityMemoId], references: [id], onDelete: Cascade)
+  primaryKeyword    String          @map("primary_keyword")
+  relatedKeywords   String[]        @map("related_keywords")
+  searchVolume      Int?            @map("search_volume")
+  competitionScore  Int?            @map("competition_score")
+
+  @@index([opportunityMemoId])
+  @@map("keyword_clusters")
+}
+
+model ContentPackage {
+  id                   String                @id @default(cuid())
+  paperclipDecisionId  String                @map("paperclip_decision_id")
+  paperclipDecision    PaperclipDecision     @relation(fields: [paperclipDecisionId], references: [id], onDelete: Cascade)
+  topicId              String                @unique @map("topic_id")
+  topic                Topic                 @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  homefeedScore        Int?                  @map("homefeed_score")
+  searchScore          Int?                  @map("search_score")
+  revenueScore         Int?                  @map("revenue_score")
+  riskScore            Int?                  @map("risk_score")
+  publishReadiness     String                @default("not_ready") @map("publish_readiness")
+  progress             Float?
+  publishedAt          DateTime?             @map("published_at")
+  status               PackageStatus         @default(assigned)
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  statusTransitions    StatusTransition[]
+  drafts               Draft[]
+  snsVariants          SNSVariant[]
+  titleCandidates      TitleCandidate[]      @relation("TitleCandidates")
+  exports              Export[]              @relation("Exports")
+  complianceChecks     ComplianceCheck[]
+  performanceLogs      PerformanceLog[]
+  shoppingConnectLinks ShoppingConnectLink[]
+
+  @@index([status, updatedAt])
+  @@map("content_packages")
+}
+
+model Draft {
+  id               String            @id @default(cuid())
+  contentPackageId String            @map("content_package_id")
+  contentPackage   ContentPackage    @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)
+  channel          String
+  homefeedTitle    String[]          @map("homefeed_title")
+  searchTitle      String?           @map("search_title")
+  thumbnailText    String[]          @map("thumbnail_text")
+  firstScreen      String?           @map("first_screen")
+  bodyMarkdown     String?           @map("body_markdown")
+  comparisonTable  String?           @map("comparison_table")
+  faq              Json?
+  disclosureText   String?           @map("disclosure_text")
+  priceNotice      String?           @map("price_notice")
+  originalBody     String?           @map("original_body")
+  status           String            @default("draft")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  complianceChecks ComplianceCheck[]
+
+  @@index([contentPackageId, channel])
+  @@map("drafts")
+}
+
+model SNSVariant {
+  id               String         @id @default(cuid())
+  contentPackageId String         @map("content_package_id")
+  contentPackage   ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)
+  platform         String
+  format           ExportFormat
+  hook             String?
+  body             String
+  cta              String?
+  hashtags         String[]
+  score            Int?
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([contentPackageId, platform])
+  @@map("sns_variants")
+}
+
+model TitleCandidate {
+  id               String         @id @default(cuid())
+  contentPackageId String         @map("content_package_id")
+  contentPackage   ContentPackage @relation("TitleCandidates", fields: [contentPackageId], references: [id], onDelete: Cascade)
+  kind             String
+  text             String
+  hookType         String?        @map("hook_type")
+  selected         Boolean        @default(false)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([contentPackageId, kind])
+  @@map("title_candidates")
+}
+
+model Export {
+  id               String         @id @default(cuid())
+  contentPackageId String         @map("content_package_id")
+  contentPackage   ContentPackage @relation("Exports", fields: [contentPackageId], references: [id], onDelete: Cascade)
+  format           ExportFormat
+  content          String
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([contentPackageId, createdAt])
+  @@map("exports")
+}
+
+model Product {
+  id                   String                @id @default(cuid())
+  productName          String                @map("product_name")
+  productUrl           String                @map("product_url")
+  source               String
+  price                Int?
+  priceCheckedAt       DateTime?             @map("price_checked_at")
+  imageUrl             String?               @map("image_url")
+  category             String?
+  memo                 String?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  shoppingConnectLinks ShoppingConnectLink[]
+  revenueLogs          RevenueLog[]          @relation("ProductRevenue")
+
+  @@index([createdAt])
+  @@map("products")
+}
+
+model ShoppingConnectLink {
+  id                 String          @id @default(cuid())
+  productId          String          @map("product_id")
+  product            Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  contentPackageId   String?         @map("content_package_id")
+  contentPackage     ContentPackage? @relation(fields: [contentPackageId], references: [id], onDelete: SetNull)
+  shoppingConnectUrl String          @map("shopping_connect_url")
+  commissionRate     Float           @map("commission_rate")
+  bonusCommission    Float?          @map("bonus_commission")
+  linkCheckedAt      DateTime?       @map("link_checked_at")
+  isActive           Boolean         @default(true) @map("is_active")
+  notes              String?
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  @@index([productId, contentPackageId])
+  @@map("shopping_connect_links")
+}
+
+model ComplianceCheck {
+  id               String            @id @default(cuid())
+  contentPackageId String            @map("content_package_id")
+  contentPackage   ContentPackage    @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)
+  draftId          String?           @map("draft_id")
+  draft            Draft?            @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  riskLevel        String            @map("risk_level")
+  pass             Boolean           @default(false)
+  exportAllowed    Boolean           @default(false) @map("export_allowed")
+  checkedAt        DateTime          @default(now()) @map("checked_at")
+  complianceIssues ComplianceIssue[]
+
+  @@index([contentPackageId, pass])
+  @@map("compliance_checks")
+}
+
+model ComplianceIssue {
+  id                String          @id @default(cuid())
+  complianceCheckId String          @map("compliance_check_id")
+  complianceCheck   ComplianceCheck @relation(fields: [complianceCheckId], references: [id], onDelete: Cascade)
+  issueType         String          @map("issue_type")
+  severity          String
+  message           String
+  suggestedFix      String?         @map("suggested_fix")
+  dismissedAt       DateTime?       @map("dismissed_at")
+  dismissedBy       String?         @map("dismissed_by")
+  dismissReason     String?         @map("dismiss_reason")
+
+  @@map("compliance_issues")
+}
+
+model StatusTransition {
+  id               String         @id @default(cuid())
+  contentPackageId String         @map("content_package_id")
+  contentPackage   ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)
+  fromStatus       PackageStatus  @map("from_status")
+  toStatus         PackageStatus  @map("to_status")
+  actor            String
+  reason           String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([contentPackageId, createdAt])
+  @@map("status_transitions")
+}
+
+model PerformanceLog {
+  id               String         @id @default(cuid())
+  contentPackageId String         @map("content_package_id")
+  contentPackage   ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)
+  platform         String
+  postUrl          String         @map("post_url")
+  hookType         String?        @map("hook_type")
+  views            Int            @default(0)
+  clicks           Int?
+  directRevenue    Int?           @map("direct_revenue")
+  recordedAt       DateTime       @default(now()) @map("recorded_at")
+
+  @@index([contentPackageId, platform])
+  @@map("performance_logs")
+}
+
+model RevenueLog {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  product     Product  @relation("ProductRevenue", fields: [productId], references: [id], onDelete: Cascade)
+  amount      Int
+  revenueType String   @map("revenue_type")
+  referrerUrl String?  @map("referrer_url")
+  orderedAt   DateTime @map("ordered_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([productId, orderedAt])
+  @@map("revenue_logs")
+}
+
+model CostLog {
+  id           String   @id @default(cuid())
+  model        String
+  task         String
+  pipelineStep String   @map("pipeline_step")
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  costUsd      Float    @map("cost_usd")
+  blockedByCap Boolean  @default(false) @map("blocked_by_cap")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([model, createdAt])
+  @@index([pipelineStep, createdAt])
+  @@map("cost_logs")
+}
+
+model ErrorLog {
+  id             String    @id @default(cuid())
+  errorCode      String    @map("error_code")
+  message        String
+  stackTrace     String?   @map("stack_trace")
+  context        Json?
+  severity       String    @default("low")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  resolvedAt     DateTime? @map("resolved_at")
+  resolutionNote String?   @map("resolution_note")
+
+  @@index([severity, createdAt])
+  @@map("error_logs")
+}
+
+model CompanyMemory {
+  id                    String   @id @default(cuid())
+  patternType           String   @map("pattern_type")
+  category              String?
+  patternText           String   @map("pattern_text")
+  tags                  String[]
+  resultSummary         String   @map("result_summary")
+  score                 Float
+  sampleCount           Int      @map("sample_count")
+  avgViews              Float?   @map("avg_views")
+  avgClicks             Float?   @map("avg_clicks")
+  avgRevenueUsd         Float?   @map("avg_revenue_usd")
+  createdPatternIds     String[] @map("created_pattern_ids")
+  usedInRecommendations Int      @default(0) @map("used_in_recommendations")
+  evidenceJson          Json?    @map("evidence_json")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@index([patternType, category])
+  @@map("company_memory")
+}
+
+model PromptTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  engine    String
+  version   Int      @default(1)
+  template  String
+  variables Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("prompt_templates")
+}
+
+model AgentRun {
+  id                 String   @id @default(cuid())
+  agentName          String   @map("agent_name")
+  taskType           String   @map("task_type")
+  triggerExecutionId String?  @unique @map("trigger_execution_id")
+  inputJson          Json?    @map("input_json")
+  outputJson         Json?    @map("output_json")
+  status             String
+  errorMessage       String?  @map("error_message")
+  durationMs         Int?     @map("duration_ms")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([agentName, status, createdAt])
+  @@map("agent_runs")
+}
+
+model PolicyRule {
+  id          String  @id @default(cuid())
+  ruleType    String  @map("rule_type")
+  ruleCode    String  @map("rule_code")
+  description String
+  isActive    Boolean @default(true) @map("is_active")
+
+  @@unique([ruleType, ruleCode])
+  @@map("policy_rules")
+}
+
+model CategoryPlaybook {
+  id                     String   @id @default(cuid())
+  category               String
+  homefeedToneGuidance   String?  @map("homefeed_tone_guidance")
+  searchGuidance         String?  @map("search_guidance")
+  productRecommendations String[] @map("product_recommendations")
+  commonMistakes         String[] @map("common_mistakes")
+  winningPatterns        String[] @map("winning_patterns")
+
+  @@map("category_playbooks")
+}

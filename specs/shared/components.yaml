@@ -1,0 +1,42 @@
+version: 1
+source: docs/planning/05-design-system.md
+
+components:
+  score_chip:
+    fields:
+      - axis
+      - score
+      - reason
+    rule: "Show all four ScoreAxis fields when rendering an opportunity memo."
+  compliance_badge:
+    fields:
+      - severity
+      - message
+    rule: "High severity must not auto-dismiss."
+  status_label:
+    fields:
+      - status
+      - kanban_column
+    rule: "Status labels derive from specs/shared/types.yaml."
+  export_panel:
+    formats:
+      - markdown
+      - html
+      - copy
+      - zip
+    rule: "HTML is generated from body_markdown at export time; do not persist drafts.body_html."
+  product_form:
+    required_fields:
+      - product_name
+      - price
+      - category
+    fallback: "If URL import is blocked, show manual input form."
+  performance_form:
+    required_fields:
+      - post_url
+      - views
+      - clicks
+    optional_fields:
+      - direct_revenue
+      - hook_type
+

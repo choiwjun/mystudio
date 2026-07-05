@@ -1,0 +1,108 @@
+version: 1
+canonical_source: docs/planning/00-source-plan.md#10
+notes:
+  - PackageStatus is the implementation enum source for v0.7.
+  - UI kanban columns are derived from this list; arbitrary status strings are forbidden.
+
+PackageStatus:
+  main_flow:
+    - opportunity_found
+    - paperclip_review
+    - selected
+    - assigned
+    - brief_created
+    - homefeed_packaged
+    - search_structured
+    - revenue_links_attached
+    - blog_draft_generated
+    - sns_repurposed
+    - compliance_checked
+    - owner_approval_required
+    - approved
+    - exported
+    - published_manually
+    - performance_recorded
+    - memory_updated
+    - archived
+  exception:
+    - rejected
+    - duplicate
+    - stale
+    - needs_research
+    - needs_link_refresh
+    - compliance_failed
+    - price_outdated
+    - policy_risk
+    - low_revenue_fit
+    - low_homefeed_fit
+
+kanban_columns:
+  opportunities:
+    - opportunity_found
+    - paperclip_review
+    - needs_research
+    - duplicate
+    - low_homefeed_fit
+    - low_revenue_fit
+  production:
+    - selected
+    - assigned
+    - brief_created
+    - homefeed_packaged
+    - search_structured
+    - revenue_links_attached
+    - blog_draft_generated
+    - sns_repurposed
+  review:
+    - compliance_checked
+    - compliance_failed
+    - owner_approval_required
+    - policy_risk
+    - stale
+    - needs_link_refresh
+    - price_outdated
+  approved:
+    - approved
+    - exported
+  published:
+    - published_manually
+    - performance_recorded
+    - memory_updated
+    - archived
+    - rejected
+
+DecisionValue:
+  - selected
+  - on_hold
+  - rejected
+
+HookType:
+  - problem_empathy
+  - mistake_pointing
+  - comparison_choice
+  - checklist
+  - before_after
+  - price_value
+  - seasonal_timing
+
+ScoreAxis:
+  fields:
+    - homefeed_score
+    - search_score
+    - revenue_score
+    - risk_score
+  range:
+    min: 0
+    max: 100
+  rule: "risk_score is inverse: lower is safer."
+
+ComplianceSeverity:
+  - low
+  - medium
+  - high
+
+ExportFormat:
+  - markdown
+  - html
+  - copy
+  - zip

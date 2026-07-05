@@ -1,0 +1,56 @@
+id: settings
+path: /settings
+source: docs/planning/06-screens.md#5
+
+data_requirements:
+  - company_profile
+
+first_run_guard:
+  when: company_profile_missing_or_incomplete
+  behavior:
+    - show_modal_prompt
+    - require_company_name
+    - require_at_least_one_primary_category
+    - block_hermes_and_content_generation_until_saved
+
+form:
+  fields:
+    - company_name
+    - primary_categories
+    - blocked_categories
+    - tone_rules
+    - content_principles
+    - revenue_goal_monthly
+
+actions:
+  load_profile:
+    endpoint: GET /api/company-profile
+  save_profile:
+    endpoint: PATCH /api/company-profile
+  cancel_changes:
+    behavior: restore_last_saved_values
+
+tests:
+  - id: settings_load
+    given: company_profile_exists
+    when: GET /settings
+    then:
+      - all_profile_fields_visible
+  - id: first_run_guard
+    given: company_profile_missing
+    when: GET /settings
+    then:
+      - setup_modal_visible
+      - company_name_required
+  - id: category_multi_select
+    given: category_options
+    when: select_multiple_categories
+    then:
+      - primary_categories_array_updated
+  - id: save_profile
+    given: valid_profile_fields
+    when: click_save
+    then:
+      - PATCH /api/company-profile called
+      - updated_at_changed
+

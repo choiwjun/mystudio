@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07-coding-convention.md: 코딩 컨벤션</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">07-coding-convention.md: 코딩 컨벤션</div><div class="sub">07-coding-convention.md</div><a class="lvl1" href="#07-coding-conventionmd-코딩-컨벤션">07-coding-convention.md: 코딩 컨벤션</a><a class="lvl2" href="#1-typescript-설정">1. TypeScript 설정</a><a class="lvl3" href="#tsconfigjson">tsconfig.json</a><a class="lvl2" href="#2-디렉토리-구조">2. 디렉토리 구조</a><a class="lvl2" href="#3-파일-네이밍">3. 파일 네이밍</a><a class="lvl3" href="#typescriptreact">TypeScript/React</a><a class="lvl2" href="#4-타입-정의">4. 타입 정의</a><a class="lvl3" href="#기본-패턴">기본 패턴</a><a class="lvl3" href="#api-요청응답">API 요청/응답</a><a class="lvl2" href="#5-nextjs-app-router-패턴">5. Next.js App Router 패턴</a><a class="lvl3" href="#페이지-컴포넌트">페이지 컴포넌트</a><a class="lvl3" href="#서버-컴포넌트-데이터-페칭">서버 컴포넌트 (데이터 페칭)</a><a class="lvl3" href="#클라이언트-컴포넌트-상호작용">클라이언트 컴포넌트 (상호작용)</a><a class="lvl2" href="#6-api-라우트">6. API 라우트</a><a class="lvl3" href="#get-라우트-데이터-조회">GET 라우트 (데이터 조회)</a><a class="lvl3" href="#post-라우트-데이터-생성수정">POST 라우트 (데이터 생성/수정)</a><a class="lvl2" href="#7-ai-어댑터-패턴">7. AI 어댑터 패턴</a><a class="lvl3" href="#인터페이스-정의">인터페이스 정의</a><a class="lvl3" href="#claude-구현-미결">Claude 구현 (미결)</a><a class="lvl2" href="#8-데이터베이스-쿼리-prisma">8. 데이터베이스 쿼리 (Prisma)</a><a class="lvl3" href="#기본-규칙">기본 규칙</a><a class="lvl2" href="#9-에러-처리">9. 에러 처리</a><a class="lvl3" href="#에러-타입-정의">에러 타입 정의</a><a class="lvl3" href="#사용-예시">사용 예시</a><a class="lvl2" href="#10-로깅">10. 로깅</a><a class="lvl3" href="#에러-로깅">에러 로깅</a><a class="lvl3" href="#비용-로깅-ai-모델">비용 로깅 (AI 모델)</a><a class="lvl2" href="#11-sanitization-이원화-규칙-f1">11. Sanitization 이원화 규칙 (F1)</a><a class="lvl2" href="#12-로깅-마스킹-규칙-f2">12. 로깅 마스킹 규칙 (F2)</a><a class="lvl2" href="#13-zod-검증-규칙-f3">13. Zod 검증 규칙 (F3)</a><a class="lvl2" href="#14-상태-전이-서비스-규칙-f4">14. 상태 전이 서비스 규칙 (F4)</a><a class="lvl2" href="#15-csrf-및-rate-limit-규칙-f5">15. CSRF 및 Rate Limit 규칙 (F5)</a><a class="lvl2" href="#16-환경변수-관리">16. 환경변수 관리</a><a class="lvl3" href="#envexample">.env.example</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="07-coding-conventionmd-코딩-컨벤션">07-coding-convention.md: 코딩 컨벤션</h1>
+<blockquote>Paperclip Company OS v0.7 TypeScript + Next.js + Prisma 스택 기준일: 2026-07-02</blockquote>
+<hr>
+<h2 id="1-typescript-설정">1. TypeScript 설정</h2>
+<h3 id="tsconfigjson">tsconfig.json</h3>
+<pre class="code lang-json"><code>{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;ES2020&quot;,
+    &quot;lib&quot;: [&quot;ES2020&quot;, &quot;DOM&quot;, &quot;DOM.Iterable&quot;],
+    &quot;jsx&quot;: &quot;react-jsx&quot;,
+    &quot;module&quot;: &quot;ESNext&quot;,
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    
+    &quot;strict&quot;: true,
+    &quot;noImplicitAny&quot;: true,
+    &quot;strictNullChecks&quot;: true,
+    &quot;strictFunctionTypes&quot;: true,
+    &quot;strictPropertyInitialization&quot;: true,
+    &quot;noImplicitThis&quot;: true,
+    &quot;alwaysStrict&quot;: true,
+    &quot;noUnusedLocals&quot;: true,
+    &quot;noUnusedParameters&quot;: true,
+    &quot;noImplicitReturns&quot;: true,
+    &quot;noFallthroughCasesInSwitch&quot;: true,
+    &quot;allowUnusedLabels&quot;: false,
+    &quot;allowUnreachableCode&quot;: false,
+    
+    &quot;resolveJsonModule&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+    &quot;forceConsistentCasingInFileNames&quot;: true,
+    &quot;declaration&quot;: true,
+    &quot;declarationMap&quot;: true,
+    &quot;sourceMap&quot;: true,
+    &quot;esModuleInterop&quot;: true,
+    &quot;baseUrl&quot;: &quot;.&quot;,
+    &quot;paths&quot;: {
+      &quot;@/*&quot;: [&quot;./*&quot;],
+      &quot;@/app/*&quot;: [&quot;./app/*&quot;],
+      &quot;@/components/*&quot;: [&quot;./components/*&quot;],
+      &quot;@/types/*&quot;: [&quot;./types/*&quot;],
+      &quot;@/lib/*&quot;: [&quot;./lib/*&quot;]
+    }
+  },
+  &quot;include&quot;: [&quot;app/**/*.ts&quot;, &quot;app/**/*.tsx&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;]
+}</code></pre>
+<hr>
+<h2 id="2-디렉토리-구조">2. 디렉토리 구조</h2>
+<pre class="code"><code>project/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home (HQ 메인)
+│   ├── (hq)/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx             # HQ 메인
+│   │   ├── content/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx     # 콘텐츠 상세
+│   │   ├── products/
+│   │   │   └── page.tsx         # 상품 관리
+│   │   ├── performance/
+│   │   │   └── page.tsx         # 성과 기록
+│   │   └── settings/
+│   │       └── page.tsx         # 설정
+│   ├── api/                     # API Routes
+│   │   ├── hq/
+│   │   │   ├── today/route.ts
+│   │   │   ├── decisions/route.ts
+│   │   │   └── decisions/[id]/route.ts
+│   │   ├── hermes/
+│   │   │   ├── scan/route.ts
+│   │   │   └── opportunity-memos/route.ts
+│   │   ├── content-packages/
+│   │   │   ├── route.ts
+│   │   │   ├── [id]/route.ts
+│   │   │   └── [id]/generate/route.ts
+│   │   ├── products/
+│   │   │   ├── route.ts
+│   │   │   └── [id]/route.ts
+│   │   ├── compliance/
+│   │   │   ├── check/route.ts
+│   │   │   └── checks/[id]/route.ts
+│   │   ├── performance-logs/
+│   │   │   └── route.ts
+│   │   └── memory/
+│   │       └── patterns/route.ts
+│   └── middleware.ts            # Auth middleware
+├── components/                  # React 컴포넌트
+│   ├── hq/
+│   │   ├── OpportunityCard.tsx
+│   │   ├── KanbanBoard.tsx
+│   │   └── MainDashboard.tsx
+│   ├── common/
+│   │   ├── Button.tsx
+│   │   ├── Input.tsx
+│   │   ├── Card.tsx
+│   │   └── Modal.tsx
+│   └── ui/                      # 원시 UI (headless)
+│       ├── badge.tsx
+│       ├── tabs.tsx
+│       └── select.tsx
+├── lib/
+│   ├── api.ts                   # API 클라이언트
+│   ├── db.ts                    # Prisma 클라이언트
+│   ├── auth.ts                  # NextAuth
+│   ├── ai/
+│   │   ├── adapter.ts           # AI 어댑터 인터페이스
+│   │   ├── claude.ts            # Claude 구현 (미결)
+│   │   └── openai.ts            # OpenAI 구현 (미결)
+│   ├── services/
+│   │   ├── HermesService.ts
+│   │   ├── ContentEngine.ts
+│   │   ├── ComplianceEngine.ts
+│   │   └── AnalyticsService.ts
+│   └── utils/
+│       ├── date.ts
+│       ├── format.ts
+│       └── validators.ts
+├── types/
+│   ├── index.ts                 # 전체 타입 export
+│   ├── entities.ts              # DB 엔티티 타입
+│   ├── api.ts                   # API 요청/응답 타입
+│   └── services.ts              # 서비스 타입
+├── styles/
+│   ├── globals.css
+│   └── variables.css            # CSS 변수 (컬러 등)
+├── prisma/
+│   ├── schema.prisma
+│   └── seed.ts
+├── .env.example
+├── next.config.js
+└── package.json</code></pre>
+<hr>
+<h2 id="3-파일-네이밍">3. 파일 네이밍</h2>
+<h3 id="typescriptreact">TypeScript/React</h3>
+<pre class="code"><code>컴포넌트:          PascalCase.tsx
+  예: OpportunityCard.tsx, MainDashboard.tsx
+
+유틸/라이브러리:   camelCase.ts
+  예: dateUtils.ts, apiClient.ts
+
+타입/인터페이스:   PascalCase.ts
+  예: types/Entities.ts
+
+API 라우트:        camelCase/route.ts
+  예: app/api/hq/decisions/route.ts
+      app/api/hermes/scan/route.ts
+
+Prisma:           snake_case (DB 테이블)
+  예: opportunity_memos, content_packages</code></pre>
+<hr>
+<h2 id="4-타입-정의">4. 타입 정의</h2>
+<h3 id="기본-패턴">기본 패턴</h3>
+<pre class="code lang-typescript"><code>// types/entities.ts
+
+export type OpportunityMemoStatus = 
+  | &quot;opportunity_found&quot;
+  | &quot;paperclip_review&quot;
+  | &quot;selected&quot;
+  | &quot;rejected&quot;
+  | &quot;duplicate&quot;
+  | &quot;stale&quot;;
+
+export interface OpportunityMemo {
+  id: string;
+  topic: string;
+  whyNow: string;
+  homefeedAngle: string;
+  searchAngle: string;
+  interestTags: string[];
+  shoppingConnectFit: number;      // 0~100
+  shoppingConnectReason?: string;
+  homefeedFit: number;
+  homefeedReason?: string;
+  searchFit: number;
+  searchReason?: string;
+  riskFlags: string[];
+  recommendedPackages: string[];
+  source: &quot;naver_api&quot; | &quot;fallback&quot;;
+  status: OpportunityMemoStatus;
+  createdAt: Date;
+}
+
+export interface ContentPackage {
+  id: string;
+  paperclipDecisionId: string;
+  topicId: string;
+  
+  homefeedScore?: number;
+  homefeedReason?: string;
+  searchScore?: number;
+  searchReason?: string;
+  revenueScore?: number;
+  revenueReason?: string;
+  riskScore?: number;
+  riskReason?: string;
+  
+  status: string;
+  publishReadiness: &quot;ready&quot; | &quot;issues&quot; | &quot;not_ready&quot;;
+  createdAt: Date;
+  updatedAt: Date;
+}</code></pre>
+<h3 id="api-요청응답">API 요청/응답</h3>
+<pre class="code lang-typescript"><code>// types/api.ts
+
+export interface ApiResponse&lt;T&gt; {
+  success: boolean;
+  data: T | null;
+  error: {
+    code: string;
+    message: string;
+    details?: Record&lt;string, unknown&gt;;
+  } | null;
+  timestamp: string;
+  request_id: string;
+}
+
+// 예시
+export interface GetHQTodayRequest {
+  // GET이므로 body 없음
+}
+
+export interface GetHQTodayResponse extends ApiResponse&lt;{
+  company_profile: CompanyProfile;
+  today_memos: OpportunityMemo[];
+  pending_decisions: PaperclipDecision[];
+  revenue_snapshot: RevenueSnapshot;
+  compliance_alerts: ComplianceAlert[];
+}&gt; {}
+
+export interface PostHermesDecisionRequest {
+  opportunity_memo_id: string;
+  decision: &quot;selected&quot; | &quot;on_hold&quot; | &quot;rejected&quot;;
+  reason?: string[];
+}
+
+export interface PostHermesDecisionResponse extends ApiResponse&lt;{
+  content_package: ContentPackage;
+  tasks_assigned: Task[];
+}&gt; {}</code></pre>
+<hr>
+<h2 id="5-nextjs-app-router-패턴">5. Next.js App Router 패턴</h2>
+<h3 id="페이지-컴포넌트">페이지 컴포넌트</h3>
+<pre class="code lang-typescript"><code>// app/(hq)/page.tsx
+
+import { Suspense } from &quot;react&quot;;
+import { MainDashboard } from &quot;@/components/hq/MainDashboard&quot;;
+import { LoadingDashboard } from &quot;@/components/hq/LoadingDashboard&quot;;
+
+export const metadata = {
+  title: &quot;Paperclip HQ | Company OS&quot;,
+};
+
+export default function HQPage() {
+  return (
+    &lt;Suspense fallback={&lt;LoadingDashboard /&gt;}&gt;
+      &lt;MainDashboard /&gt;
+    &lt;/Suspense&gt;
+  );
+}</code></pre>
+<h3 id="서버-컴포넌트-데이터-페칭">서버 컴포넌트 (데이터 페칭)</h3>
+<pre class="code lang-typescript"><code>// components/hq/MainDashboard.tsx
+
+import { getHQToday } from &quot;@/lib/api&quot;;
+import { OpportunityCard } from &quot;./OpportunityCard&quot;;
+
+export async function MainDashboard() {
+  // 서버에서 데이터 페칭 (caching 자동 적용)
+  const response = await getHQToday();
+  
+  if (!response.success) {
+    throw new Error(&quot;Failed to load HQ data&quot;);
+  }
+
+  const {
+    company_profile,
+    today_memos,
+    pending_decisions,
+    compliance_alerts,
+  } = response.data!;
+
+  return (
+    &lt;div className=&quot;hq-container&quot;&gt;
+      {/* 각 블록 렌더링 */}
+    &lt;/div&gt;
+  );
+}</code></pre>
+<h3 id="클라이언트-컴포넌트-상호작용">클라이언트 컴포넌트 (상호작용)</h3>
+<pre class="code lang-typescript"><code>// components/hq/OpportunityCard.tsx
+
+&quot;use client&quot;;
+
+import { useState } from &quot;react&quot;;
+import { OpportunityMemo } from &quot;@/types/entities&quot;;
+import { Button } from &quot;@/components/ui/Button&quot;;
+
+interface OpportunityCardProps {
+  memo: OpportunityMemo;
+  onSelect: (memo_id: string) =&gt; Promise&lt;void&gt;;
+}
+
+export function OpportunityCard({ memo, onSelect }: OpportunityCardProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState&lt;string | null&gt;(null);
+
+  const handleSelect = async () =&gt; {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await onSelect(memo.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : &quot;Unknown error&quot;);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    &lt;div className=&quot;opportunity-card&quot;&gt;
+      &lt;h3 className=&quot;card-title&quot;&gt;{memo.topic}&lt;/h3&gt;
+      &lt;p className=&quot;card-body&quot;&gt;{memo.whyNow}&lt;/p&gt;
+      &lt;div className=&quot;scores&quot;&gt;
+        &lt;ScoreChip label=&quot;HomeFeed&quot; value={memo.homefeedFit} /&gt;
+        &lt;ScoreChip label=&quot;Search&quot; value={memo.searchFit} /&gt;
+        &lt;ScoreChip label=&quot;Revenue&quot; value={memo.shoppingConnectFit} /&gt;
+      &lt;/div&gt;
+      &lt;Button
+        onClick={handleSelect}
+        disabled={isLoading}
+        variant=&quot;primary&quot;
+      &gt;
+        {isLoading ? &quot;선택 중...&quot; : &quot;선택&quot;}
+      &lt;/Button&gt;
+      {error &amp;&amp; &lt;div className=&quot;error-message&quot;&gt;{error}&lt;/div&gt;}
+    &lt;/div&gt;
+  );
+}</code></pre>
+<hr>
+<h2 id="6-api-라우트">6. API 라우트</h2>
+<h3 id="get-라우트-데이터-조회">GET 라우트 (데이터 조회)</h3>
+<pre class="code lang-typescript"><code>// app/api/hq/today/route.ts
+
+import { NextRequest, NextResponse } from &quot;next/server&quot;;
+import { auth } from &quot;@/lib/auth&quot;;
+import { db } from &quot;@/lib/db&quot;;
+import { ApiResponse } from &quot;@/types/api&quot;;
+
+export async function GET(
+  req: NextRequest
+): Promise&lt;NextResponse&lt;ApiResponse&lt;any&gt;&gt;&gt; {
+  const requestId = crypto.randomUUID();
+
+  try {
+    // 인증 확인
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: {
+            code: &quot;UNAUTHORIZED&quot;,
+            message: &quot;Authentication required&quot;,
+          },
+          timestamp: new Date().toISOString(),
+          request_id: requestId,
+        },
+        { status: 401 }
+      );
+    }
+
+    // 데이터 조회
+    const [
+      companyProfile,
+      todayMemos,
+      pendingDecisions,
+      revenueSnapshot,
+    ] = await Promise.all([
+      db.companyProfile.findFirst(),
+      db.opportunityMemo.findMany({
+        where: {
+          status: &quot;opportunity_found&quot;,
+          created_at: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
+        orderBy: { created_at: &quot;desc&quot; },
+        take: 5,
+      }),
+      // ... 다른 조회들
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        company_profile,
+        today_memos,
+        pending_decisions,
+        revenue_snapshot,
+      },
+      error: null,
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+    });
+  } catch (error) {
+    console.error(`[${requestId}] HQ today error:`, error);
+
+    // 에러 로깅
+    await db.errorLog.create({
+      data: {
+        error_code: error instanceof Error ? error.name : &quot;UNKNOWN_ERROR&quot;,
+        message: error instanceof Error ? error.message : &quot;Unknown error&quot;,
+        severity: &quot;high&quot;,
+        context: {
+          request_id: requestId,
+          api_path: &quot;/api/hq/today&quot;,
+        },
+      },
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: &quot;INTERNAL_SERVER_ERROR&quot;,
+          message: &quot;Failed to fetch HQ data&quot;,
+        },
+        timestamp: new Date().toISOString(),
+        request_id: requestId,
+      },
+      { status: 500 }
+    );
+  }
+}</code></pre>
+<h3 id="post-라우트-데이터-생성수정">POST 라우트 (데이터 생성/수정)</h3>
+<pre class="code lang-typescript"><code>// app/api/hq/decisions/route.ts
+
+import { NextRequest, NextResponse } from &quot;next/server&quot;;
+import { auth } from &quot;@/lib/auth&quot;;
+import { db } from &quot;@/lib/db&quot;;
+import { validateDecisionRequest } from &quot;@/lib/validators&quot;;
+import { PostHermesDecisionRequest } from &quot;@/types/api&quot;;
+
+export async function POST(
+  req: NextRequest
+): Promise&lt;NextResponse&gt; {
+  const requestId = crypto.randomUUID();
+
+  try {
+    const session = await auth();
+    if (!session) return unauthorized(requestId);
+
+    // 요청 검증
+    const body = await req.json();
+    const validation = validateDecisionRequest(body);
+    if (!validation.valid) {
+      return badRequest(validation.errors, requestId);
+    }
+
+    const request = body as PostHermesDecisionRequest;
+
+    // 트랜잭션 처리
+    const result = await db.$transaction(async (tx) =&gt; {
+      // 1. OpportunityMemo 조회
+      const memo = await tx.opportunityMemo.findUnique({
+        where: { id: request.opportunity_memo_id },
+      });
+      if (!memo) throw new Error(&quot;Memo not found&quot;);
+
+      // 2. ContentPackage 생성
+      const contentPackage = await tx.contentPackage.create({
+        data: {
+          topic_id: memo.id,
+          status: &quot;assigned&quot;,
+          publish_readiness: &quot;not_ready&quot;,
+        },
+      });
+
+      // 3. PaperclipDecision 기록
+      const decision = await tx.paperclipDecision.create({
+        data: {
+          opportunity_memo_id: request.opportunity_memo_id,
+          decision: request.decision,
+          reason_json: request.reason || [],
+        },
+      });
+
+      return { contentPackage, decision };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      error: null,
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+    });
+  } catch (error) {
+    // 에러 처리
+    return serverError(error, requestId);
+  }
+}
+
+// 헬퍼 함수들
+function unauthorized(requestId: string) {
+  return NextResponse.json(
+    {
+      success: false,
+      data: null,
+      error: { code: &quot;UNAUTHORIZED&quot;, message: &quot;Not authenticated&quot; },
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+    },
+    { status: 401 }
+  );
+}
+
+function badRequest(errors: Record&lt;string, string&gt;, requestId: string) {
+  return NextResponse.json(
+    {
+      success: false,
+      data: null,
+      error: {
+        code: &quot;VALIDATION_ERROR&quot;,
+        message: &quot;Invalid request&quot;,
+        details: errors,
+      },
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+    },
+    { status: 400 }
+  );
+}
+
+function serverError(error: unknown, requestId: string) {
+  return NextResponse.json(
+    {
+      success: false,
+      data: null,
+      error: {
+        code: &quot;INTERNAL_SERVER_ERROR&quot;,
+        message: error instanceof Error ? error.message : &quot;Unknown error&quot;,
+      },
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+    },
+    { status: 500 }
+  );
+}</code></pre>
+<hr>
+<h2 id="7-ai-어댑터-패턴">7. AI 어댑터 패턴</h2>
+<h3 id="인터페이스-정의">인터페이스 정의</h3>
+<pre class="code lang-typescript"><code>// lib/ai/adapter.ts
+
+export interface AIAdapterInterface {
+  generateOpportunityMemo(input: HermesInput): Promise&lt;OpportunityMemo&gt;;
+  generateBlogDraft(input: ContentInput): Promise&lt;BlogDraft&gt;;
+  generateSNSVariant(input: ContentInput, platform: string): Promise&lt;SNSVariant&gt;;
+  scoreHomefeed(draft: Draft): Promise&lt;HomefeedScore&gt;;
+  checkCompliance(draft: Draft, rules: ComplianceRules): Promise&lt;ComplianceCheck&gt;;
+}
+
+export interface HermesInput {
+  topic: string;
+  keywords: string[];
+  searchResults: SearchResult[];
+  productCandidates: Product[];
+  categoryPlaybook?: CategoryPlaybook;
+}
+
+export interface BlogDraft {
+  homefeedTitle: string[];
+  searchTitle: string;
+  thumbnailText: string[];
+  bodyMarkdown: string;
+  disclosureText?: string;
+  priceNotice?: string;
+}</code></pre>
+<h3 id="claude-구현-미결">Claude 구현 (미결)</h3>
+<pre class="code lang-typescript"><code>// lib/ai/claude.ts
+
+import Anthropic from &quot;@anthropic-ai/sdk&quot;;
+import { AIAdapterInterface, HermesInput, BlogDraft } from &quot;./adapter&quot;;
+
+export class ClaudeAdapter implements AIAdapterInterface {
+  private client: Anthropic;
+
+  constructor() {
+    this.client = new Anthropic({
+      apiKey: process.env.CLAUDE_API_KEY,
+    });
+  }
+
+  async generateOpportunityMemo(input: HermesInput): Promise&lt;any&gt; {
+    const prompt = this.buildHermesPrompt(input);
+
+    const message = await this.client.messages.create({
+      model: &quot;claude-3-5-sonnet-20241022&quot;,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: &quot;user&quot;,
+          content: prompt,
+        },
+      ],
+    });
+
+    // 응답 파싱
+    const content = message.content[0];
+    if (content.type !== &quot;text&quot;) throw new Error(&quot;Invalid response type&quot;);
+
+    return JSON.parse(content.text);
+  }
+
+  private buildHermesPrompt(input: HermesInput): string {
+    // Nunjucks 템플릿 사용
+    return `
+당신은 Hermes 연구팀입니다.
+주어진 검색 결과와 상품 후보를 기반으로 Opportunity Memo를 생성하세요.
+
+주제: ${input.topic}
+키워드: ${input.keywords.join(&quot;, &quot;)}
+카테고리 가이드: ${input.categoryPlaybook?.homefeedToneGuidance || &quot;기본&quot;}
+
+응답 형식 (JSON):
+{
+  &quot;topic&quot;: &quot;...&quot;,
+  &quot;why_now&quot;: &quot;...&quot;,
+  &quot;homefeed_angle&quot;: &quot;...&quot;,
+  &quot;search_angle&quot;: &quot;...&quot;,
+  &quot;shopping_connect_fit&quot;: 0-100,
+  &quot;shopping_connect_reason&quot;: &quot;...&quot;,
+  &quot;homefeed_fit&quot;: 0-100,
+  &quot;homefeed_reason&quot;: &quot;...&quot;,
+  &quot;search_fit&quot;: 0-100,
+  &quot;search_reason&quot;: &quot;...&quot;,
+  &quot;risk_flags&quot;: [...]
+}
+`;
+  }
+}</code></pre>
+<hr>
+<h2 id="8-데이터베이스-쿼리-prisma">8. 데이터베이스 쿼리 (Prisma)</h2>
+<h3 id="기본-규칙">기본 규칙</h3>
+<pre class="code lang-typescript"><code>// lib/db 관련 함수들
+
+import { PrismaClient } from &quot;@prisma/client&quot;;
+
+const db = new PrismaClient();
+
+// 네이밍: snake_case로 DB 조작
+// 예외: Prisma에서 PascalCase로 변환됨
+
+// 조회
+const memos = await db.opportunityMemo.findMany({
+  where: {
+    status: &quot;opportunity_found&quot;,
+    created_at: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+  },
+  orderBy: { created_at: &quot;desc&quot; },
+  take: 5,
+  select: {
+    id: true,
+    topic: true,
+    homefeed_fit: true,
+    // 불필요한 필드 제외로 성능 최적화
+  },
+});
+
+// 생성
+const decision = await db.paperclipDecision.create({
+  data: {
+    opportunity_memo_id: memoId,
+    decision: &quot;selected&quot;,
+    reason_json: reasonArray,
+    created_at: new Date(),
+  },
+});
+
+// 업데이트 (부분)
+const updated = await db.contentPackage.update({
+  where: { id: packageId },
+  data: {
+    homefeed_score: 72,
+    homefeed_reason: &quot;...&quot;,
+    updated_at: new Date(),
+  },
+});
+
+// 트랜잭션
+const result = await db.$transaction(async (tx) =&gt; {
+  const memo = await tx.opportunityMemo.findUnique({ where: { id } });
+  const decision = await tx.paperclipDecision.create({
+    data: { opportunity_memo_id: id, decision: &quot;selected&quot; },
+  });
+  return { memo, decision };
+});</code></pre>
+<hr>
+<h2 id="9-에러-처리">9. 에러 처리</h2>
+<h3 id="에러-타입-정의">에러 타입 정의</h3>
+<pre class="code lang-typescript"><code>// lib/errors.ts
+
+export class AppError extends Error {
+  constructor(
+    public code: string,
+    public message: string,
+    public statusCode: number = 500,
+    public details?: Record&lt;string, unknown&gt;
+  ) {
+    super(message);
+    this.name = &quot;AppError&quot;;
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message: string, details?: Record&lt;string, string&gt;) {
+    super(&quot;VALIDATION_ERROR&quot;, message, 400, details);
+    this.name = &quot;ValidationError&quot;;
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(resource: string) {
+    super(&quot;NOT_FOUND&quot;, `${resource} not found`, 404);
+    this.name = &quot;NotFoundError&quot;;
+  }
+}
+
+export class ComplianceError extends AppError {
+  constructor(message: string, public issues: ComplianceIssue[]) {
+    super(&quot;COMPLIANCE_ERROR&quot;, message, 400, { issues });
+    this.name = &quot;ComplianceError&quot;;
+  }
+}</code></pre>
+<h3 id="사용-예시">사용 예시</h3>
+<pre class="code lang-typescript"><code>// API 라우트 내
+try {
+  const memo = await db.opportunityMemo.findUnique({ where: { id } });
+  if (!memo) throw new NotFoundError(&quot;Opportunity Memo&quot;);
+
+  if (memo.risk_flags.includes(&quot;high_risk&quot;)) {
+    throw new ComplianceError(&quot;High risk detected&quot;, [
+      { type: &quot;risk_flag&quot;, message: &quot;High risk flag present&quot; },
+    ]);
+  }
+} catch (error) {
+  if (error instanceof AppError) {
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+      },
+      { status: error.statusCode }
+    );
+  }
+  // 예상 밖 에러
+  throw error;
+}</code></pre>
+<hr>
+<h2 id="10-로깅">10. 로깅</h2>
+<h3 id="에러-로깅">에러 로깅</h3>
+<pre class="code lang-typescript"><code>// lib/logger.ts
+
+export async function logError(
+  code: string,
+  message: string,
+  context: Record&lt;string, unknown&gt;,
+  severity: &quot;low&quot; | &quot;medium&quot; | &quot;high&quot; = &quot;medium&quot;
+) {
+  await db.errorLog.create({
+    data: {
+      error_code: code,
+      message,
+      severity,
+      context,
+      created_at: new Date(),
+    },
+  });
+}
+
+// 사용
+logError(&quot;NAVER_API_TIMEOUT&quot;, &quot;Naver API timeout&quot;, {
+  request_id: &quot;req_123&quot;,
+  api: &quot;naver_shopping&quot;,
+  timeout_ms: 10000,
+}, &quot;high&quot;);</code></pre>
+<h3 id="비용-로깅-ai-모델">비용 로깅 (AI 모델)</h3>
+<pre class="code lang-typescript"><code>// lib/logger.ts
+
+export async function logCost(
+  model: string,
+  task: string,
+  inputTokens: number,
+  outputTokens: number,
+  costUsd: number
+) {
+  await db.costLog.create({
+    data: {
+      model,
+      task,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cost_usd: costUsd,
+      created_at: new Date(),
+    },
+  });
+}
+
+// 사용
+logCost(
+  &quot;claude&quot;,
+  &quot;generate_blog&quot;,
+  2500,
+  1200,
+  0.034  // 비용 계산: (2500 * 0.003 + 1200 * 0.015) / 1000
+);</code></pre>
+<hr>
+<h2 id="11-sanitization-이원화-규칙-f1">11. Sanitization 이원화 규칙 (F1)</h2>
+<p><strong>신뢰 경계</strong>: body<em>markdown(AI 출력) + raw</em>items(제3자 검색 결과) = 외부 신뢰 불가</p>
+<pre class="code lang-typescript"><code>// lib/sanitize.ts
+import DOMPurify from 'isomorphic-dompurify';
+
+// 미리보기용 (엄격)
+export function sanitizeForPreview(htmlString: string): string {
+  return DOMPurify.sanitize(htmlString, {
+    ALLOWED_TAGS: ['p', 'strong', 'em', 'a', 'br', 'ul', 'ol', 'li', 'img'],
+    ALLOWED_ATTR: ['href', 'src', 'alt'],
+  });
+}
+
+// Export용 (허용적 — 네이버 에디터 호환)
+export function sanitizeForExport(htmlString: string): string {
+  return DOMPurify.sanitize(htmlString, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'ul', 'ol', 'li',
+      'strong', 'em', 'u', 'a', 'h1', 'h2', 'h3',
+      'img', 'table', 'tr', 'td', 'th',
+      'blockquote', 'pre'
+    ],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'style'],
+    ALLOW_DATA_ATTR: false,
+  });
+}
+
+// Export 경계에서만 HTML 생성
+export async function generateExportHtml(draft: Draft): Promise&lt;string&gt; {
+  // body_markdown → HTML 변환 후 sanitize
+  const html = markdownToHtml(draft.body_markdown);
+  return sanitizeForExport(html);
+}</code></pre>
+<hr>
+<h2 id="12-로깅-마스킹-규칙-f2">12. 로깅 마스킹 규칙 (F2)</h2>
+<pre class="code lang-typescript"><code>// lib/logger.ts
+const SENSITIVE_FIELDS = ['password', 'token', 'secret', 'authorization', 'apiKey'];
+
+export function maskSensitiveFields(obj: any): any {
+  const masked = JSON.parse(JSON.stringify(obj));
+  
+  function mask(target: any) {
+    if (!target || typeof target !== 'object') return;
+    Object.keys(target).forEach(key =&gt; {
+      if (SENSITIVE_FIELDS.some(f =&gt; key.toLowerCase().includes(f))) {
+        target[key] = '[MASKED]';
+      } else if (typeof target[key] === 'object') {
+        mask(target[key]);
+      }
+    });
+  }
+  
+  mask(masked);
+  return masked;
+}
+
+// error_logs.context에 저장할 때
+await db.errorLog.create({
+  data: {
+    error_code: 'API_ERROR',
+    message: error.message,
+    context: {
+      request_body: maskSensitiveFields(body), // 마스킹 적용
+      api_path: '/api/auth/login',
+    },
+  },
+});</code></pre>
+<hr>
+<h2 id="13-zod-검증-규칙-f3">13. Zod 검증 규칙 (F3)</h2>
+<pre class="code lang-typescript"><code>// lib/validators.ts
+import { z } from 'zod';
+
+export const OpportunityMemoSchema = z.object({
+  topic: z.string().min(1).max(200),
+  why_now: z.string().min(10).max(500),
+  shopping_connect_fit: z.number().min(0).max(100),
+  risk_flags: z.array(z.string()),
+}).strict();
+
+// API 라우트에서
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const validated = OpportunityMemoSchema.parse(body);
+    
+    // validated는 완전히 타입 안전
+    await db.opportunityMemo.create({ data: validated });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return badRequest(
+        error.errors.map(e =&gt; ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+        requestId
+      );
+    }
+  }
+}</code></pre>
+<hr>
+<h2 id="14-상태-전이-서비스-규칙-f4">14. 상태 전이 서비스 규칙 (F4)</h2>
+<pre class="code lang-typescript"><code>// lib/services/StatusTransitionService.ts
+export async function transitionStatus(
+  packageId: string,
+  toStatus: string,
+  actor: string // &quot;system&quot; | &quot;user:123&quot; | &quot;cron&quot;
+): Promise&lt;{ success: boolean; error?: string }&gt; {
+  return await db.$transaction(async (tx) =&gt; {
+    const pkg = await tx.contentPackage.findUnique({ where: { id: packageId } });
+    
+    // 유효한 전이인지 검증
+    const validTransitions: Record&lt;string, string[]&gt; = {
+      'assigned': ['brief_created'],
+      'brief_created': ['homefeed_packaged'],
+      // ... 전체 상태 그래프 정의
+    };
+    
+    if (!validTransitions[pkg.status]?.includes(toStatus)) {
+      return { success: false, error: 'Invalid transition' };
+    }
+    
+    // 상태 변경 + 이력 기록 (원자성)
+    await tx.contentPackage.update({
+      where: { id: packageId },
+      data: { status: toStatus },
+    });
+    
+    await tx.statusTransition.create({
+      data: {
+        package_id: packageId,
+        from_status: pkg.status,
+        to_status: toStatus,
+        actor,
+        created_at: new Date(),
+      },
+    });
+    
+    return { success: true };
+  });
+}
+
+// API 라우트: 이 함수만 호출 (직접 update 금지)</code></pre>
+<hr>
+<h2 id="15-csrf-및-rate-limit-규칙-f5">15. CSRF 및 Rate Limit 규칙 (F5)</h2>
+<pre class="code lang-typescript"><code>// middleware.ts
+import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
+
+export function middleware(req: NextRequest) {
+  // GET: CSRF 토큰 생성 → 쿠키 설정
+  if (req.method === 'GET') {
+    const response = NextResponse.next();
+    response.cookies.set('__csrfToken', crypto.randomBytes(16).toString('hex'), {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 3600,
+    });
+    return response;
+  }
+  
+  // POST/PUT/DELETE: CSRF 검증
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const isStateChange = ['/api/hq/decisions', '/api/compliance'].some(
+      path =&gt; req.nextUrl.pathname.startsWith(path)
+    );
+    
+    if (isStateChange) {
+      const headerToken = req.headers.get('X-CSRF-Token');
+      const cookieToken = req.cookies.get('__csrfToken')?.value;
+      
+      if (headerToken !== cookieToken) {
+        return NextResponse.json(
+          { success: false, error: { code: 'CSRF_FAILED' } },
+          { status: 403 }
+        );
+      }
+    }
+  }
+  
+  return NextResponse.next();
+}
+
+// Rate Limit
+const requestCounts = new Map&lt;string, number&gt;();
+
+export function rateLimit(key: string, limit: number = 5): boolean {
+  const count = (requestCounts.get(key) || 0) + 1;
+  requestCounts.set(key, count);
+  
+  if (count &gt; limit) {
+    return false;
+  }
+  
+  // 1분 후 초기화
+  setTimeout(() =&gt; requestCounts.delete(key), 60000);
+  return true;
+}
+
+// API 라우트
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  
+  if (!rateLimit(`decisions:${userId}`, 5)) {
+    return NextResponse.json(
+      { success: false, error: { code: 'RATE_LIMIT_EXCEEDED' } },
+      { status: 429 }
+    );
+  }
+  
+  // ... 비즈니스 로직
+}</code></pre>
+<hr>
+<h2 id="16-환경변수-관리">16. 환경변수 관리</h2>
+<h3 id="envexample">.env.example</h3>
+<pre class="code lang-env"><code># Database
+DATABASE_URL=postgresql://...@supabase.com/postgres
+
+# Authentication
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=http://localhost:3000
+
+# AI Models (Open Question)
+AI_ADAPTER=hybrid
+# CLAUDE_API_KEY=...
+# OPENAI_API_KEY=...
+
+# External APIs
+NAVER_BLOG_SEARCH_API_KEY=...
+NAVER_SHOPPING_API_KEY=...
+
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_KEY=...
+
+# Monitoring
+SENTRY_DSN=...
+LOG_LEVEL=info
+
+# Features
+ENABLE_CLIP_GENERATION=false
+ENABLE_SNS_POSTING=false</code></pre>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li><strong>Upstream documents referenced</strong>: 00-source-plan.md (기술 스택), 02-trd.md (시스템 구조, API 설계), 04-database-design.md (Prisma 스키마)</li><li><strong>Downstream documents affected</strong>: 실제 구현 (Next.js, API, 컴포넌트), 테스트 코드</li><li><strong>Open questions</strong>: 에러 로깅의 외부 서비스 통합 (Sentry vs 자체), 로컬 개발 시 AI 비용 절감 방법, 마이그레이션 전략</li><li><strong>Assumptions</strong>: Node.js 18+, npm 10+, Git 사용 가능, TypeScript strict 모드 필수</li></ul>
+<div class="meta-foot">원본: <code>07-coding-convention.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

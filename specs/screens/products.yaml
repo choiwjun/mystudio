@@ -1,0 +1,55 @@
+id: products
+path: /products
+source: docs/planning/06-screens.md#3
+
+tabs:
+  - registered_products
+  - new_product
+  - refresh_needed
+
+data_requirements:
+  - products
+  - shopping_connect_links
+  - refresh_needed
+
+actions:
+  import_product_url:
+    endpoint: POST /api/products/import
+    security:
+      - domain_allowlist
+      - block_private_ips
+      - redirect_limit
+    fallback: manual_input_form
+  create_product_manual:
+    endpoint: POST /api/products
+  update_product:
+    endpoint: PATCH /api/products/:id
+  delete_product:
+    endpoint: DELETE /api/products/:id
+
+tests:
+  - id: registered_products_load
+    given: products_exist
+    when: tab_registered_products_loads
+    then:
+      - product_table_visible
+      - price_commission_status_visible
+  - id: url_import_success
+    given: allowed_naver_shopping_url
+    when: submit_import
+    then:
+      - parsed_fields_prefilled
+      - product_created
+  - id: url_import_blocked_fallback
+    given: blocked_or_unsupported_url
+    when: submit_import
+    then:
+      - request_blocked_safely
+      - manual_input_form_visible
+  - id: refresh_needed_list
+    given: price_checked_at_older_than_7_days
+    when: tab_refresh_needed_loads
+    then:
+      - stale_products_visible
+      - update_action_available
+

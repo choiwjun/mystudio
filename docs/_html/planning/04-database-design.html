@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04-database-design.md: 데이터베이스 설계</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">04-database-design.md: 데이터베이스 설계</div><div class="sub">04-database-design.md</div><a class="lvl1" href="#04-database-designmd-데이터베이스-설계">04-database-design.md: 데이터베이스 설계</a><a class="lvl2" href="#테이블-목록-28개">테이블 목록 (28개)</a><a class="lvl2" href="#prisma-스키마-주요-12개-테이블-enum">Prisma 스키마 (주요 12개 테이블 + Enum)</a></nav>
+<main><h1 id="04-database-designmd-데이터베이스-설계">04-database-design.md: 데이터베이스 설계</h1>
+<blockquote>Paperclip Company OS v0.7 Prisma ORM, PostgreSQL (Supabase) 기준일: 2026-07-02</blockquote>
+<hr>
+<h2 id="테이블-목록-28개">테이블 목록 (28개)</h2>
+<p><strong>핵심 그룹</strong>:</p>
+<ul><li>Platform: workspaces (v2 전방 호환 — 2026-07-04 council §4-3 종결 결정)</li><li>Company Setup: company<em>profile, hq</em>briefing</li><li>Hermes: sources, raw<em>items, opportunity</em>memos</li><li>Paperclip: paperclip_decisions</li><li>Content: topics, keyword<em>clusters, content</em>packages, drafts, sns<em>variants, title</em>candidates, exports</li><li>ShoppingConnect: products, shopping<em>connect</em>links</li><li>Compliance: compliance<em>checks, compliance</em>issues, policy<em>rules, status</em>transitions</li><li>Analytics: performance<em>logs, revenue</em>logs, cost<em>logs, error</em>logs</li><li>Memory: company<em>memory, prompt</em>templates</li><li>Admin: agent<em>runs, category</em>playbooks</li></ul>
+<hr>
+<h2 id="prisma-스키마-주요-12개-테이블-enum">Prisma 스키마 (주요 12개 테이블 + Enum)</h2>
+<pre class="code lang-prisma"><code>// ============================================
+// Enums (B1: 상태 머신 정본화)
+// ============================================
+// @SPEC docs/planning/loop/revision-request-02.md#B1
+// @NOTE 최종 상태 목록: 현 specs/shared/types.yaml PackageStatus enum을 정본으로 함
+// @NOTE 승인 워크플로 확정 (2026-07-02, council-report §4-1): 승인 상태 정식 채택 —
+//       compliance_checked → owner_approval_required → approved → exported.
+//       승인/반려 기록은 StatusTransition(actor='owner')이 감사 원장 (별도 승인 테이블 불필요).
+//       운영 상태 축소는 UI 레벨 그룹화(칸반 매핑)로 처리 — enum은 §10 정본 유지.
+//       상태 추가/제거는 types.yaml 동기화 필수
+
+enum PackageStatus {
+  // Main flow (00-source-plan §10)
+  opportunity_found
+  paperclip_review
+  selected
+  assigned
+  brief_created
+  homefeed_packaged
+  search_structured
+  revenue_links_attached
+  blog_draft_generated
+  sns_repurposed
+  compliance_checked
+  owner_approval_required
+  approved
+  exported
+  published_manually
+  performance_recorded
+  memory_updated
+  archived
+  // Exception states
+  rejected
+  duplicate
+  stale
+  needs_research
+  needs_link_refresh
+  compliance_failed
+  price_outdated
+  policy_risk
+  low_revenue_fit
+  low_homefeed_fit
+}
+</code></pre>
+<p>// ============================================ // 0. Platform (v2 전방 호환) // ============================================ // @DECISION 2026-07-04: council §4-3(멀티테넌시) 종결 — Won't도 전면 삽입도 아닌 중간해. //   workspaces 테이블 + company<em>profile 연결만 v0.7에 선삽입한다. //   v0.7 런타임은 마이그레이션 시 default 워크스페이스 1개를 시드하고 항상 단일 워크스페이스로 동작. //   나머지 테이블은 company</em>profile/상위 FK 경유로 격리되므로 workspace_id를 추가하지 않는다. //   (v2 Studio에서 루트 엔티티 확장 — docs/planning/vision/vocabulary-map.md 참조)</p>
+<p>model Workspace { id                    String   @id @default(cuid()) name                  String   @default(&quot;default&quot;) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>companyProfiles       CompanyProfile[]</p>
+<p>@@map(&quot;workspaces&quot;) }</p>
+<p>// ============================================ // 1. Company Setup // ============================================</p>
+<p>model CompanyProfile { id                    String   @id @default(cuid()) workspaceId           String   @map(&quot;workspace<em>id&quot;) // v2 전방 호환 — v0.7은 default 워크스페이스 고정 workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade) companyName           String   @default(&quot;My Company&quot;) @map(&quot;company</em>name&quot;) primaryCategories     String[] @map(&quot;primary<em>categories&quot;) // [&quot;자취&quot;, &quot;장마&quot;, &quot;청소&quot;] blockedCategories     String[] @map(&quot;blocked</em>categories&quot;) // [&quot;건강&quot;, &quot;의료&quot;, &quot;투자&quot;] toneRules             String   @map(&quot;tone<em>rules&quot;)         // &quot;친근하지만 신뢰감있는&quot; contentPrinciples     String   @map(&quot;content</em>principles&quot;) // &quot;문제 중심, 직접 체험 기반&quot; revenueGoalMonthly    Int      @default(500000) @map(&quot;revenue<em>goal</em>monthly&quot;) // ₩ createdAt             DateTime @default(now()) @map(&quot;created<em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated</em>at&quot;)</p>
+<p>@@map(&quot;company_profile&quot;) }</p>
+<p>model HqBriefing { id                    String   @id @default(cuid()) date                  DateTime @default(now()) goals                 String   // 오늘의 경영 목표 focusCategories       String[] @map(&quot;focus<em>categories&quot;) // [&quot;자취&quot;, &quot;장마&quot;] priorityAngle         String   @map(&quot;priority</em>angle&quot;)   // 우선 추진 각도 strategyNote          String?  @map(&quot;strategy<em>note&quot;) status                String   // &quot;draft&quot; / &quot;confirmed&quot; / &quot;completed&quot; createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated_at&quot;)</p>
+<p>@@map(&quot;hq_briefing&quot;) @@index([date]) }</p>
+<p>// ============================================ // 2. Hermes Research // ============================================</p>
+<p>model Source { id                    String   @id @default(cuid()) sourceType            String   @map(&quot;source<em>type&quot;)    // &quot;naver</em>blog<em>search&quot; / &quot;naver</em>shopping<em>search&quot; apiEndpoint           String   @map(&quot;api</em>endpoint&quot;) lastScannedAt         DateTime? @map(&quot;last<em>scanned</em>at&quot;) nextScheduledAt       DateTime @default(now()) @map(&quot;next<em>scheduled</em>at&quot;) status                String   @default(&quot;active&quot;) // &quot;active&quot; / &quot;disabled&quot; createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>rawItems              RawItem[]</p>
+<p>@@map(&quot;sources&quot;) }</p>
+<p>model RawItem { id                    String   @id @default(cuid()) sourceId              String @map(&quot;source<em>id&quot;) source                Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade) itemType              String   @map(&quot;item</em>type&quot;)      // &quot;blog<em>post&quot; / &quot;shopping</em>product&quot; title                 String url                   String content               String?  // 블로그 본문 일부 / 상품 설명 metadata              Json?    // 평점, 리뷰 수 등 collectedAt           DateTime @default(now()) @map(&quot;collected<em>at&quot;) expiresAt             DateTime @db.Timestamp @map(&quot;expires</em>at&quot;) // 7일 후 자동 삭제</p>
+<p>@@map(&quot;raw_items&quot;) @@index([sourceId, collectedAt]) }</p>
+<p>model OpportunityMemo { id                    String   @id @default(cuid()) topic                 String whyNow                String   @map(&quot;why<em>now&quot;)  // &quot;장마 시즌 + 자취 관심사 결합&quot; homefeedAngle         String   @map(&quot;homefeed</em>angle&quot;)  // 피드용 각도 searchAngle           String   @map(&quot;search<em>angle&quot;)    // 검색용 각도 interestTags          String[] @map(&quot;interest</em>tags&quot;)   // [&quot;자취&quot;, &quot;원룸&quot;, &quot;장마&quot;, ...] homefeedScore         Int      @map(&quot;homefeed<em>score&quot;)  // 0~100 homefeedReasons       String?  @map(&quot;homefeed</em>reasons&quot;) // 근거 문장 searchScore           Int      @map(&quot;search<em>score&quot;)    // 0~100 searchReasons         String?  @map(&quot;search</em>reasons&quot;) revenueScore          Int      @map(&quot;revenue<em>score&quot;)   // 0~100 revenueReasons        String?  @map(&quot;revenue</em>reasons&quot;) riskScore             Int      @map(&quot;risk<em>score&quot;)      // 0~100 (낮을수록 좋음) scoreReasons          String?  @map(&quot;score</em>reasons&quot;)   // 4축 근거 종합 recommendedPackages   String[] @map(&quot;recommended<em>packages&quot;) // [&quot;naver</em>blog&quot;, &quot;naver<em>clip&quot;, ...] status                String   @default(&quot;opportunity</em>found&quot;) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>paperclipDecisions    PaperclipDecision[] keywordClusters       KeywordCluster[]</p>
+<p>@@map(&quot;opportunity_memos&quot;) @@index([status, createdAt]) }</p>
+<p>// ============================================ // 3. Paperclip (의사결정) // ============================================</p>
+<p>model PaperclipDecision { id                    String   @id @default(cuid()) opportunityMemoId     String? @map(&quot;opportunity<em>memo</em>id&quot;) opportunityMemo       OpportunityMemo? @relation(fields: [opportunityMemoId], references: [id], onDelete: SetNull) decision              String   // &quot;selected&quot; / &quot;on<em>hold&quot; / &quot;rejected&quot; reason                Json?    @map(&quot;reason</em>json&quot;)  // [&quot;자취 적합&quot;, &quot;쇼핑 가능&quot;, ...] assignedProfiles      String[] @map(&quot;assigned<em>profiles&quot;) // [&quot;NaverBlogProfile&quot;, &quot;NaverClipProfile&quot;, ...] priority              Int      @default(5) // 1~10 requiresOwnerApproval Boolean  @default(true) @map(&quot;requires</em>owner<em>approval&quot;) createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;)</p>
+<p>topics                Topic[] contentPackages       ContentPackage[]</p>
+<p>@@map(&quot;paperclip_decisions&quot;) @@index([decision, createdAt]) }</p>
+<p>// ============================================ // 4. Content Production // ============================================</p>
+<p>model Topic { id                    String   @id @default(cuid()) paperclipDecisionId   String @map(&quot;paperclip<em>decision</em>id&quot;) paperclipDecision     PaperclipDecision @relation(fields: [paperclipDecisionId], references: [id], onDelete: Cascade) title                 String description           String? selectedAt            DateTime @default(now()) @map(&quot;selected_at&quot;)</p>
+<p>contentPackage        ContentPackage?</p>
+<p>@@map(&quot;topics&quot;) @@index([selectedAt]) }</p>
+<p>model KeywordCluster { id                    String   @id @default(cuid()) opportunityMemoId     String   @map(&quot;opportunity<em>memo</em>id&quot;)  // resources.yaml 계약: memo에 내장 반환 opportunityMemo       OpportunityMemo @relation(fields: [opportunityMemoId], references: [id], onDelete: Cascade) primaryKeyword        String   @map(&quot;primary<em>keyword&quot;)   // &quot;장마철 자취방 습기&quot; relatedKeywords       String[] @map(&quot;related</em>keywords&quot;)  // [&quot;장마철 자취방&quot;, &quot;습기 제거&quot;, ...] searchVolume          Int?     @map(&quot;search<em>volume&quot;)     // 월 검색량 competitionScore      Int?     @map(&quot;competition</em>score&quot;) // 0~100 경쟁도</p>
+<p>@@map(&quot;keyword_clusters&quot;) @@index([opportunityMemoId]) }</p>
+<p>model ContentPackage { id                    String   @id @default(cuid()) // resources.yaml 계약의 opportunity<em>memo</em>id는 직접 컬럼이 아니라 paperclipDecision.opportunityMemoId 조인 파생으로 응답에 포함 paperclipDecisionId   String @map(&quot;paperclip<em>decision</em>id&quot;) paperclipDecision     PaperclipDecision @relation(fields: [paperclipDecisionId], references: [id], onDelete: Cascade) topicId               String   @unique @map(&quot;topic_id&quot;) topic                 Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)</p>
+<p>// 4축 점수 (resources.yaml 기준) homefeedScore         Int?     @map(&quot;homefeed<em>score&quot;)  // 0~100 searchScore           Int?     @map(&quot;search</em>score&quot;)    // 0~100 revenueScore          Int?     @map(&quot;revenue<em>score&quot;)   // 0~100 riskScore             Int?     @map(&quot;risk</em>score&quot;)      // 0~100 (낮을수록 좋음) publishReadiness      String   @default(&quot;not<em>ready&quot;) @map(&quot;publish</em>readiness&quot;) // &quot;ready&quot; / &quot;issues&quot; / &quot;not<em>ready&quot; progress              Float?   // 0.0~1.0 진행률 publishedAt           DateTime? @map(&quot;published</em>at&quot;) status                PackageStatus @default(assigned) // @TASK B1: Prisma enum 정본화. 모든 상태 변경은 단일 전이 서비스 경유 (직접 UPDATE 금지) createdAt             DateTime @default(now()) @map(&quot;created<em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated</em>at&quot;)</p>
+<p>statusTransitions     StatusTransition[] // @TASK B1: 상태 전이 이력 drafts                Draft[] snsVariants           SNSVariant[] titleCandidates       TitleCandidate[] @relation(&quot;TitleCandidates&quot;) exports               Export[] @relation(&quot;Exports&quot;) complianceChecks      ComplianceCheck[] performanceLogs       PerformanceLog[] shoppingConnectLinks  ShoppingConnectLink[]</p>
+<p>@@map(&quot;content_packages&quot;) @@index([status, updatedAt]) }</p>
+<p>model Draft { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>channel               String   // &quot;naver<em>blog&quot; (Phase 1) / &quot;naver</em>clip&quot; / &quot;instagram&quot; / etc</p>
+<p>// HomeFeed Desk homefeedTitle         String[]  @map(&quot;homefeed<em>title&quot;)  // 최대 10개 searchTitle           String?   @map(&quot;search</em>title&quot;) thumbnailText         String[]  @map(&quot;thumbnail<em>text&quot;)  // 최대 5개 firstScreen           String?   @map(&quot;first</em>screen&quot;)    // 5초 구조 설명</p>
+<p>// Blog content bodyMarkdown          String?   @map(&quot;body<em>markdown&quot;)   // 최종 본문 (정본, 저장함) // @TASK B2: Export 경계 생성, 저장 안 함. bodyHtml 컬럼 폐지 (HTML은 Export 시점에만 생성) comparisonTable       String?   @map(&quot;comparison</em>table&quot;) // 비교표 콘텐츠 faq                   Json?     // @TASK B2: FAQ 섹션 JSON 구조: [{ question: string, answer: string }] disclosureText        String?   @map(&quot;disclosure<em>text&quot;)  // 쇼핑커넥트 대가성 문구 priceNotice           String?   @map(&quot;price</em>notice&quot;)     // 가격 기준일 표기</p>
+<p>// @TASK B3: [되돌림] 버튼 지원 (풀 리비전 테이블 금지) originalBody          String?   @map(&quot;original_body&quot;)    // bodyMarkdown AI 생성 직후 스냅샷 (되돌림 용도)</p>
+<p>// Meta status                String   @default(&quot;draft&quot;) createdAt             DateTime @default(now()) @map(&quot;created<em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated</em>at&quot;)</p>
+<p>complianceChecks      ComplianceCheck[]</p>
+<p>@@map(&quot;drafts&quot;) @@index([contentPackageId, channel]) }</p>
+<p>model SNSVariant { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>platform              String   // &quot;instagram&quot; / &quot;threads&quot; / &quot;x&quot; format                String   // &quot;carousel&quot; / &quot;post&quot; / &quot;thread&quot; hook                  String?  // 후킹 문장 body                  String   // 본문 cta                   String?  // Call-to-action hashtags              String[]  // [&quot;자취&quot;, &quot;장마&quot;]</p>
+<p>score                 Int?     // 플랫폼별 기대 점수 createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>@@map(&quot;sns_variants&quot;) @@index([contentPackageId, platform]) }</p>
+<p>model TitleCandidate { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(&quot;TitleCandidates&quot;, fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>kind                  String   // &quot;homefeed<em>title&quot; / &quot;search</em>title&quot; / &quot;thumbnail<em>text&quot; text                  String   // 후보 텍스트 hookType              String?  @map(&quot;hook</em>type&quot;)  // &quot;problem<em>empathy&quot; / &quot;mistake</em>pointing&quot; / etc selected              Boolean  @default(false) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>@@map(&quot;title_candidates&quot;) @@index([contentPackageId, kind]) }</p>
+<p>model Export { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(&quot;Exports&quot;, fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>format                String   // &quot;markdown&quot; / &quot;html&quot; / &quot;json&quot; content               String   // 실제 내보낸 콘텐츠 createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>@@map(&quot;exports&quot;) @@index([contentPackageId, createdAt]) }</p>
+<p>// ============================================ // 5. ShoppingConnect // ============================================</p>
+<p>model Product { id                    String   @id @default(cuid()) productName           String   @map(&quot;product<em>name&quot;) productUrl            String   @map(&quot;product</em>url&quot;) source                String   // &quot;naver<em>shopping&quot; / &quot;naver</em>blog&quot; / &quot;manual&quot; price                 Int? priceCheckedAt        DateTime? @map(&quot;price<em>checked</em>at&quot;) // stale 기준: 7일 초과 시 갱신 필요 imageUrl              String?   @map(&quot;image<em>url&quot;) category              String?  // &quot;제습제&quot; / &quot;제습기&quot; memo                  String?  // 사용자 메모 createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated_at&quot;)</p>
+<p>shoppingConnectLinks  ShoppingConnectLink[] revenueLogs           RevenueLog[] @relation(&quot;ProductRevenue&quot;)</p>
+<p>@@map(&quot;products&quot;) @@index([createdAt]) }</p>
+<p>model ShoppingConnectLink { id                    String   @id @default(cuid()) productId             String @map(&quot;product<em>id&quot;) product               Product  @relation(fields: [productId], references: [id], onDelete: Cascade) contentPackageId      String? @map(&quot;content</em>package_id&quot;) contentPackage        ContentPackage? @relation(fields: [contentPackageId], references: [id], onDelete: SetNull)</p>
+<p>shoppingConnectUrl    String   @map(&quot;shopping<em>connect</em>url&quot;)  // 쇼핑커넥트 생성 링크 commissionRate        Float    @map(&quot;commission<em>rate&quot;)       // 2.0 (%) bonusCommission       Float?   @map(&quot;bonus</em>commission&quot;)      // 추가 보너스 linkCheckedAt         DateTime? @map(&quot;link<em>checked</em>at&quot;)      // stale 기준: 7일 초과 시 갱신 필요 isActive              Boolean  @default(true) @map(&quot;is_active&quot;) notes                 String?</p>
+<p>createdAt             DateTime @default(now()) @map(&quot;created<em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated</em>at&quot;)</p>
+<p>@@map(&quot;shopping<em>connect</em>links&quot;) @@index([productId, contentPackageId]) }</p>
+<p>// ============================================ // 6. Compliance // ============================================</p>
+<p>model ComplianceCheck { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade) draftId               String? @map(&quot;draft_id&quot;) draft                 Draft?   @relation(fields: [draftId], references: [id], onDelete: SetNull)</p>
+<p>riskLevel             String   @map(&quot;risk<em>level&quot;)  // &quot;low&quot; / &quot;medium&quot; / &quot;high&quot; pass                  Boolean  @default(false) exportAllowed         Boolean  @default(false) @map(&quot;export</em>allowed&quot;) checkedAt             DateTime @default(now()) @map(&quot;checked_at&quot;)</p>
+<p>complianceIssues      ComplianceIssue[] // API 응답에서는 issues[] 중첩 배열로 직렬화 (resources.yaml 계약 — DB는 정규화 유지)</p>
+<p>@@map(&quot;compliance_checks&quot;) @@index([contentPackageId, pass]) }</p>
+<p>model ComplianceIssue { id                    String   @id @default(cuid()) complianceCheckId     String @map(&quot;compliance<em>check</em>id&quot;) complianceCheck       ComplianceCheck @relation(fields: [complianceCheckId], references: [id], onDelete: Cascade)</p>
+<p>issueType             String   @map(&quot;issue<em>type&quot;)       // &quot;price</em>checked<em>at</em>missing&quot; / &quot;disclosure<em>missing&quot; / etc severity              String   // &quot;low&quot; / &quot;medium&quot; / &quot;high&quot; message               String suggestedFix          String?  @map(&quot;suggested</em>fix&quot;)</p>
+<p>// @TASK B4: [무시] 감사 이력 (차등 규칙: low=원클릭+자동기록 / medium=사유 필수 / high=dismiss 불가) dismissedAt           DateTime? @map(&quot;dismissed<em>at&quot;) dismissedBy           String?   @map(&quot;dismissed</em>by&quot;)    // 사용자 ID dismissReason         String?   @map(&quot;dismiss_reason&quot;)  // medium/high 필수, low는 선택</p>
+<p>@@map(&quot;compliance_issues&quot;) }</p>
+<p>model StatusTransition { id                    String   @id @default(cuid()) contentPackageId      String   @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>fromStatus            PackageStatus @map(&quot;from<em>status&quot;) toStatus              PackageStatus @map(&quot;to</em>status&quot;) actor                 String   // 상태 변경 주체 (사용자 ID 또는 &quot;system&quot;) reason                String?  // 상태 변경 사유 (선택) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>// @TASK B1: 모든 상태 변경은 단일 전이 서비스 경유 (직접 UPDATE 금지) // 이 테이블은 모든 상태 전이를 기록하여 감시 추적 및 상태 머신 검증 이력 제공</p>
+<p>@@map(&quot;status_transitions&quot;) @@index([contentPackageId, createdAt]) }</p>
+<p>// ============================================ // 7. Analytics // ============================================</p>
+<p>model PerformanceLog { id                    String   @id @default(cuid()) contentPackageId      String @map(&quot;content<em>package</em>id&quot;) contentPackage        ContentPackage @relation(fields: [contentPackageId], references: [id], onDelete: Cascade)</p>
+<p>platform              String   // &quot;naver<em>blog&quot; / &quot;naver</em>clip&quot; postUrl               String   @map(&quot;post<em>url&quot;) hookType              String?  @map(&quot;hook</em>type&quot;)  // &quot;problem<em>empathy&quot; / &quot;mistake</em>pointing&quot; / etc</p>
+<p>views                 Int      @default(0) clicks                Int? directRevenue         Int?     @map(&quot;direct<em>revenue&quot;)  // ₩ recordedAt            DateTime @default(now()) @map(&quot;recorded</em>at&quot;)</p>
+<p>@@map(&quot;performance_logs&quot;) @@index([contentPackageId, platform]) }</p>
+<p>model RevenueLog { id                    String   @id @default(cuid()) productId             String @map(&quot;product_id&quot;) product               Product  @relation(&quot;ProductRevenue&quot;, fields: [productId], references: [id], onDelete: Cascade)</p>
+<p>amount                Int      // ₩ revenueType           String   @map(&quot;revenue<em>type&quot;)  // &quot;direct&quot; / &quot;indirect&quot; referrerUrl           String?  @map(&quot;referrer</em>url&quot;) orderedAt             DateTime @map(&quot;ordered<em>at&quot;) createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;)</p>
+<p>@@map(&quot;revenue_logs&quot;) @@index([productId, orderedAt]) }</p>
+<p>model CostLog { id                    String   @id @default(cuid()) model                 String   // &quot;claude&quot; / &quot;gpt-4&quot; / &quot;gpt-3.5&quot; task                  String   // &quot;generate<em>memo&quot; / &quot;generate</em>blog&quot; / etc pipelineStep          String   @map(&quot;pipeline<em>step&quot;)   // &quot;hermes&quot; / &quot;content&quot; / &quot;compliance&quot; / &quot;export&quot; (02-trd §5 A2) inputTokens           Int      @map(&quot;input</em>tokens&quot;) outputTokens          Int      @map(&quot;output<em>tokens&quot;) costUsd               Float    @map(&quot;cost</em>usd&quot;) blockedByCap          Boolean  @default(false) @map(&quot;blocked<em>by</em>cap&quot;) // 서킷브레이커에 의해 차단된 호출 기록 (02-trd §5 A2) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>@@map(&quot;cost_logs&quot;) @@index([model, createdAt]) @@index([pipelineStep, createdAt]) }</p>
+<p>model ErrorLog { id                    String   @id @default(cuid()) errorCode             String   @map(&quot;error<em>code&quot;) message               String stackTrace            String?  @map(&quot;stack</em>trace&quot;) // @TASK B5: context에 request<em>body 원문 저장 금지. 민감 필드 거부목록(password, token, secret, authorization) 마스킹 후 저장 context               Json?    // { user</em>id, api<em>path, request</em>id, request<em>body</em>masked: {...} } severity              String   @default(&quot;low&quot;) // &quot;low&quot; / &quot;medium&quot; / &quot;high&quot; createdAt             DateTime @default(now()) @map(&quot;created<em>at&quot;) resolvedAt            DateTime? @map(&quot;resolved</em>at&quot;) resolutionNote        String?  @map(&quot;resolution_note&quot;)</p>
+<p>@@map(&quot;error_logs&quot;) @@index([severity, createdAt]) }</p>
+<p>// ============================================ // 8. Company Memory &amp; Admin // ============================================</p>
+<p>model CompanyMemory { id                    String   @id @default(cuid()) // 어휘 정본: 02-trd §2.6 A9 (council 결정). user<em>id는 §4-3 멀티테넌시 결정 대기로 미포함 patternType           String   @map(&quot;pattern</em>type&quot;)   // enum: &quot;homefeed<em>hook&quot; / &quot;search</em>keyword&quot; / &quot;product<em>angle&quot; / &quot;pricing</em>strategy&quot; / &quot;seasonal<em>theme&quot; category              String?  // &quot;자취&quot; / &quot;장마&quot; // @TASK B6: 구조화 필드+enum 태그로 분해 (자유 텍스트 단일 필드 금지, prompt injection 면적 축소) patternText           String   @map(&quot;pattern</em>text&quot;)   // AI가 추출한 핵심 문구 (구조화됨) tags                  String[] // enum 태그 배열 (예: [&quot;문제공감형&quot;, &quot;모바일&quot;]). 자유 텍스트 금지 resultSummary         String   @map(&quot;result<em>summary&quot;)  // &quot;자취 카테고리에서 문제공감형 제목은 평균 270 조회&quot; score                 Float    // 신뢰도 0.0~1.0 sampleCount           Int      @map(&quot;sample</em>count&quot;)    // N&lt;5이면 추천 억제, &quot;배우는 중&quot; 정직 표시 avgViews              Float?   @map(&quot;avg<em>views&quot;)       // A9 통계 avgClicks             Float?   @map(&quot;avg</em>clicks&quot;)      // A9 통계 avgRevenueUsd         Float?   @map(&quot;avg<em>revenue</em>usd&quot;) // A9 통계 createdPatternIds     String[] @map(&quot;created<em>pattern</em>ids&quot;)        // 이 패턴이 생성한 content<em>package IDs (A9 패턴 가시성) usedInRecommendations Int      @default(0) @map(&quot;used</em>in<em>recommendations&quot;) // 추천에 쓰인 횟수 (A9) evidenceJson          Json?    @map(&quot;evidence</em>json&quot;)  // 부가 증거 { count<em>samples: 5, ... } createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated_at&quot;)</p>
+<p>@@map(&quot;company_memory&quot;) @@index([patternType, category]) }</p>
+<p>model PromptTemplate { id                    String   @id @default(cuid()) name                  String   // &quot;opportunity<em>memo</em>generation&quot; / &quot;blog<em>draft</em>generation&quot; engine                String   // &quot;hermes&quot; / &quot;content&quot; / &quot;compliance&quot; version               Int      @default(1) template              String   // Nunjucks 템플릿 variables             Json     // { &quot;homefeed<em>angle&quot;: &quot;string&quot;, ... } createdAt             DateTime @default(now()) @map(&quot;created</em>at&quot;) updatedAt             DateTime @updatedAt @map(&quot;updated_at&quot;)</p>
+<p>@@map(&quot;prompt_templates&quot;) }</p>
+<p>model AgentRun { id                    String   @id @default(cuid()) agentName             String   @map(&quot;agent<em>name&quot;)    // &quot;Hermes&quot; / &quot;HomeFeed Desk&quot; / etc taskType              String   @map(&quot;task</em>type&quot;) inputJson             Json?    @map(&quot;input<em>json&quot;) outputJson            Json?    @map(&quot;output</em>json&quot;) status                String   // &quot;running&quot; / &quot;success&quot; / &quot;failed&quot; errorMessage          String?  @map(&quot;error<em>message&quot;) durationMs            Int?     @map(&quot;duration</em>ms&quot;) createdAt             DateTime @default(now()) @map(&quot;created_at&quot;)</p>
+<p>@@map(&quot;agent_runs&quot;) @@index([agentName, status, createdAt]) }</p>
+<p>model PolicyRule { id                    String   @id @default(cuid()) ruleType              String   @map(&quot;rule<em>type&quot;)      // &quot;compliance&quot; / &quot;content&quot; / &quot;revenue&quot; ruleCode              String   @map(&quot;rule</em>code&quot;)      // &quot;no<em>100</em>percent<em>claims&quot; description           String isActive              Boolean  @default(true) @map(&quot;is</em>active&quot;)</p>
+<p>@@map(&quot;policy_rules&quot;) }</p>
+<p>model CategoryPlaybook { id                    String   @id @default(cuid()) category              String   // &quot;자취&quot; / &quot;장마&quot; / &quot;청소&quot; homefeedToneGuidance  String?  @map(&quot;homefeed<em>tone</em>guidance&quot;)    // &quot;젊은 목소리, 공감 중심&quot; searchGuidance        String?  @map(&quot;search<em>guidance&quot;)           // &quot;B2C, 비교표 필수&quot; productRecommendations String[]  @map(&quot;product</em>recommendations&quot;) // [&quot;세제&quot;, &quot;향수&quot;] commonMistakes        String[]  @map(&quot;common<em>mistakes&quot;)          // &quot;과장 표현 금지&quot; winningPatterns       String[]  @map(&quot;winning</em>patterns&quot;)         // &quot;홈판에서는 문제공감형이 35% 더 잘 먹힘&quot;</p>
+<p>@@map(&quot;category_playbooks&quot;) }</p>
+<pre class="code"><code>
+**마이그레이션 예시**:</code></pre>
+<p>npx prisma migrate dev --name init npx prisma generate</p>
+<pre class="code"><code>
+---
+
+## 주요 관계도
+</code></pre>
+<p>CompanyProfile (1) HqBriefing (1:N by date) ↓ OpportunityMemo (1) ← PaperclipDecision (N) ├─ KeywordCluster (N)   # memo에 내장 반환 (resources.yaml 계약) ↓ Topic (1) ├─ Product (N) │   └─ ShoppingConnectLink (N) └─ ContentPackage (1) ├─ StatusTransition (N)  # @TASK B1: 상태 전이 이력 (모든 전이 기록) ├─ Draft (N, channel별) │   └─ ComplianceCheck (N) │       └─ ComplianceIssue (N, [무시] 감시 이력) ├─ TitleCandidate (N, kind별) ├─ Export (N, format별) ├─ SNSVariant (N, 플랫폼별) ├─ ShoppingConnectLink (N) └─ PerformanceLog (N, 게시 후)</p>
+<pre class="code"><code>
+---
+
+## 인덱스 전략
+</code></pre>
+<p>-- 빠른 조회 CREATE INDEX idx<em>opportunity</em>memos<em>status</em>created ON opportunity<em>memos(status, created</em>at DESC); CREATE INDEX idx<em>content</em>packages<em>status</em>updated ON content<em>packages(status, updated</em>at DESC); CREATE INDEX idx<em>drafts</em>package<em>channel ON drafts(content</em>package<em>id, channel); CREATE INDEX idx</em>compliance<em>checks</em>package<em>pass ON compliance</em>checks(content<em>package</em>id, pass);</p>
+<p>-- 성과 분석 CREATE INDEX idx<em>performance</em>logs<em>package</em>platform ON performance<em>logs(content</em>package<em>id, platform); CREATE INDEX idx</em>revenue<em>logs</em>product<em>date ON revenue</em>logs(product<em>id, ordered</em>at DESC);</p>
+<p>-- 메모리 및 학습 CREATE INDEX idx<em>company</em>memory<em>type</em>category ON company<em>memory(pattern</em>type, category);</p>
+<p>-- 비용 추적 CREATE INDEX idx<em>cost</em>logs<em>model</em>created ON cost<em>logs(model, created</em>at DESC); CREATE INDEX idx<em>error</em>logs<em>severity</em>created ON error<em>logs(severity, created</em>at DESC);</p>
+<pre class="code"><code>
+---
+
+## 데이터 보존 정책
+
+| 테이블 | 보존 기간 | 자동 삭제 |
+|--------|---------|---------|
+| `raw_items` | 7일 | O (expiresAt) |
+| `agent_runs` | 30일 | O (cron job) |
+| `error_logs` (low/medium) | 90일 | O (cron job) |
+| `error_logs` (high) | 180일 | O (cron job) |
+| `cost_logs` | 12개월 | O (cron job) |
+| `status_transitions` | 무제한 | X (감사 추적, @TASK B3 동반) |
+| `compliance_issues` | 무제한 | X (감사 기록, @TASK B4 [무시] 이력 동반) |
+| `performance_logs` | 무제한 | X (분석 용도) |
+| `company_memory` | 무제한 | X (학습 용도) |
+| `opportunity_memos` | 무제한 | X (히스토리 용도) |
+
+**@TASK B7 정정**: 보존 정책 표 명확화 — 감시·감사 관련 테이블(status_transitions, compliance_issues)은 무제한 보존으로 통일. 운영 로그(agent_runs, error_logs)는 위험도 차등화(high 180일).
+
+---
+
+## 마이그레이션 체크리스트
+
+- [ ] PostgreSQL (Supabase) 생성
+- [ ] Prisma 초기 스키마 작성 및 마이그레이션
+- [ ] PackageStatus enum 동기화 (specs/shared/types.yaml와 정본 유지)
+- [ ] 상태 전이 서비스 구현 (단일 진입점, StatusTransition 로깅)
+- [ ] 시드 데이터: CompanyProfile 기본값 / PolicyRules / CategoryPlaybooks
+- [ ] 인덱스 생성 (status_transitions 인덱스 포함)
+- [ ] 백업 정책 설정 (감사 테이블 우선)
+- [ ] 읽기 전용 복제본 (분석용) 생성
+
+---
+
+## Loop Metadata
+
+- **Upstream documents referenced**: 00-source-plan.md (9장 데이터베이스 설계, 10장 상태값), 02-trd.md (시스템 구조), 03-user-flow.md (상태값 전이), specs/shared/types.yaml (PackageStatus 정본)
+- **Downstream documents affected**: 07-coding-convention.md (쿼리 및 마이그레이션 규칙), revision-request-02.md (B1~B7 반영 사항)
+- **Council 미합의 쟁점 (council-report §4)**: 
+  - §4-1: ✅ 확정 (2026-07-02) — 승인 상태 정식 채택, StatusTransition이 승인 감사 원장
+  - §4-2: ✅ 확정 (2026-07-02) — 경량 중간해 (maxDuration + 클라이언트 단계별 순차 호출), 마이그레이션 전략에 미영향
+  - §4-3: 멀티테넌시 (owner_id 컬럼 지금 추가 vs Won't 확정) → 현재 단일 사용자 구조 유지
+  - §4-6: P2-S1 URL 붙여넣기 존속 여부 → products/import 필드 구조 미영향
+- **Open questions**: 멀티 테넌트 전환 시 마이그레이션 경로, 벡터 임베딩 필드 추가 시기, 데이터 익명화 정책, Company Memory 알고리즘 완정
+- **Assumptions**: Supabase PostgreSQL의 안정성, Prisma 마이그레이션 자동화, 월 데이터 증가량 &lt; 10GB, 상태 머신 단일 정본 준수
+</code></pre>
+<div class="meta-foot">원본: <code>04-database-design.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

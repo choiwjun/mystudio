@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>어휘 매핑: Company OS v0.7 ↔ Studio v2</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">어휘 매핑: Company OS v0.7 ↔ Studio v2</div><div class="sub">vocabulary-map.md</div><a class="lvl1" href="#어휘-매핑-company-os-v07-studio-v2">어휘 매핑: Company OS v0.7 ↔ Studio v2</a><a class="lvl2" href="#엔티티">엔티티</a><a class="lvl2" href="#상태값">상태값</a><a class="lvl2" href="#역할모듈">역할/모듈</a></nav>
+<main><h1 id="어휘-매핑-company-os-v07-studio-v2">어휘 매핑: Company OS v0.7 ↔ Studio v2</h1>
+<blockquote>v2 마이그레이션 비용 절감용. v0.7 코드/문서 작성 시 이 표의 v0.7 열이 정본. v2 재기획 시 rename 마이그레이션의 출발점.</blockquote>
+<h2 id="엔티티">엔티티</h2>
+<div class="table-wrap"><table><thead><tr><th>v0.7 (현행 정본)</th><th>Studio v2</th><th>관계</th></tr></thead><tbody><tr><td><code>company_profile</code></td><td><code>workspaces</code> + workspace 설정</td><td>1:1 → workspace 루트로 승격</td></tr><tr><td><code>hq_briefing</code></td><td><code>daily_plan</code> (paperclip/daily-plan)</td><td>동일 개념</td></tr><tr><td><code>sources</code></td><td><code>sources</code></td><td>동일 (v2에서 RSS/URL 타입 추가)</td></tr><tr><td><code>raw_items</code></td><td><code>raw_items</code> + <code>source_snapshots</code></td><td>v2에서 스냅샷 분리</td></tr><tr><td><code>opportunity_memos</code></td><td><code>briefs</code></td><td>동일 개념, 이름 변경</td></tr><tr><td>(opportunity_memo 4축 점수 내장)</td><td><code>brief_scores</code></td><td>v2에서 별도 테이블 분리</td></tr><tr><td><code>paperclip_decisions</code></td><td><code>content_jobs</code> 생성 결정</td><td>decision→job 생성으로 흡수</td></tr><tr><td><code>content_packages</code></td><td><code>content_jobs</code></td><td>동일 개념 (칸반 카드 단위)</td></tr><tr><td><code>drafts</code></td><td><code>drafts</code> + <code>draft_variants</code> + <code>content_versions</code></td><td>v2에서 A/B·버전 분리</td></tr><tr><td><code>sns_variants</code></td><td>채널별 <code>drafts</code> (channel 필드)</td><td>v2는 채널을 1급 축으로</td></tr><tr><td><code>title_candidates</code></td><td><code>draft_variants</code> (hook A/B)</td><td>흡수</td></tr><tr><td><code>exports</code></td><td><code>publishing_queue</code></td><td>export→발행 대기열로 일반화</td></tr><tr><td><code>shopping_connect_links</code></td><td><code>affiliate_links</code></td><td>쿠팡/무신사 등으로 일반화</td></tr><tr><td><code>compliance_checks</code> / <code>compliance_issues</code></td><td>동일</td><td>유지</td></tr><tr><td><code>status_transitions</code></td><td><code>approval_events</code> (승인 부분)</td><td>v0.7이 더 일반적 — v2에 역수출 권장</td></tr><tr><td><code>performance_logs</code></td><td><code>performance_logs</code> + <code>link_events</code></td><td>v2에서 클릭 추적 분리</td></tr><tr><td><code>company_memory</code></td><td>Analytics Agent 학습 저장소</td><td>동일 개념</td></tr><tr><td><code>prompt_templates</code> / <code>agent_runs</code> / <code>cost_logs</code> / <code>error_logs</code></td><td>동일</td><td>유지 (v2: <code>agent_configs</code>, <code>api_credentials</code>, <code>media_assets</code>, <code>dead_letter_jobs</code> 추가)</td></tr></tbody></table></div>
+<h2 id="상태값">상태값</h2>
+<div class="table-wrap"><table><thead><tr><th>v0.7 PackageStatus (29상태, types.yaml §10 정본)</th><th>Studio v2 (23상태)</th></tr></thead><tbody><tr><td>opportunity_found</td><td>collected/normalized/deduplicated/brief_created</td></tr><tr><td>paperclip_review</td><td>scored</td></tr><tr><td>selected → assigned</td><td>draft_requested</td></tr><tr><td>(생성 단계 상태들)</td><td>draft<em>generated → geo</em>optimized</td></tr><tr><td>compliance_checked</td><td>compliance_checked</td></tr><tr><td>owner<em>approval</em>required</td><td>needs<em>human</em>review</td></tr><tr><td>approved</td><td>approved</td></tr><tr><td>exported</td><td>published (v2는 API 발행 포함 → scheduled 추가)</td></tr><tr><td>on_hold / rejected / archived</td><td>(동일) + duplicate/failed/publish_failed 추가</td></tr><tr><td>stale (7일)</td><td>stale + needs<em>source</em>refresh (신선도 소스별 차등)</td></tr></tbody></table></div>
+<h2 id="역할모듈">역할/모듈</h2>
+<div class="table-wrap"><table><thead><tr><th>v0.7</th><th>Studio v2</th></tr></thead><tbody><tr><td>Hermes (네이버 스캔)</td><td>Hermes Research Collector (멀티소스)</td></tr><tr><td>Paperclip HQ</td><td>Paperclip Orchestrator</td></tr><tr><td>Master Content Engine (P3-R1)</td><td>NaverBlogAgent + GEO Engine 분리</td></tr><tr><td>Compliance Gate</td><td>Compliance Agent</td></tr><tr><td>Export Bundle</td><td>Publisher / Exporter (PublisherAdapter)</td></tr><tr><td>Performance Logger + Company Memory</td><td>Analytics Agent</td></tr></tbody></table></div>
+<div class="meta-foot">원본: <code>vocabulary-map.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

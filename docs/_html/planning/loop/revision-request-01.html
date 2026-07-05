@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revision Request 01 — Round 1 (2026-07-02T09:44)</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">Revision Request 01 — Round 1 (2026-07-02T09:44)</div><div class="sub">revision-request-01.md</div><a class="lvl1" href="#revision-request-01-round-1-2026-07-02t0944">Revision Request 01 — Round 1 (2026-07-02T09:44)</a><a class="lvl2" href="#r1-하드페일-04-database-designmd-db-설계를-리소스-계약과-정렬">R1. [하드페일] 04-database-design.md — DB 설계를 리소스 계약과 정렬</a><a class="lvl2" href="#r2-충돌-06-tasksmd-프로젝트-요약-및-집계-수정">R2. [충돌] 06-tasks.md — 프로젝트 요약 및 집계 수정</a><a class="lvl2" href="#r3-3원화-상태값-머신-단일화">R3. [3원화] 상태값 머신 단일화</a><a class="lvl2" href="#r4-누락-content-detailyaml-검수-차단-시나리오-추가">R4. [누락] content-detail.yaml — 검수 차단 시나리오 추가</a><a class="lvl2" href="#r5-누락불일치-06-tasksmd-cron-태스크-표기-통일">R5. [누락/불일치] 06-tasks.md cron 태스크 + 표기 통일</a></nav>
+<main><h1 id="revision-request-01-round-1-2026-07-02t0944">Revision Request 01 — Round 1 (2026-07-02T09:44)</h1>
+<blockquote>근거: <code>docs/planning/loop/planning-loop-report.md</code>, <code>document-gap-report.md</code> (Round 1) 원칙: 전체 재생성 금지 — 지목된 섹션만 패치, 나머지 보존.</blockquote>
+<h2 id="r1-하드페일-04-database-designmd-db-설계를-리소스-계약과-정렬">R1. [하드페일] 04-database-design.md — DB 설계를 리소스 계약과 정렬</h2>
+<ul><li><strong>문제</strong>: 화면·태스크·resources.yaml이 요구하는 항목이 DB 설계에 없음.</li><li><strong>수정 지시</strong>:<ol><li>누락 테이블 3개 추가: <code>exports</code>, <code>title_candidates</code>, <code>hq_briefing</code> (필드는 <code>specs/domain/resources.yaml</code>의 해당 리소스 fields 기준)</li><li>누락 필드 추가: <code>drafts.comparison_table</code>, <code>drafts.faq</code>, <code>drafts.first_screen</code>, <code>content_packages.progress</code>, <code>content_packages.published_at</code>, <code>opportunity_memos.risk_score</code>, <code>opportunity_memos.score_reasons</code></li><li>Prisma 문법 오류 수정: <code>OpportunitMemo</code> 오탈자 → <code>OpportunityMemo</code>, <code>String[]?</code> → <code>String[]</code> (Prisma는 optional list 불가), 누락된 역방향 relation 전부 추가</li><li>점수 필드 네이밍 통일: <code>*Fit</code> → resources.yaml 기준 <code>homefeed_score/search_score/revenue_score/risk_score</code> (@map 사용)</li></ol></li><li><strong>담당 라우팅</strong>: docs-specialist (patch 모드)</li></ul>
+<h2 id="r2-충돌-06-tasksmd-프로젝트-요약-및-집계-수정">R2. [충돌] 06-tasks.md — 프로젝트 요약 및 집계 수정</h2>
+<ul><li><strong>문제</strong>: 상단 요약이 &quot;홈플러스·쿠팡 판매자 플랫폼&quot;으로 기술 — 01-prd(1인 AI 미디어커머스 OS)와 정면 충돌. 총 태스크 &quot;27개&quot;는 오기(실제 24개).</li><li><strong>수정 지시</strong>: 요약 3줄을 01-prd 제품 정의로 교체, 태스크 집계 24개로 정정 (P0:2/P1:3/P2:7/P3:5/P4:7).</li><li><strong>담당 라우팅</strong>: tasks-generator patch (실행: docs-specialist)</li></ul>
+<h2 id="r3-3원화-상태값-머신-단일화">R3. [3원화] 상태값 머신 단일화</h2>
+<ul><li><strong>문제</strong>: <code>00-source-plan §10</code>(canonical) vs <code>specs/shared/types.yaml PackageStatus</code> vs <code>06-tasks</code>의 <code>awaiting_export</code>(미정의) — 3곳이 서로 다름.</li><li><strong>수정 지시</strong>: <code>00-source-plan.md §10</code>을 단일 기준으로: types.yaml PackageStatus를 §10 상태값+예외 상태로 정확히 일치시키고, 06-tasks의 <code>awaiting_export</code> 등 미정의 상태를 §10 용어로 치환.</li><li><strong>담당 라우팅</strong>: screen-spec patch + tasks-generator patch (실행: docs-specialist)</li></ul>
+<h2 id="r4-누락-content-detailyaml-검수-차단-시나리오-추가">R4. [누락] content-detail.yaml — 검수 차단 시나리오 추가</h2>
+<ul><li><strong>문제</strong>: P3-S1-V가 필수 지정한 &quot;high risk 시 Export 비활성화&quot; 테스트가 화면 yaml tests에 없음.</li><li><strong>수정 지시</strong>: tests에 추가 — &quot;name: 검수 실패 시 Export 차단 / when: compliance<em>checks.risk</em>level=high / then: [Export 버튼 비활성, export_allowed=false 안내 표시, [수정하고 다시 검수] 버튼 노출]&quot;</li><li><strong>담당 라우팅</strong>: screen-spec patch (실행: docs-specialist)</li></ul>
+<h2 id="r5-누락불일치-06-tasksmd-cron-태스크-표기-통일">R5. [누락/불일치] 06-tasks.md cron 태스크 + 표기 통일</h2>
+<ul><li><strong>문제</strong>: TRD의 &quot;매일 06:00 Hermes 스캔(Vercel Cron)&quot; 등록 태스크 부재. clicks 필수/선택이 03-user-flow/performance.yaml/P4-S2 간 불일치.</li><li><strong>수정 지시</strong>:<ol><li>P2-R1 acceptance에 Vercel Cron 등록(<code>vercel.json</code> crons, 매일 06:00 KST) 항목 추가 (새 태스크 대신 P2-R1 범위 확장)</li><li>clicks 표기 통일: performance.yaml 기준 &quot;필수&quot;로 — 03-user-flow와 06-tasks P4-S2를 필수로 정정</li><li>stale 기준 &quot;7일&quot; 표기를 04/resources.yaml/06-tasks에서 동일 문구로 통일</li></ol></li><li><strong>담당 라우팅</strong>: tasks-generator patch + socrates(03) patch (실행: docs-specialist)</li></ul>
+<hr>
+<p>처리 상태: <strong>완료</strong> (2026-07-02 10:52, R1~R5 전체 실행 + 감독관 후속 패치 5건 — planning-loop-report.md Round 2 참조)</p>
+<div class="meta-foot">원본: <code>revision-request-01.md</code> · 자동 생성 2026-07-04 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

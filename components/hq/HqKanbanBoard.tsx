@@ -1,0 +1,197 @@
+"use client";
+
+import type { DragEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import {
+  contentPackagePatchResponseSchema,
+  groupPackages,
+  hqTodayResponseSchema,
+  kanbanColumns,
+  normalizeProgress,
+  statusLabels,
+  updatedAtLabel,
+  type KanbanColumnId,
+  type KanbanPackageStatus,
+  type ContentPackage,
+} from "@/components/hq/kanban";
+
+const sessionResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    csrf_token: z.string().min(1),
+  }),
+});
+
+export function HqKanbanBoard() {
+  const [contentPackages, setContentPackages] = useState<readonly ContentPackage[]>([]);
+  const [csrfToken, setCsrfToken] = useState("");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [message, setMessage] = useState("");
+  const [draggingOverColumnId, setDraggingOverColumnId] = useState<KanbanColumnId | null>(null);
+  const [updatingPackageId, setUpdatingPackageId] = useState<string | null>(null);
+  const groupedPackages = useMemo(() => groupPackages(contentPackages), [contentPackages]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load(): Promise<void> {
+      const [todayResponse, sessionResponse] = await Promise.all([
+        fetch("/api/hq/today"),
+        fetch("/api/auth/session"),
+      ]);
+      if (todayResponse.status === 401 || sessionResponse.status === 401) {
+        window.location.assign("/login?from=/");
+        return;
+      }
+      if (!todayResponse.ok || !sessionResponse.ok) {
+        throw new Error("HQ_TODAY_KANBAN_FAILED");
+      }
+      const [todayPayload, sessionPayload] = await Promise.all([
+        hqTodayResponseSchema.parse(await todayResponse.json()),
+        sessionResponseSchema.parse(await sessionResponse.json()),
+      ]);
+      if (!active) {
+        return;
+      }
+      setContentPackages(todayPayload.data.content_packages);
+      setCsrfToken(sessionPayload.data.csrf_token);
+      setStatus("ready");
+    }
+
+    load().catch(() => {
+      if (active) {
+        setStatus("error");
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function startDrag(event: DragEvent<HTMLAnchorElement>, contentPackageId: string): void {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", contentPackageId);
+  }
+
+  async function updatePackageStatus(
+    contentPackageId: string,
+    targetStatus: KanbanPackageStatus,
+  ): Promise<void> {
+    if (csrfToken === "") {
+      setMessage("세션을 불러오는 중입니다.");
+      return;
+    }
+    setUpdatingPackageId(contentPackageId);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/content-packages/${contentPackageId}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          status: targetStatus,
+          reason: "HQ kanban drag update",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("HQ_KANBAN_STATUS_UPDATE_FAILED");
+      }
+      const payload = contentPackagePatchResponseSchema.parse(await response.json());
+      setContentPackages((current) =>
+        current.map((contentPackage) =>
+          contentPackage.id === payload.data.id ? payload.data : contentPackage,
+        ),
+      );
+      setMessage("상태가 업데이트되었습니다.");
+    } catch {
+      setMessage("상태 업데이트에 실패했습니다.");
+    } finally {
+      setUpdatingPackageId(null);
+    }
+  }
+
+  function dragOverColumn(event: DragEvent<HTMLElement>, columnId: KanbanColumnId): void {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDraggingOverColumnId(columnId);
+  }
+
+  function leaveColumn(): void {
+    setDraggingOverColumnId(null);
+  }
+
+  function dropOnColumn(
+    event: DragEvent<HTMLElement>,
+    targetStatus: KanbanPackageStatus,
+  ): void {
+    event.preventDefault();
+    setDraggingOverColumnId(null);
+    const contentPackageId = event.dataTransfer.getData("text/plain");
+    if (contentPackageId === "") {
+      return;
+    }
+    void updatePackageStatus(contentPackageId, targetStatus);
+  }
+
+  return (
+    <section className="section-block" aria-labelledby="pipeline-title">
+      <h2 id="pipeline-title">Content Production Pipeline</h2>
+      {status === "loading" ? <p className="muted">콘텐츠 파이프라인을 불러오는 중입니다.</p> : null}
+      {status === "error" ? <p className="form-error">콘텐츠 파이프라인을 불러오지 못했습니다.</p> : null}
+      {message === "" ? null : <p className="muted">{message}</p>}
+      <div className="kanban-scroll" aria-label="Content package status kanban">
+        <div className="kanban-grid">
+          {kanbanColumns.map((column) => (
+            <section
+              className={
+                draggingOverColumnId === column.id ? "kanban-column kanban-column-active" : "kanban-column"
+              }
+              key={column.id}
+              onDragLeave={leaveColumn}
+              onDragOver={(event) => dragOverColumn(event, column.id)}
+              onDrop={(event) => dropOnColumn(event, column.targetStatus)}
+            >
+              <h3>
+                {column.title} ({groupedPackages[column.id].length})
+              </h3>
+              {status === "ready" && groupedPackages[column.id].length === 0 ? (
+                <p className="muted">해당 상태의 패키지가 없습니다.</p>
+              ) : null}
+              {groupedPackages[column.id].map((contentPackage) => {
+                const progress = normalizeProgress(contentPackage.progress);
+                return (
+                  <a
+                    className="kanban-card"
+                    draggable
+                    href={`/packages/${contentPackage.id}`}
+                    key={contentPackage.id}
+                    onDragStart={(event) => startDrag(event, contentPackage.id)}
+                  >
+                    <strong>{contentPackage.topic.title}</strong>
+                    <span className="badge">{statusLabels[contentPackage.status]}</span>
+                    <progress
+                      aria-label={`${contentPackage.topic.title} 진행률 ${progress}%`}
+                      className="progress-meter"
+                      max={100}
+                      value={progress}
+                    />
+                    <span className="muted">
+                      진행 {progress}% · {updatedAtLabel(contentPackage.updated_at)}
+                    </span>
+                    {updatingPackageId === contentPackage.id ? (
+                      <span className="muted">상태 업데이트 중</span>
+                    ) : null}
+                  </a>
+                );
+              })}
+            </section>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
