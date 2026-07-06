@@ -5,6 +5,26 @@ import { useState } from "react";
 
 type LoginState = "idle" | "submitting" | "error";
 
+export function sanitizeLoginRedirectPath(value: string | null): string {
+  if (
+    value === null ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.startsWith("/\\")
+  ) {
+    return "/";
+  }
+
+  try {
+    const parsed = new URL(value, "http://paperclip.local");
+    return parsed.origin === "http://paperclip.local"
+      ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+      : "/";
+  } catch {
+    return "/";
+  }
+}
+
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [state, setState] = useState<LoginState>("idle");
@@ -29,7 +49,7 @@ export function LoginForm() {
       return;
     }
 
-    window.location.assign(searchParams.get("from") ?? "/");
+    window.location.assign(sanitizeLoginRedirectPath(searchParams.get("from")));
   }
 
   return (

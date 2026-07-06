@@ -6,25 +6,25 @@ import {
   profileSetupRequiredError,
 } from "@/lib/company-profile/service";
 import { scanHermes } from "@/lib/hermes/service";
-import { verifyCronSecret } from "@/lib/security/cron";
+import { hasCronCredentialAttempt, verifyCronSecret } from "@/lib/security/cron";
 
-export const POST = withApiErrorLogging("hermes.scan", async (request) => {
-  const cronSecret = request.headers.get("x-cron-secret");
-  const session = await readSessionFromRequest(request);
-
-  if (cronSecret !== null) {
+async function handleHermesScan(request: Request, authMode: "cron" | "session-or-cron"): Promise<Response> {
+  if (authMode === "cron" || hasCronCredentialAttempt(request.headers)) {
     const cronGuard = verifyCronSecret(request.headers, process.env["CRON_SECRET"]);
     if (!cronGuard.allowed) {
       return cronGuard.response;
     }
-  } else if (session === null) {
-    return fail(
-      {
-        code: "UNAUTHORIZED",
-        message: "Authentication is required.",
-      },
-      401,
-    );
+  } else {
+    const session = await readSessionFromRequest(request);
+    if (session === null) {
+      return fail(
+        {
+          code: "UNAUTHORIZED",
+          message: "Authentication is required.",
+        },
+        401,
+      );
+    }
   }
 
   const triggerExecutionId =
@@ -48,4 +48,12 @@ export const POST = withApiErrorLogging("hermes.scan", async (request) => {
     }
     throw error;
   }
-});
+}
+
+export const GET = withApiErrorLogging("hermes.scan", async (request) =>
+  handleHermesScan(request, "cron"),
+);
+
+export const POST = withApiErrorLogging("hermes.scan", async (request) =>
+  handleHermesScan(request, "session-or-cron"),
+);

@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { readSessionFromRequest } from "@/lib/auth/session";
-import { recordErrorLog } from "@/lib/logging/errorLogger";
 
 const publicPathPrefixes = [
   "/api/auth",
@@ -15,22 +14,12 @@ function isPublicPath(pathname: string): boolean {
   return publicPathPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-async function safeRecordUnauthorizedApi(request: NextRequest): Promise<void> {
-  try {
-    await recordErrorLog({
-      errorCode: "UNAUTHORIZED",
-      message: "API request was rejected by proxy without a valid session.",
-      severity: "medium",
-      context: {
-        apiPath: request.nextUrl.pathname,
-        method: request.method,
-      },
-    });
-  } catch {}
+function hasHermesScanCronCredentialAttempt(request: NextRequest): boolean {
+  const authorization = request.headers.get("authorization");
+  return request.headers.has("x-cron-secret") || /^Bearer\s+.+$/i.test(authorization ?? "");
 }
 
-async function unauthorizedApiResponse(request: NextRequest): Promise<NextResponse> {
-  await safeRecordUnauthorizedApi(request);
+function unauthorizedApiResponse(request: NextRequest): NextResponse {
   return NextResponse.json(
     {
       success: false,
@@ -56,7 +45,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/api/hermes/scan" && request.headers.has("x-cron-secret")) {
+  if (pathname === "/api/hermes/scan" && hasHermesScanCronCredentialAttempt(request)) {
     return NextResponse.next();
   }
 

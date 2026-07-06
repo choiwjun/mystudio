@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 
 export async function generateHomefeedTitles(contentPackageId: string, topic: string) {
   const candidates = createHomefeedTitleCandidates(topic);
+  await prisma.titleCandidate.deleteMany({
+    where: {
+      contentPackageId,
+      kind: "homefeed",
+    },
+  });
   await prisma.titleCandidate.createMany({
     data: candidates.map((candidate) => ({
       contentPackageId,

@@ -1,0 +1,157 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Final architect review agent://72-G010ArchitectReviewRerun approved G010 with CLEAR architecture/product/code and zero blockers after fixes for production /packages routing, no /packages/demo exposure, Settings header-only behavior, persisted packages index, unknown-progress handling, segment-safe active matching, and dark design-system documentation alignment.",
+    "commands": [
+      "architect subagent agent://72-G010ArchitectReviewRerun"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA/red-team agent://73-G010ExecutorQaRerun passed all G010 contract coverage, surface evidence, and adversarial cases with zero blockers. Leader verification passed focused Biome, related contract tests, and typecheck. Evidence artifact artifacts/g010-ux-navigation-test-report.json records command receipts and review refs.",
+    "e2eCommands": [
+      "npm test -- tests/ux-navigation-contract.test.ts tests/hq-screen-contract.test.ts tests/p3-contract.test.ts",
+      "npm run typecheck"
+    ],
+    "redTeamCommands": [
+      "executor QA/red-team subagent agent://73-G010ExecutorQaRerun",
+      "npx biome check components/DepartmentNav.tsx 'app/(app)/compliance/page.tsx' 'app/(app)/packages/page.tsx' docs/planning/05-design-system.md docs/planning/06-tasks.md specs/screens/index.yaml tests/ux-navigation-contract.test.ts"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g010-ux-navigation-test-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g010-ux-navigation-test-report.json",
+        "description": "Focused command receipts and review evidence for G010 navigation, packages index, docs/spec, and test surfaces."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "coverage-production-navigation",
+        "contractRef": "G010 objective and docs/planning/06-tasks.md:P1-S0 navigation contract",
+        "obligation": "Production sidebar and compliance entry points route Content Factory through /packages and do not expose /packages/demo.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-navigation", "surface-compliance-entry"],
+        "adversarialCaseRefs": ["case-demo-leakage", "case-segment-active-match"]
+      },
+      {
+        "id": "coverage-packages-index",
+        "contractRef": "G010 production Content Factory index route",
+        "obligation": "/packages is a real persisted-data-backed index that lists packages from listContentPackages(null) and links to /packages/:id.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-packages-index"],
+        "adversarialCaseRefs": ["case-unknown-progress"]
+      },
+      {
+        "id": "coverage-settings-header-only",
+        "contractRef": "docs/planning/06-tasks.md and specs/screens/index.yaml header_routes",
+        "obligation": "Settings is removed from production sidebar/compliance body routes and remains available via the header settings action contract.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-navigation", "surface-docs-specs"],
+        "adversarialCaseRefs": ["case-settings-regression"]
+      },
+      {
+        "id": "coverage-dark-design-docs",
+        "contractRef": "docs/planning/05-design-system.md dark command-center contract",
+        "obligation": "Docs/specs align with implemented dark CSS tokens and stale light palette assumptions are removed.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-docs-specs"],
+        "adversarialCaseRefs": ["case-dark-token-drift"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "surface-navigation",
+        "contractRef": "DepartmentNav production sidebar",
+        "surface": "package",
+        "invocation": "npm test -- tests/ux-navigation-contract.test.ts tests/hq-screen-contract.test.ts tests/p3-contract.test.ts plus focused Biome/typecheck",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "surface-packages-index",
+        "contractRef": "Next.js /packages index route",
+        "surface": "package",
+        "invocation": "Static contract test and TypeScript check over app/(app)/packages/page.tsx",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "surface-compliance-entry",
+        "contractRef": "Compliance page production entry points",
+        "surface": "package",
+        "invocation": "Static contract test over app/(app)/compliance/page.tsx",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "surface-docs-specs",
+        "contractRef": "Design docs and screen route specs",
+        "surface": "package",
+        "invocation": "Static contract test over docs/planning/05-design-system.md docs/planning/06-tasks.md specs/screens/index.yaml and app/globals.css",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "case-demo-leakage",
+        "contractRef": "G010 remove production demo-entry exposure",
+        "scenario": "A production sidebar, compliance action, or packages index links to /packages/demo.",
+        "expectedBehavior": "/packages/demo is absent from production entry surfaces and remains documented only as development-only.",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "case-settings-regression",
+        "contractRef": "Settings header-only contract",
+        "scenario": "Settings reappears in sidebar or Compliance body actions.",
+        "expectedBehavior": "DepartmentNav and Compliance page omit /settings while tests preserve header settings access.",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "case-segment-active-match",
+        "contractRef": "Sidebar active-state behavior",
+        "scenario": "A sibling path like /packages-demo incorrectly activates Content Factory.",
+        "expectedBehavior": "Prefix matching requires exact href or href followed by '/', so sibling prefixes do not activate.",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "case-unknown-progress",
+        "contractRef": "/packages persisted data display",
+        "scenario": "A package with null/non-finite progress is displayed as measured 0%.",
+        "expectedBehavior": "The UI renders 진행 미측정 and omits a fake 0% progress meter for unknown progress.",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      },
+      {
+        "id": "case-dark-token-drift",
+        "contractRef": "Dark command-center design docs",
+        "scenario": "Docs drift back to stale light palette or omit implemented dark tokens.",
+        "expectedBehavior": "Design docs contain color-scheme: dark and implemented dark CSS tokens, and tests reject stale light palette literals.",
+        "verdict": "passed",
+        "artifactRefs": ["g010-ux-navigation-test-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORTS reran cleanly after fixes: docs cleanup agent://68-G010CleanupDocs had no blocking findings and its advisories were addressed; code cleanup rerun agent://71-G010CleanupCodeRerun returned CLEAR/APPROVE with no blocking findings; final architect agent://72-G010ArchitectReviewRerun and executor QA agent://73-G010ExecutorQaRerun are clean with empty blockers. Final full rerun commands passed: focused Biome artifact://661, related contract tests artifact://663 with 40 tests, and typecheck artifact://665.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npx biome check components/DepartmentNav.tsx 'app/(app)/compliance/page.tsx' 'app/(app)/packages/page.tsx' docs/planning/05-design-system.md docs/planning/06-tasks.md specs/screens/index.yaml tests/ux-navigation-contract.test.ts",
+      "npm test -- tests/ux-navigation-contract.test.ts tests/hq-screen-contract.test.ts tests/p3-contract.test.ts",
+      "npm run typecheck"
+    ],
+    "blockers": []
+  }
+}

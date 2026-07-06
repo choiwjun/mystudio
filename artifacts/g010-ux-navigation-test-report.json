@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G010",
+  "summary": "UX navigation, dark design docs, production demo exclusion, and regression coverage verification passed.",
+  "commands": [
+    {
+      "command": "npx biome check components/DepartmentNav.tsx 'app/(app)/compliance/page.tsx' 'app/(app)/packages/page.tsx' docs/planning/05-design-system.md docs/planning/06-tasks.md specs/screens/index.yaml tests/ux-navigation-contract.test.ts",
+      "status": "passed",
+      "artifactRef": "artifact://661"
+    },
+    {
+      "command": "npm test -- tests/ux-navigation-contract.test.ts tests/hq-screen-contract.test.ts tests/p3-contract.test.ts",
+      "status": "passed",
+      "result": "3 test files passed; 40 tests passed.",
+      "artifactRef": "artifact://663"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "artifactRef": "artifact://665"
+    }
+  ],
+  "reviewEvidence": {
+    "cleanupReports": [
+      "agent://68-G010CleanupDocs",
+      "agent://71-G010CleanupCodeRerun"
+    ],
+    "architectReview": "agent://72-G010ArchitectReviewRerun",
+    "executorQa": "agent://73-G010ExecutorQaRerun",
+    "implementationDelegation": [
+      "agent://65-G010NavigationDemo",
+      "agent://66-G010DocsDesignDrift"
+    ]
+  },
+  "coveredSurfaces": [
+    "navigation package/component surface",
+    "Next.js packages index route",
+    "compliance page entry surface",
+    "docs/spec contract surface",
+    "contract test surface"
+  ],
+  "adversarialEvidence": [
+    "Production navigation and compliance entry points do not expose /packages/demo.",
+    "Settings is absent from sidebar/compliance body and remains header-routed by contract.",
+    "/packages is a persisted-data-backed index using listContentPackages(null).",
+    "Unknown package progress renders as 미측정 rather than a fake 0%.",
+    "Department navigation prefix matching is segment-safe.",
+    "Dark command-center design tokens are documented and tested against app/globals.css."
+  ]
+}

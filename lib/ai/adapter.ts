@@ -119,6 +119,10 @@ export function parseSnsVariantOutput(value: unknown): SnsVariantOutput {
   return parseAiOutput(SnsVariantOutputSchema, value, "generateSNSVariant");
 }
 
+export function parseScoreOutput(value: unknown): number {
+  return parseAiOutput(ScoreSchema, value, "scoreHomefeed");
+}
+
 export type HermesInput = {
   readonly categories: readonly string[];
   readonly rawItems: readonly unknown[];

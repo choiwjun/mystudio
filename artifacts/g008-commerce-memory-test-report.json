@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G008",
+  "generatedAt": "2026-07-06T14:43:33.000Z",
+  "summary": "G008 product commerce and memory loop verification passed after final blocker fixes.",
+  "commands": [
+    {
+      "command": "npm test -- tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts tests/hq-screen-contract.test.ts",
+      "status": "passed",
+      "evidence": "5 test files passed; 75 tests passed.",
+      "artifactRef": "artifact://500"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "evidence": "tsc --noEmit passed.",
+      "artifactRef": "artifact://502"
+    },
+    {
+      "command": "npx biome check lib/content/placement.ts lib/content/service.ts lib/content/searchStructure.ts lib/products/service.ts app/api/shopping-connect-links/[id]/route.ts lib/performance/service.ts lib/memory/service.ts lib/hermes/service.ts components/products/ProductManager.tsx components/products/ProductTables.tsx tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts",
+      "status": "passed",
+      "evidence": "Focused Biome check over changed G008 files passed.",
+      "artifactRef": "artifact://504"
+    }
+  ],
+  "reviewEvidence": {
+    "cleanup": "agent://50-G008CleanupClosure",
+    "qa": "agent://51-G008QaClosure",
+    "architect": "agent://52-G008ArchitectClosure",
+    "teamAttempt": "gjc team ultragoal-g008-final-cleanup-a-9b660619 was launched and shut down as phase=cancelled because both worker panes failed before startup ACK with provider model 404 for claude-3-5-sonnet-20240620; native executor/architect lanes supplied final clean review evidence."
+  },
+  "coveredBehaviors": [
+    "Product import uses deterministic URL metadata, preserves valid percent signs, and blocks metadata-poor imports instead of creating generic fallback products.",
+    "ProductManager shows manual fallback only for 422 PRODUCT_IMPORT_BLOCKED responses and surfaces other import failures normally.",
+    "ShoppingConnect links support create, edit, package clearing, active-state toggle, delete, and freshness check flows.",
+    "Content generation/search placement excludes inactive ShoppingConnect products.",
+    "Performance and Company Memory category aggregation use active linked products, dedupe categories, and split direct revenue/views/click evidence.",
+    "Company Memory aggregation uses sample-count weighted averages and Hermes marks memory used only after successful new memo creation.",
+    "Product, ShoppingConnect, and draft persistence failures are not catch-all masked as not-found; only Prisma P2025 maps to null/not-found."
+  ]
+}

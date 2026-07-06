@@ -66,6 +66,15 @@ export async function transitionContentPackageStatusInTransaction(
   });
   return updated;
 }
+export async function updateContentPackageProgress(input: {
+  readonly id: string;
+  readonly progress: number;
+}): Promise<ContentPackage> {
+  return prisma.contentPackage.update({
+    where: { id: input.id },
+    data: { progress: input.progress },
+  });
+}
 
 export async function transitionContentPackageStatus(
   input: ContentPackageStatusTransitionInput,

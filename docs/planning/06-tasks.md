@@ -230,12 +230,14 @@ graph TD
 - **TDD**: 컴포넌트 스토리북 + 통합 테스트
 - **구현 대상**:
   - 사이드바 네비게이션 (부서 구조: HQ, Hermes, Content Factory, Revenue Desk, Compliance, Company Memory, Reports)
-  - 헤더 (로고, 날짜 표시, 상태 칩 자리, 오늘 브리핑/설정 버튼)
-  - 라우팅 골격 (/, /packages/:id, /products, /performance, /settings)
+  - 헤더 (로고, 날짜 표시, 상태 칩 자리, 오늘 브리핑/설정 버튼; `/settings`는 사이드바가 아니라 헤더 설정 버튼으로 접근)
+  - 라우팅 골격 (/, /hermes, /packages, /packages/:id, /products, /compliance, /memory, /performance, /settings)
+  - Content Factory의 production 사이드바 링크는 `/packages` 콘텐츠 인덱스를 사용
+  - `/packages/demo`는 개발/데모 확인용 상세 id이며 production 사이드바 또는 compliance 진입점으로 노출하지 않음
   - Next.js 동적 레이아웃 (RootLayout)
 - **acceptance_criteria**:
   - Given RootLayout 구현 / When 모든 페이지 로드 / Then 헤더·사이드바 공통 표시, 인증 없으면 /login 리다이렉트
-  - Given 사이드바 메뉴 / When 항목 클릭 / Then 해당 경로로 네비게이트 (active 상태 표시)
+  - Given 사이드바 메뉴 / When 항목 클릭 / Then production 상위 경로(`/`, `/hermes`, `/packages`, `/products`, `/compliance`, `/memory`, `/performance`)로 네비게이트하고 active 상태 표시
   - Given 반응형 레이아웃 / When 모바일 화면 / Then 사이드바 축소·펼침 토글 가능 (선택)
   - Given 모든 자식 페이지 / When RootLayout 적용 / Then 메인 콘텐츠 영역은 children으로 렌더, 헤더/사이드바는 고정
 

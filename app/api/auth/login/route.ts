@@ -69,7 +69,6 @@ export const POST = withApiErrorLogging("auth.login", async (request) => {
   recordLoginSuccess(key);
   const { token, session, maxAgeSeconds } = await createOwnerSession(result.email);
   const response = ok({
-    token,
     user: {
       email: session.email,
       name: session.name,

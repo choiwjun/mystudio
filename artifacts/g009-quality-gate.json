@@ -1,0 +1,185 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Final architect review agent://63-G009ArchitectReviewRerun approved G009 with CLEAR architecture/product/code and zero blockers after fixes for strict export request validation, issue-level export readiness replay, actual ZIP payload generation, styled HTML export, binary ZIP UI download, medium dismissal recalculation/audit response, and fail-closed retention mode/day validation.",
+    "commands": [
+      "architect subagent agent://63-G009ArchitectReviewRerun"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA/red-team agent://64-G009ExecutorQaRerun passed all contract coverage, surface evidence, and adversarial cases with zero blockers. Leader verification passed focused Biome, P3 contract tests, typecheck, Prisma validate, and Prisma generate. Evidence artifact artifacts/g009-compliance-export-test-report.json records command receipts and review refs.",
+    "e2eCommands": [
+      "npm test -- tests/p3-contract.test.ts",
+      "npm run typecheck",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma generate"
+    ],
+    "redTeamCommands": [
+      "executor QA/red-team subagent agent://64-G009ExecutorQaRerun",
+      "npx biome check lib/compliance/rules.ts lib/compliance/service.ts lib/export/render.ts lib/export/service.ts lib/retention/service.ts app/api/content-packages/[id]/export/route.ts app/api/compliance/issues/[id]/dismiss/route.ts components/content/ContentPackageDetail.tsx components/content/types.ts tests/p3-contract.test.ts"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g009-api-package-test-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g009-compliance-export-test-report.json",
+        "description": "Focused command receipts and review evidence for compliance/export/retention API-package surfaces."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "coverage-compliance-governance",
+        "contractRef": "docs/planning/06-tasks.md:P3-R2 and specs/domain/resources.yaml:compliance_checks/compliance_issues",
+        "obligation": "Compliance checks cover shopping disclosure, price notice, source attribution, expression claims, content depth, high/medium/low export gating, and dismissal audit rules.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-compliance-api"],
+        "adversarialCaseRefs": ["case-high-risk-block", "case-medium-dismissal-audit"]
+      },
+      {
+        "id": "coverage-export-bundle",
+        "contractRef": "docs/planning/06-tasks.md:P3-R3 and specs/domain/resources.yaml:exports",
+        "obligation": "Export creates markdown, HTML, copy, and ZIP bundle records only after passing compliance and fresh draft checks, with manual-publish manifest fidelity.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-export-api", "surface-export-package"],
+        "adversarialCaseRefs": ["case-stale-export-block", "case-strict-export-request", "case-zip-html-fidelity"]
+      },
+      {
+        "id": "coverage-storage-audit",
+        "contractRef": "G009 storage/audit metadata and migration reproducibility objective",
+        "obligation": "Export persistence stores draft/check/channel/storage key/bundle filename/byte size/checksum/manifest metadata and deterministic Prisma schema/migration coverage.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-export-api", "surface-prisma-governance"],
+        "adversarialCaseRefs": ["case-export-metadata-persistence"]
+      },
+      {
+        "id": "coverage-retention-cleanup",
+        "contractRef": "G009 retention cleanup objective",
+        "obligation": "Retention cleanup supports conservative dry-run planning and explicit fail-closed execute behavior for exports, resolved errors, and cost logs.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-retention-package"],
+        "adversarialCaseRefs": ["case-retention-fail-closed"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "surface-compliance-api",
+        "contractRef": "compliance API/package service",
+        "surface": "api",
+        "invocation": "npm test -- tests/p3-contract.test.ts plus executor QA agent://64-G009ExecutorQaRerun",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "surface-export-api",
+        "contractRef": "export API/package service",
+        "surface": "api",
+        "invocation": "npm test -- tests/p3-contract.test.ts plus focused Biome/typecheck/Prisma validation",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "surface-export-package",
+        "contractRef": "export render/package bundle",
+        "surface": "package",
+        "invocation": "npm test -- tests/p3-contract.test.ts validates HTML escaping/styling and PK ZIP payload contents",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "surface-retention-package",
+        "contractRef": "retention cleanup package service",
+        "surface": "package",
+        "invocation": "npm test -- tests/p3-contract.test.ts validates dry-run, invalid mode, and invalid day-window behavior",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "surface-prisma-governance",
+        "contractRef": "Prisma schema and deterministic migration governance",
+        "surface": "package",
+        "invocation": "DATABASE_URL=... DIRECT_URL=... npx prisma validate and npx prisma generate",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "case-high-risk-block",
+        "contractRef": "P3-R2 high risk export blocking",
+        "scenario": "High severity compliance issue is dismissed or replayed as allowed.",
+        "expectedBehavior": "High severity remains non-dismissible and export-blocking even with dismissal metadata.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-medium-dismissal-audit",
+        "contractRef": "P3-R2 medium dismissal audit and recalculation",
+        "scenario": "Medium severity issue without a reason or without recomputing sibling issue state attempts to unlock export.",
+        "expectedBehavior": "Missing reason is rejected; valid dismissal stores dismissed_by/dismissed_at/dismiss_reason and recomputes the returned compliance_check export_allowed state.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-stale-export-block",
+        "contractRef": "P3-R3 compliance precondition",
+        "scenario": "Export uses a passing check for a different or stale draft.",
+        "expectedBehavior": "Export returns blocked unless latest check allows export, issue-level readiness passes, draft id matches, and check timestamp is fresh for the draft.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-strict-export-request",
+        "contractRef": "Export API request boundary",
+        "scenario": "Malformed JSON or unknown request fields reach the mutating export path.",
+        "expectedBehavior": "Route returns VALIDATION_ERROR before calling exportContentPackage.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-zip-html-fidelity",
+        "contractRef": "P3-R3 export bundle fidelity",
+        "scenario": "ZIP regresses to a JSON envelope or HTML preserves executable script content/lacks styling.",
+        "expectedBehavior": "ZIP content is a PK ZIP archive containing post.md/post.html/post.txt/export_manifest.json, and HTML output escapes script text and includes style.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-export-metadata-persistence",
+        "contractRef": "G009 storage/audit metadata",
+        "scenario": "Export metadata exists only in response or checksum/byte size does not reflect actual bundle bytes.",
+        "expectedBehavior": "Persisted export records include draft/check/channel/storage key/bundle filename/manifest plus byte size and SHA-256 derived from actual text or ZIP bytes.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      },
+      {
+        "id": "case-retention-fail-closed",
+        "contractRef": "G009 retention cleanup fail-closed behavior",
+        "scenario": "Unknown cleanup mode or zero-day retention window falls through to destructive deleteMany.",
+        "expectedBehavior": "Cleanup planning rejects unsupported modes and non-positive/non-integer day windows before DB work; deletion requires explicit execute mode.",
+        "verdict": "passed",
+        "artifactRefs": ["g009-api-package-test-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORTS reran cleanly after fixes: compliance cleanup agent://55-G009CleanupCompliance had zero blocking findings; export cleanup rerun agent://61-G009CleanupExportRerun returned CLEAR/APPROVE with no blocking or advisory findings; persistence cleanup rerun agent://62-G009CleanupPersistenceRerun returned CLEAR with no blocking findings and its only advisory migration-field assertion was subsequently added. Final full rerun commands passed: focused Biome artifact://611, npm test P3 artifact://613 with 29 tests, typecheck artifact://615, Prisma validate, and Prisma generate artifact://618. Architect and executor QA lanes are clean with empty blockers.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npx biome check lib/compliance/rules.ts lib/compliance/service.ts lib/export/render.ts lib/export/service.ts lib/retention/service.ts app/api/content-packages/[id]/export/route.ts app/api/compliance/issues/[id]/dismiss/route.ts components/content/ContentPackageDetail.tsx components/content/types.ts tests/p3-contract.test.ts",
+      "npm test -- tests/p3-contract.test.ts",
+      "npm run typecheck",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma generate"
+    ],
+    "blockers": []
+  }
+}

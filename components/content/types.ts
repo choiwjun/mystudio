@@ -7,11 +7,19 @@ export type DetailDraft = {
   readonly first_screen: string | null;
   readonly body_markdown: string | null;
   readonly comparison_table: string | null;
+  readonly faq: readonly DetailFaqItem[] | null;
   readonly disclosure_text: string | null;
   readonly price_notice: string | null;
   readonly original_body: string | null;
   readonly updated_at: string;
+  readonly status?: string;
 };
+
+export type DetailFaqItem = {
+  readonly question: string;
+  readonly answer: string;
+};
+
 
 export type DetailComplianceIssue = {
   readonly id: string;
@@ -19,8 +27,22 @@ export type DetailComplianceIssue = {
   readonly severity: "low" | "medium" | "high";
   readonly message: string;
   readonly suggested_fix: string | null;
+  readonly blocks_export?: boolean;
+  readonly dismissed?: boolean;
   readonly dismissed_at?: string | null;
+  readonly dismissed_by?: string | null;
+  readonly dismiss_reason?: string | null;
 };
+
+export type DetailTitleCandidate = {
+  readonly id?: string;
+  readonly kind: "homefeed" | "search" | "thumbnail";
+  readonly text: string;
+  readonly hook_type?: string | null;
+  readonly hookType?: string | null;
+  readonly selected: boolean;
+};
+
 
 export type DetailComplianceCheck = {
   readonly id: string;
@@ -29,6 +51,20 @@ export type DetailComplianceCheck = {
   readonly export_allowed: boolean;
   readonly issues: readonly DetailComplianceIssue[];
 };
+
+export type DetailShoppingConnectLink = {
+  readonly id: string;
+  readonly product_id: string;
+  readonly content_package_id: string | null;
+  readonly shopping_connect_url: string;
+  readonly commission_rate: number;
+  readonly bonus_commission: number | null;
+  readonly link_checked_at: string | null;
+  readonly is_active: boolean;
+  readonly notes: string | null;
+  readonly stale: boolean;
+};
+
 
 export type DetailContentPackage = {
   readonly id: string;
@@ -57,11 +93,14 @@ export type DetailContentPackage = {
     readonly price: number | null;
     readonly price_checked_at: string | null;
   }[];
+  readonly title_candidates: readonly DetailTitleCandidate[];
+  readonly shopping_connect_links: readonly DetailShoppingConnectLink[];
+  readonly exports: readonly DetailExportRecord[];
 };
 
 export type DetailExportRecord = {
   readonly id: string;
   readonly format: "markdown" | "html" | "copy" | "zip";
-  readonly content: string;
+  readonly content?: string;
   readonly created_at: string;
 };

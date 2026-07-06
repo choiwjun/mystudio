@@ -5,6 +5,10 @@ import { maskSensitiveContext } from "@/lib/security/mask";
 import { isPrivateAddress } from "@/lib/security/productImport";
 
 const schema = readFileSync("prisma/schema.prisma", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  readonly dependencies?: Readonly<Record<string, string>>;
+  readonly devDependencies?: Readonly<Record<string, string>>;
+};
 
 function sourceFilesUnder(path: string): readonly string[] {
   return readdirSync(path).flatMap((entry) => {
@@ -107,5 +111,19 @@ describe("P0 API and security infrastructure", () => {
     expect(isPrivateAddress("172.16.0.1")).toBe(true);
     expect(isPrivateAddress("192.168.1.20")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
+  });
+});
+
+describe("P0 dependency hygiene contract", () => {
+  it("pins top-level dependencies and removes unused auth/sanitizer/logger packages", () => {
+    const dependencies = packageJson.dependencies ?? {};
+    const devDependencies = packageJson.devDependencies ?? {};
+    const allTopLevelVersions = [...Object.values(dependencies), ...Object.values(devDependencies)];
+
+    expect(allTopLevelVersions).not.toContain("latest");
+    expect(dependencies).not.toHaveProperty("dompurify");
+    expect(dependencies).not.toHaveProperty("pino");
+    expect(dependencies).not.toHaveProperty("next-auth");
+    expect(dependencies["ky"]).toBe("1.14.0");
   });
 });

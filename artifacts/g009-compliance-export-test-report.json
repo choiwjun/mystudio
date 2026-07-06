@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G009",
+  "summary": "Compliance/export/persistence governance verification passed after blocker fixes.",
+  "commands": [
+    {
+      "command": "npx biome check lib/compliance/rules.ts lib/compliance/service.ts lib/export/render.ts lib/export/service.ts lib/retention/service.ts app/api/content-packages/[id]/export/route.ts app/api/compliance/issues/[id]/dismiss/route.ts components/content/ContentPackageDetail.tsx components/content/types.ts tests/p3-contract.test.ts",
+      "status": "passed",
+      "artifactRef": "artifact://611"
+    },
+    {
+      "command": "npm test -- tests/p3-contract.test.ts",
+      "status": "passed",
+      "result": "1 test file passed; 29 tests passed.",
+      "artifactRef": "artifact://613"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "artifactRef": "artifact://615"
+    },
+    {
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed"
+    },
+    {
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma generate",
+      "status": "passed",
+      "artifactRef": "artifact://618"
+    }
+  ],
+  "reviewEvidence": {
+    "cleanupReports": [
+      "agent://55-G009CleanupCompliance",
+      "agent://61-G009CleanupExportRerun",
+      "agent://62-G009CleanupPersistenceRerun"
+    ],
+    "architectReview": "agent://63-G009ArchitectReviewRerun",
+    "executorQa": "agent://64-G009ExecutorQaRerun"
+  },
+  "coveredSurfaces": [
+    "compliance API/package service",
+    "export API/package service",
+    "export render/package bundle",
+    "retention cleanup package service",
+    "Prisma schema and deterministic migration"
+  ],
+  "adversarialEvidence": [
+    "High severity compliance issues remain non-dismissible and export-blocking.",
+    "Medium severity issues require a reason, store dismissal audit fields, recompute export_allowed, and update UI state from the returned compliance check.",
+    "Export rejects malformed and unknown request bodies before mutation.",
+    "Export replays issue-level readiness, draft binding, and freshness before persisting exports.",
+    "ZIP output has PK ZIP bytes with post.md, post.html, post.txt, and export_manifest.json; UI downloads application/zip binary content.",
+    "Retention cleanup validates mode/day windows before counting or deleting and only deletes in explicit execute mode."
+  ]
+}

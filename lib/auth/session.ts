@@ -56,7 +56,11 @@ function readCookie(header: string | null, name: string): string | null {
   for (const part of header.split(";")) {
     const [rawKey, ...rawValue] = part.trim().split("=");
     if (rawKey === name) {
-      return decodeURIComponent(rawValue.join("="));
+      try {
+        return decodeURIComponent(rawValue.join("="));
+      } catch {
+        return null;
+      }
     }
   }
 

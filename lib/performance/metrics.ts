@@ -9,6 +9,7 @@ export type RevenueMetricInput = {
   readonly content_title: string;
   readonly direct_revenue: number;
   readonly indirect_revenue: number;
+  readonly category?: string | null;
 };
 
 export function detectPlatformFromUrl(url: string): string {
@@ -76,6 +77,12 @@ export function summarizeRevenue(
   readonly progress_rate: number;
   readonly top_content_title: string | null;
   readonly top_content_revenue: number;
+  readonly top_category: string | null;
+  readonly category_rankings: readonly {
+    readonly category: string;
+    readonly revenue: number;
+    readonly sample_count: number;
+  }[];
 } {
   const directTotal = logs.reduce((total, log) => total + log.direct_revenue, 0);
   const indirectTotal = logs.reduce((total, log) => total + log.indirect_revenue, 0);
@@ -86,6 +93,25 @@ export function summarizeRevenue(
     }))
     .sort((left, right) => right.revenue - left.revenue);
   const top = ranked[0] ?? null;
+  const categoryTotals = new Map<string, { revenue: number; sampleCount: number }>();
+  for (const log of logs) {
+    const category = log.category?.trim();
+    if (category !== undefined && category.length > 0) {
+      const previous = categoryTotals.get(category) ?? { revenue: 0, sampleCount: 0 };
+      categoryTotals.set(category, {
+        revenue: previous.revenue + log.direct_revenue + log.indirect_revenue,
+        sampleCount: previous.sampleCount + 1,
+      });
+    }
+  }
+  const categoryRankings = [...categoryTotals.entries()]
+    .map(([category, totals]) => ({
+      category,
+      revenue: totals.revenue,
+      sample_count: totals.sampleCount,
+    }))
+    .sort((left, right) => right.revenue - left.revenue);
+
   const monthTotal = directTotal + indirectTotal;
 
   return {
@@ -95,6 +121,8 @@ export function summarizeRevenue(
     goal_monthly: goalMonthly,
     progress_rate: goalMonthly === 0 ? 0 : Math.round((monthTotal / goalMonthly) * 100),
     top_content_title: top?.title ?? null,
+    top_category: categoryRankings[0]?.category ?? null,
     top_content_revenue: top?.revenue ?? 0,
+    category_rankings: categoryRankings,
   };
 }

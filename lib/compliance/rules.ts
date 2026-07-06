@@ -6,6 +6,7 @@ export const complianceInputSchema = z.object({
   has_price_mentions: z.boolean(),
   disclosure_text: z.string().nullable().optional(),
   price_notice: z.string().nullable().optional(),
+  has_verified_product_evidence: z.boolean().optional(),
 });
 
 export const complianceIssueSchema = z.object({
@@ -19,6 +20,15 @@ export type ComplianceRuleInput = z.infer<typeof complianceInputSchema>;
 export type ComplianceRuleIssue = z.infer<typeof complianceIssueSchema>;
 
 const bannedExpressions = ["100%", "무조건", "완벽", "최저가", "1위", "최고"] as const;
+const unsupportedClaimExpressions = [
+  "질병 치료",
+  "치료 효과",
+  "부작용 없음",
+  "공식 인증",
+  "의학적으로 입증",
+] as const;
+const directUsePattern =
+  /직접\s*(사용|써|구매|먹어|마셔|입어|신어|테스트)|사용해\s*보니|구매해\s*보니|써\s*보니|실사용|내돈내산|후기|testimonial/i;
 
 function hasDisclosure(input: ComplianceRuleInput): boolean {
   return (
@@ -29,7 +39,12 @@ function hasDisclosure(input: ComplianceRuleInput): boolean {
 }
 
 function hasPriceNotice(input: ComplianceRuleInput): boolean {
-  return input.body_markdown.includes("가격") && (input.price_notice?.trim().length ?? 0) > 0;
+  const noticeText = `${input.body_markdown}\n${input.price_notice ?? ""}`;
+  return /확인일 기준|변동될 수|변동 가능|가격 변동/.test(noticeText);
+}
+
+function hasSourceAttribution(input: ComplianceRuleInput): boolean {
+  return /출처|source|https?:\/\//i.test(input.body_markdown);
 }
 
 export function evaluateCompliance(input: ComplianceRuleInput): {
@@ -69,6 +84,18 @@ export function evaluateCompliance(input: ComplianceRuleInput): {
     }
   }
 
+  for (const expression of unsupportedClaimExpressions) {
+    if (input.body_markdown.includes(expression)) {
+      issues.push({
+        issue_type: "unsupported_claim_language",
+        severity: "high",
+        message: `근거 확인이 필요한 표현 '${expression}'이 포함되어 있습니다.`,
+        suggested_fix:
+          "공식 근거가 없는 인증, 치료, 안전성 표현을 삭제하거나 검증된 출처를 붙이세요.",
+      });
+    }
+  }
+
   if (/(^|[^0-9])0원/.test(input.body_markdown)) {
     issues.push({
       issue_type: "banned_expression",
@@ -78,12 +105,21 @@ export function evaluateCompliance(input: ComplianceRuleInput): {
     });
   }
 
-  if (!input.body_markdown.includes("출처")) {
+  if (!hasSourceAttribution(input)) {
     issues.push({
-      issue_type: "source_missing",
-      severity: "low",
+      issue_type: "source_attribution_missing",
+      severity: "medium",
       message: "출처 표기가 부족합니다.",
       suggested_fix: "상품명, 가격, 주요 주장에 출처를 붙이세요.",
+    });
+  }
+
+  if (directUsePattern.test(input.body_markdown) && input.has_verified_product_evidence !== true) {
+    issues.push({
+      issue_type: "unverified_direct_use_claim",
+      severity: "medium",
+      message: "검증되지 않은 직접 사용 또는 후기 표현이 포함되어 있습니다.",
+      suggested_fix: "직접 사용 근거를 연결하거나 후기/실사용 표현을 객관적 설명으로 바꾸세요.",
     });
   }
 
@@ -99,11 +135,12 @@ export function evaluateCompliance(input: ComplianceRuleInput): {
   const hasHigh = issues.some((issue) => issue.severity === "high");
   const hasMedium = issues.some((issue) => issue.severity === "medium");
   const riskLevel = hasHigh ? "high" : hasMedium ? "medium" : "low";
+  const exportAllowed = issues.every((issue) => issue.severity === "low");
 
   return {
     pass: issues.length === 0,
     risk_level: riskLevel,
-    export_allowed: !hasHigh,
+    export_allowed: exportAllowed,
     issues,
   };
 }

@@ -117,13 +117,94 @@ function parsePatternType(value: string): HermesMemoryPattern["pattern_type"] | 
   }
 }
 
+function sameTags(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightSet = new Set(right);
+  return left.every((tag) => rightSet.has(tag));
+}
+
+function mergeNullableAverage(
+  leftAverage: number | null,
+  leftCount: number,
+  rightAverage: number | null,
+  rightCount: number,
+): number | null {
+  if (leftAverage === null) {
+    return rightAverage;
+  }
+  if (rightAverage === null) {
+    return leftAverage;
+  }
+  const totalCount = leftCount + rightCount;
+  return totalCount === 0
+    ? null
+    : (leftAverage * leftCount + rightAverage * rightCount) / totalCount;
+}
+
+function aggregateCompanyMemoryPatterns(
+  patterns: readonly CompanyMemoryPatternInput[],
+): CompanyMemoryPatternInput[] {
+  const aggregated: CompanyMemoryPatternInput[] = [];
+
+  for (const pattern of patterns) {
+    const existingIndex = aggregated.findIndex(
+      (candidate) =>
+        candidate.patternType === pattern.patternType &&
+        candidate.patternText === pattern.patternText &&
+        sameTags(candidate.tags, pattern.tags),
+    );
+    if (existingIndex === -1) {
+      aggregated.push({ ...pattern });
+      continue;
+    }
+
+    const existing = aggregated[existingIndex];
+    if (existing === undefined) {
+      aggregated.push({ ...pattern });
+      continue;
+    }
+    const sampleCount = existing.sampleCount + pattern.sampleCount;
+    aggregated[existingIndex] = {
+      patternType: existing.patternType,
+      patternText: existing.patternText,
+      tags: existing.tags,
+      sampleCount,
+      avgViews: mergeNullableAverage(
+        existing.avgViews,
+        existing.sampleCount,
+        pattern.avgViews,
+        pattern.sampleCount,
+      ),
+      avgClicks: mergeNullableAverage(
+        existing.avgClicks,
+        existing.sampleCount,
+        pattern.avgClicks,
+        pattern.sampleCount,
+      ),
+      avgRevenueUsd: mergeNullableAverage(
+        existing.avgRevenueUsd,
+        existing.sampleCount,
+        pattern.avgRevenueUsd,
+        pattern.sampleCount,
+      ),
+      createdPatternIds: [
+        ...new Set([...existing.createdPatternIds, ...pattern.createdPatternIds]),
+      ],
+    };
+  }
+
+  return aggregated;
+}
+
 export function buildHermesMemoryContext(
   patterns: readonly CompanyMemoryPatternInput[],
 ): HermesMemoryContext {
   const readyPatterns: HermesMemoryPattern[] = [];
   let learningPatternCount = 0;
 
-  for (const pattern of patterns) {
+  for (const pattern of aggregateCompanyMemoryPatterns(patterns)) {
     const patternType = parsePatternType(pattern.patternType);
     if (patternType === null || pattern.sampleCount < COMPANY_MEMORY_MIN_SAMPLE_COUNT) {
       learningPatternCount += 1;

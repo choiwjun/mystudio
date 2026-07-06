@@ -1,6 +1,6 @@
 import { type AgentRun, type KeywordCluster, type OpportunityMemo, Prisma } from "@prisma/client";
 import type { HermesMemoryContext, HermesMemoryPattern } from "@/lib/ai/adapter";
-import { MockAIAdapter } from "@/lib/ai/mockAdapter";
+import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import {
   assertCompanyProfileReady,
   getOrCreateCompanyProfile,
@@ -121,6 +121,21 @@ function isUniqueConstraintViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
+export class HermesScanAlreadyStartedError extends Error {
+  readonly code = "HERMES_SCAN_ALREADY_STARTED";
+
+  constructor(triggerExecutionId: string) {
+    super(
+      `Hermes scan ${triggerExecutionId} has already started and has not completed successfully.`,
+    );
+    this.name = "HermesScanAlreadyStartedError";
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown Hermes scan failure.";
+}
+
 function hermesMemoryPatternToJson(pattern: HermesMemoryPattern): Prisma.InputJsonObject {
   return {
     pattern_type: pattern.pattern_type,
@@ -217,12 +232,146 @@ async function createHermesRunLock(
   }
 }
 
+async function markHermesRunFailed(run: AgentRun | null, error: unknown): Promise<void> {
+  if (run === null) {
+    return;
+  }
+
+  await prisma.agentRun.update({
+    where: { id: run.id },
+    data: {
+      status: "failed",
+      errorMessage: errorMessage(error),
+    },
+  });
+}
+
+async function markHermesRunBlocked(
+  run: AgentRun | null,
+  message: string,
+  outputJson?: Prisma.InputJsonValue,
+): Promise<void> {
+  if (run === null) {
+    return;
+  }
+
+  await prisma.agentRun.update({
+    where: { id: run.id },
+    data: {
+      status: "blocked",
+      errorMessage: message,
+      ...(outputJson === undefined ? {} : { outputJson }),
+    },
+  });
+}
+type CompanyMemoryAggregationRecord = {
+  readonly patternType: string;
+  readonly category: string | null;
+  readonly patternText: string;
+  readonly tags: string[];
+  readonly score: number;
+  readonly sampleCount: number;
+  readonly avgViews: number | null;
+  readonly avgClicks: number | null;
+  readonly avgRevenueUsd: number | null;
+  readonly createdPatternIds: string[];
+};
+
+type AggregatedCompanyMemoryPattern = {
+  readonly patternType: string;
+  readonly patternText: string;
+  readonly tags: string[];
+  readonly sampleCount: number;
+  readonly avgViews: number | null;
+  readonly avgClicks: number | null;
+  readonly avgRevenueUsd: number | null;
+  readonly createdPatternIds: string[];
+};
+
+type WeightedCompanyMemoryPattern = {
+  readonly weightedScore: number;
+  readonly pattern: AggregatedCompanyMemoryPattern;
+};
+
+function companyMemoryGroupKey(record: CompanyMemoryAggregationRecord): string {
+  return JSON.stringify([record.patternType, record.patternText, record.category]);
+}
+
+function weightedMemoryAverage(
+  records: readonly CompanyMemoryAggregationRecord[],
+  selectValue: (record: CompanyMemoryAggregationRecord) => number | null,
+): number | null {
+  let weightedTotal = 0;
+  let weightTotal = 0;
+
+  for (const record of records) {
+    const value = selectValue(record);
+    if (value === null || record.sampleCount <= 0) {
+      continue;
+    }
+    weightedTotal += value * record.sampleCount;
+    weightTotal += record.sampleCount;
+  }
+
+  return weightTotal === 0 ? null : weightedTotal / weightTotal;
+}
+
+async function loadAggregatedCompanyMemoryPatterns() {
+  const records = await prisma.companyMemory.findMany();
+  const groups = new Map<string, CompanyMemoryAggregationRecord[]>();
+
+  for (const record of records) {
+    const key = companyMemoryGroupKey(record);
+    groups.set(key, [...(groups.get(key) ?? []), record]);
+  }
+
+  return [...groups.values()]
+    .map((groupRecords) => {
+      const firstRecord = groupRecords[0];
+      if (firstRecord === undefined) {
+        return null;
+      }
+      const weightedScore = weightedMemoryAverage(groupRecords, (record) => record.score) ?? 0;
+      return {
+        weightedScore,
+        pattern: {
+          patternType: firstRecord.patternType,
+          patternText: firstRecord.patternText,
+          tags: [...new Set(groupRecords.flatMap((record) => record.tags))],
+          sampleCount: groupRecords.reduce((total, record) => total + record.sampleCount, 0),
+          avgViews: weightedMemoryAverage(groupRecords, (record) => record.avgViews),
+          avgClicks: weightedMemoryAverage(groupRecords, (record) => record.avgClicks),
+          avgRevenueUsd: weightedMemoryAverage(groupRecords, (record) => record.avgRevenueUsd),
+          createdPatternIds: [
+            ...new Set(groupRecords.flatMap((record) => record.createdPatternIds)),
+          ],
+        },
+      };
+    })
+    .filter((entry): entry is WeightedCompanyMemoryPattern => entry !== null)
+    .sort((left, right) => right.weightedScore - left.weightedScore)
+    .map((entry) => entry.pattern);
+}
+
+async function markCompanyMemoryUsed(memoryContext: HermesMemoryContext): Promise<void> {
+  if (memoryContext.patterns.length === 0) {
+    return;
+  }
+
+  await prisma.companyMemory.updateMany({
+    where: {
+      OR: memoryContext.patterns.map((pattern) => ({
+        patternType: pattern.pattern_type,
+        patternText: pattern.pattern_text,
+      })),
+    },
+    data: { usedInRecommendations: { increment: 1 } },
+  });
+}
+
 export async function scanHermes(triggerExecutionId: string | null): Promise<HermesScanResult> {
   const idempotencyKey = triggerExecutionId?.trim();
-  const memoryPatterns = await prisma.companyMemory.findMany({
-    orderBy: [{ score: "desc" }, { updatedAt: "desc" }],
-    take: 20,
-  });
+  const memoryPatterns = await loadAggregatedCompanyMemoryPatterns();
   const memoryContext = buildHermesMemoryContext(memoryPatterns);
   let hermesRunLock: AgentRun | null = null;
 
@@ -241,105 +390,115 @@ export async function scanHermes(triggerExecutionId: string | null): Promise<Her
         return await returnCompletedIdempotentHermesRun(completedRun);
       }
 
-      return {
-        kind: "completed",
-        opportunityMemos: await findLatestOpportunityMemos(),
-        budgetBlockedAfterPartial: false,
-      };
+      throw new HermesScanAlreadyStartedError(idempotencyKey);
     }
   }
 
-  await assertCompanyProfileReady();
-  const profile = await getOrCreateCompanyProfile();
-  const existingCount = await prisma.opportunityMemo.count({
-    where: {
-      createdAt: {
-        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      },
-    },
-  });
-  const createCount = Math.max(0, Math.min(5 - existingCount, 5));
-  const categories = filterBlockedCategories(
-    profile.primaryCategories,
-    profile.blockedCategories,
-  ).slice(0, createCount);
-  const adapter = new MockAIAdapter();
-  const createdIds: string[] = [];
-  let budgetBlockedAfterPartial = false;
-
-  for (const category of categories) {
-    const budget = await assertAiBudgetAllows({
-      pipelineStep: "hermes",
-      task: "generateOpportunityMemo",
-      estimatedCostUsd: AI_GENERATION_COST_USD.hermesOpportunityMemo,
-    });
-    if (budget.kind === "blocked") {
-      if (createdIds.length === 0) {
-        return { kind: "blocked_by_budget", error: budget.error };
-      }
-      budgetBlockedAfterPartial = true;
-      break;
-    }
-
-    const rawItems = await collectHermesRawItems(category);
-    const output = await adapter.generateOpportunityMemo({
-      categories: [category],
-      rawItems,
-      memoryContext,
-    });
-    const memo = await prisma.opportunityMemo.create({
-      data: {
-        topic: output.topic,
-        whyNow: output.why_now,
-        homefeedAngle: output.homefeed_angle,
-        searchAngle: output.search_angle,
-        interestTags: output.interest_tags,
-        homefeedScore: output.homefeed_score,
-        homefeedReasons: output.homefeed_reasons,
-        searchScore: output.search_score,
-        searchReasons: output.search_reasons,
-        revenueScore: output.revenue_score,
-        revenueReasons: output.revenue_reasons,
-        riskScore: output.risk_score,
-        scoreReasons: output.score_reasons,
-        recommendedPackages: ["blog"],
-        keywordClusters: {
-          create: buildKeywordClusters(output.topic).map((cluster) => ({
-            primaryKeyword: cluster.primary_keyword,
-            relatedKeywords: [...cluster.related_keywords],
-            searchVolume: cluster.search_volume,
-            competitionScore: cluster.competition_score,
-          })),
+  try {
+    await assertCompanyProfileReady();
+    const profile = await getOrCreateCompanyProfile();
+    const existingCount = await prisma.opportunityMemo.count({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
         },
       },
     });
-    await recordCostLog({
-      model: "mock",
-      task: "generateOpportunityMemo",
-      pipelineStep: "hermes",
-      inputTokens: 700,
-      outputTokens: 500,
-      costUsd: AI_GENERATION_COST_USD.hermesOpportunityMemo,
-      blockedByCap: false,
-    });
-    createdIds.push(memo.id);
-  }
+    const createCount = Math.max(0, Math.min(5 - existingCount, 5));
+    const categories = filterBlockedCategories(
+      profile.primaryCategories,
+      profile.blockedCategories,
+    ).slice(0, createCount);
+    const adapter = createRuntimeAIAdapter();
+    const createdIds: string[] = [];
+    let budgetBlockedAfterPartial = false;
 
-  if (hermesRunLock !== null) {
-    await prisma.agentRun.update({
-      where: { id: hermesRunLock.id },
-      data: {
-        status: "completed",
-        outputJson: createdIds,
-      },
-    });
-  }
+    for (const category of categories) {
+      const budget = await assertAiBudgetAllows({
+        pipelineStep: "hermes",
+        task: "generateOpportunityMemo",
+        estimatedCostUsd: AI_GENERATION_COST_USD.hermesOpportunityMemo,
+      });
+      if (budget.kind === "blocked") {
+        if (createdIds.length === 0) {
+          await markHermesRunBlocked(
+            hermesRunLock,
+            budget.error.message,
+            budget.error as unknown as Prisma.InputJsonValue,
+          );
+          return { kind: "blocked_by_budget", error: budget.error };
+        }
+        budgetBlockedAfterPartial = true;
+        break;
+      }
 
-  return {
-    kind: "completed",
-    opportunityMemos: await findLatestOpportunityMemos(),
-    budgetBlockedAfterPartial,
-  };
+      const rawItems = await collectHermesRawItems(category);
+      const output = await adapter.generateOpportunityMemo({
+        categories: [category],
+        rawItems,
+        memoryContext,
+      });
+      const memo = await prisma.opportunityMemo.create({
+        data: {
+          topic: output.topic,
+          whyNow: output.why_now,
+          homefeedAngle: output.homefeed_angle,
+          searchAngle: output.search_angle,
+          interestTags: output.interest_tags,
+          homefeedScore: output.homefeed_score,
+          homefeedReasons: output.homefeed_reasons,
+          searchScore: output.search_score,
+          searchReasons: output.search_reasons,
+          revenueScore: output.revenue_score,
+          revenueReasons: output.revenue_reasons,
+          riskScore: output.risk_score,
+          scoreReasons: output.score_reasons,
+          recommendedPackages: ["blog"],
+          keywordClusters: {
+            create: buildKeywordClusters(output.topic).map((cluster) => ({
+              primaryKeyword: cluster.primary_keyword,
+              relatedKeywords: [...cluster.related_keywords],
+              searchVolume: cluster.search_volume,
+              competitionScore: cluster.competition_score,
+            })),
+          },
+        },
+      });
+      await recordCostLog({
+        model: "mock",
+        task: "generateOpportunityMemo",
+        pipelineStep: "hermes",
+        inputTokens: 700,
+        outputTokens: 500,
+        costUsd: AI_GENERATION_COST_USD.hermesOpportunityMemo,
+        blockedByCap: false,
+      });
+      createdIds.push(memo.id);
+    }
+
+    if (createdIds.length > 0) {
+      await markCompanyMemoryUsed(memoryContext);
+    }
+
+    if (hermesRunLock !== null) {
+      await prisma.agentRun.update({
+        where: { id: hermesRunLock.id },
+        data: {
+          status: "completed",
+          outputJson: createdIds,
+        },
+      });
+    }
+
+    return {
+      kind: "completed",
+      opportunityMemos: await findLatestOpportunityMemos(),
+      budgetBlockedAfterPartial,
+    };
+  } catch (error) {
+    await markHermesRunFailed(hermesRunLock, error);
+    throw error;
+  }
 }
 
 export async function listOpportunityMemos(): Promise<SerializedOpportunityMemo[]> {

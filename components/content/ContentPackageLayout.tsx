@@ -12,6 +12,7 @@ const exportFormats = ["markdown", "html", "copy", "zip"] as const;
 
 type ContentPackageLayoutProps = {
   readonly activeTab: DetailTab;
+  readonly canRunPackageActions: boolean;
   readonly check: DetailComplianceCheck | null;
   readonly draft: DetailDraft;
   readonly draftBody: string;
@@ -27,6 +28,9 @@ type ContentPackageLayoutProps = {
   readonly onExport: (format: ExportFormatName) => void;
   readonly onRestoreOriginal: () => void;
   readonly onRunCompliance: () => void;
+  readonly onGeneratePackage: () => void;
+  readonly onGenerateTitleCandidates: () => void;
+  readonly onGenerateSearchStructure: () => void;
   readonly onTabChange: (tab: DetailTab) => void;
 };
 
@@ -39,6 +43,7 @@ function tabLabel(tab: DetailTab): string {
 
 export function ContentPackageLayout({
   activeTab,
+  canRunPackageActions,
   check,
   draft,
   draftBody,
@@ -54,8 +59,16 @@ export function ContentPackageLayout({
   onExport,
   onRestoreOriginal,
   onRunCompliance,
+  onGeneratePackage,
+  onGenerateTitleCandidates,
+  onGenerateSearchStructure,
   onTabChange,
 }: ContentPackageLayoutProps) {
+  const selectedTitle =
+    packageData.title_candidates.find((candidate) => candidate.selected)?.text ??
+    draft.homefeed_title[0] ??
+    draft.search_title ??
+    packageData.topic.title;
   return (
     <section className="content-detail-grid">
       <aside className="detail-rail" aria-label="콘텐츠 입력 정보">
@@ -67,6 +80,36 @@ export function ContentPackageLayout({
         <section className="section-block">
           <h2>Keyword Clusters</h2>
           <p className="muted">{keywordText}</p>
+        </section>
+        <section className="section-block">
+          <h2>Staged Workflow</h2>
+          <div className="button-row compact-actions">
+            <button
+              className="button primary"
+              disabled={!canRunPackageActions}
+              onClick={onGeneratePackage}
+              type="button"
+            >
+              패키지 생성
+            </button>
+            <button
+              className="button"
+              disabled={!canRunPackageActions}
+              onClick={onGenerateTitleCandidates}
+              type="button"
+            >
+              홈피드 제목
+            </button>
+            <button
+              className="button"
+              disabled={!canRunPackageActions}
+              onClick={onGenerateSearchStructure}
+              type="button"
+            >
+              Search Structure
+            </button>
+          </div>
+          <p className="muted">생성은 실제 패키지에서만 실행되며 데모와 불러오기 실패 상태는 차단됩니다.</p>
         </section>
         <section className="section-block">
           <h2>Product Candidates</h2>
@@ -100,7 +143,84 @@ export function ContentPackageLayout({
         {activeTab === "preview" ? (
           <article className="section-block preview-pane">
             <h2>{draft.search_title ?? packageData.topic.title}</h2>
-            <p className="muted">{draft.first_screen}</p>
+            <p className="muted">선택/대표 홈피드 제목: {selectedTitle}</p>
+            <section className="memo-row">
+              <h3>Title Candidates</h3>
+              {packageData.title_candidates.length === 0 && draft.homefeed_title.length === 0 ? (
+                <p className="muted">생성된 홈피드 제목 후보가 없습니다.</p>
+              ) : (
+                <ul>
+                  {packageData.title_candidates.map((candidate) => (
+                    <li key={candidate.id ?? candidate.text}>
+                      {candidate.selected ? "선택됨 · " : ""}
+                      {candidate.text}
+                    </li>
+                  ))}
+                  {draft.homefeed_title.map((title) => (
+                    <li key={title}>{title}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section className="memo-row">
+              <h3>First Screen / Thumbnail</h3>
+              <p>{draft.first_screen ?? "첫 화면 문구 없음"}</p>
+              <p className="muted">
+                썸네일: {draft.thumbnail_text.length === 0 ? "후보 없음" : draft.thumbnail_text.join(" · ")}
+              </p>
+            </section>
+            <section className="memo-row">
+              <h3>Comparison Table</h3>
+              {draft.comparison_table === null ? (
+                <p className="muted">비교표 없음</p>
+              ) : (
+                <pre>{draft.comparison_table}</pre>
+              )}
+            </section>
+            <section className="memo-row">
+              <h3>FAQ</h3>
+              {draft.faq === null || draft.faq.length === 0 ? (
+                <p className="muted">FAQ 없음</p>
+              ) : (
+                <dl>
+                  {draft.faq.map((item) => (
+                    <div key={item.question}>
+                      <dt>{item.question}</dt>
+                      <dd>{item.answer}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </section>
+            <section className="memo-row">
+              <h3>Disclosure / Price Notice</h3>
+              <p>{draft.disclosure_text ?? "쇼핑커넥트 고지 없음"}</p>
+              <p>{draft.price_notice ?? "가격 변동 고지 없음"}</p>
+            </section>
+            <section className="memo-row">
+              <h3>Shopping Connect Context</h3>
+              {packageData.shopping_connect_links.length === 0 ? (
+                <p className="muted">연결된 쇼핑커넥트 링크가 없습니다.</p>
+              ) : (
+                packageData.shopping_connect_links.map((link) => {
+                  const product = packageData.products.find((item) => item.id === link.product_id);
+                  return (
+                    <p key={link.id}>
+                      {product?.product_name ?? link.product_id} · 수수료 {link.commission_rate}% ·{" "}
+                      {link.is_active ? "활성" : "비활성"}
+                      {link.notes === null ? "" : ` · ${link.notes}`}
+                    </p>
+                  );
+                })
+              )}
+            </section>
+            <section className="memo-row">
+              <h3>Export Readiness</h3>
+              <p>
+                Compliance {check === null ? "미검수" : check.export_allowed ? "통과" : "차단"} · Export{" "}
+                {exportAllowed ? "가능" : "대기"} · 생성 기록 {packageData.exports.length}개
+              </p>
+            </section>
             <pre>{draftBody}</pre>
           </article>
         ) : null}

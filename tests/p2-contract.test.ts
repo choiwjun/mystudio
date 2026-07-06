@@ -3,8 +3,9 @@ import { DecisionValue } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { POST as postHermesScan } from "@/app/api/hermes/scan/route";
+import { GET as getHermesScan, POST as postHermesScan } from "@/app/api/hermes/scan/route";
 import { decisionCreateSchema } from "@/lib/decisions/service";
+import { collectHermesRawItems, NaverCredentialsMissingError } from "@/lib/hermes/rawItems";
 import {
   buildKeywordClusters,
   buildRawItemInputs,
@@ -17,6 +18,8 @@ import {
   shoppingConnectLinkCreateSchema,
   shoppingConnectLinkPatchSchema,
 } from "@/lib/products/service";
+import { verifyCronSecret } from "@/lib/security/cron";
+import { proxy } from "@/proxy";
 
 const vercelConfigSchema = z.object({
   crons: z
@@ -32,6 +35,7 @@ const vercelConfigSchema = z.object({
 const vercelConfig = vercelConfigSchema.parse(JSON.parse(readFileSync("vercel.json", "utf8")));
 const prismaSchema = readFileSync("prisma/schema.prisma", "utf8");
 const hermesServiceSource = readFileSync("lib/hermes/service.ts", "utf8");
+const hermesRawItemsSource = readFileSync("lib/hermes/rawItems.ts", "utf8");
 const productManagerSource = readFileSync("components/products/ProductManager.tsx", "utf8");
 const productTablesSource = readFileSync("components/products/ProductTables.tsx", "utf8");
 
@@ -45,6 +49,27 @@ async function withCronSecret<T>(secret: string, action: () => Promise<T>): Prom
       delete process.env["CRON_SECRET"];
     } else {
       process.env["CRON_SECRET"] = previousSecret;
+    }
+  }
+}
+
+async function withoutNaverCredentials<T>(action: () => Promise<T>): Promise<T> {
+  const previousClientId = process.env["NAVER_CLIENT_ID"];
+  const previousClientSecret = process.env["NAVER_CLIENT_SECRET"];
+  delete process.env["NAVER_CLIENT_ID"];
+  delete process.env["NAVER_CLIENT_SECRET"];
+  try {
+    return await action();
+  } finally {
+    if (previousClientId === undefined) {
+      delete process.env["NAVER_CLIENT_ID"];
+    } else {
+      process.env["NAVER_CLIENT_ID"] = previousClientId;
+    }
+    if (previousClientSecret === undefined) {
+      delete process.env["NAVER_CLIENT_SECRET"];
+    } else {
+      process.env["NAVER_CLIENT_SECRET"] = previousClientSecret;
     }
   }
 }
@@ -67,6 +92,58 @@ describe("P2 Hermes contract", () => {
       success: false,
       error: { code: "UNAUTHORIZED" },
     });
+  });
+
+  it("accepts Vercel Cron bearer credentials in the cron guard", async () => {
+    await withCronSecret("expected-secret", async () => {
+      const guard = verifyCronSecret(
+        new Headers({ authorization: "Bearer expected-secret" }),
+        process.env["CRON_SECRET"],
+      );
+
+      expect(guard.allowed).toBe(true);
+    });
+  });
+
+  it("rejects invalid Vercel Cron GET bearer credentials at the route", async () => {
+    const response = await withCronSecret(
+      "expected-secret",
+      async () =>
+        await getHermesScan(
+          new NextRequest("https://paperclip.local/api/hermes/scan", {
+            method: "GET",
+            headers: { authorization: "Bearer wrong-secret" },
+          }),
+        ),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      success: false,
+      error: { code: "UNAUTHORIZED" },
+    });
+  });
+
+  it("lets Hermes cron credential attempts reach the route while protecting unauthenticated API traffic", async () => {
+    const bearerAttempt = await proxy(
+      new NextRequest("https://paperclip.local/api/hermes/scan", {
+        method: "GET",
+        headers: { authorization: "Bearer wrong-secret" },
+      }),
+    );
+    const legacyAttempt = await proxy(
+      new NextRequest("https://paperclip.local/api/hermes/scan", {
+        method: "POST",
+        headers: { "x-cron-secret": "wrong-secret" },
+      }),
+    );
+    const unauthenticatedApi = await proxy(
+      new NextRequest("https://paperclip.local/api/hermes/scan", { method: "POST" }),
+    );
+
+    expect(bearerAttempt.headers.get("x-middleware-next")).toBe("1");
+    expect(legacyAttempt.headers.get("x-middleware-next")).toBe("1");
+    expect(unauthenticatedApi.status).toBe(401);
   });
 
   it("rejects Hermes cron calls when the cron secret header does not match", async () => {
@@ -150,6 +227,28 @@ describe("P2 Hermes contract", () => {
       },
     ]);
   });
+
+  it("fails fast instead of falling back when Naver credentials are missing", async () => {
+    await withoutNaverCredentials(async () => {
+      await expect(collectHermesRawItems("장마철 자취방 습기")).rejects.toBeInstanceOf(
+        NaverCredentialsMissingError,
+      );
+    });
+  });
+
+  it("does not retain internal or previous raw item fallback sources", () => {
+    expect(hermesRawItemsSource).not.toContain("fallback_previous_raw_item");
+    expect(hermesRawItemsSource).not.toContain("fallback_internal");
+    expect(hermesRawItemsSource).not.toContain("internal:fallback");
+  });
+
+  it("does not convert failed locked scans into latest-memo successes", () => {
+    expect(hermesServiceSource).toContain("HermesScanAlreadyStartedError");
+    expect(hermesServiceSource).toContain('status: "failed"');
+    expect(hermesServiceSource).not.toContain(
+      "opportunityMemos: await findLatestOpportunityMemos(),\n        budgetBlockedAfterPartial: false",
+    );
+  });
 });
 
 describe("P2 decision contract", () => {
@@ -207,12 +306,18 @@ describe("P2 products contract", () => {
     ).toMatchObject({ product_id: "product_1", commission_rate: 3.5 });
   });
 
-  it("accepts explicit shopping link freshness confirmation", () => {
+  it("accepts explicit shopping link freshness and active-state management", () => {
     expect(
       shoppingConnectLinkPatchSchema.parse({
         mark_checked: true,
       }),
     ).toEqual({ mark_checked: true });
+    expect(
+      shoppingConnectLinkPatchSchema.parse({
+        content_package_id: null,
+        is_active: false,
+      }),
+    ).toEqual({ content_package_id: null, is_active: false });
   });
 
   it("loads stale shopping links into the products refresh-needed tab", () => {

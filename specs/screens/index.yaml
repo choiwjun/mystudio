@@ -21,10 +21,18 @@ screens:
 phase1_sidebar:
   visible_routes:
     - /
-    - /packages/:id
+    - /hermes
+    - /packages
     - /products
+    - /compliance
+    - /memory
     - /performance
+  detail_routes:
+    - /packages/:id
+  header_routes:
     - /settings
+  development_only_routes:
+    - /packages/demo
   hidden_until_implemented:
     - /hermes/keywords
     - /hermes/competitors

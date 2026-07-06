@@ -28,67 +28,67 @@
 
 ## 1. 컬러 시스템
 
-### 팔레트
+### 구현 팔레트: Dark Command Center
 
-```
-Primary Color:
-  #1F2937 (짙은 회색/거의 검정) — Paperclip 판단, 경영 느낌
-  RGB(31, 41, 55)
+```css
+:root {
+  color-scheme: dark;
 
-Accent Green:
-  #03C75A (네이버 계열) — 유입, 쇼핑커넥트, 성공 신호
-  RGB(3, 199, 90)
+  /* Surfaces */
+  --surface-base: #08090a;     /* 앱 전체 배경 */
+  --surface-panel: #0f1011;    /* 사이드바, 헤더, 고정 패널 */
+  --surface-card: #191a1b;     /* 카드, 폼, 알림 박스 */
+  --surface-raised: #28282c;   /* hover/active/raised 상태 */
 
-Accent Blue:
-  #2563EB (깔끔한 파랑) — 액션 버튼, 주요 정보
-  RGB(37, 99, 235)
+  /* Text */
+  --text-primary: #f7f8f8;     /* 제목, 주요 숫자, 활성 메뉴 */
+  --text-secondary: #d0d6e0;   /* 본문, 설명, 일반 메뉴 */
+  --text-muted: #8a8f98;       /* 보조 텍스트, 메타데이터 */
 
-Background:
-  #F7F8FA (연한 회색) — 메인 배경
-  RGB(247, 248, 250)
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.08);
 
-Card:
-  #FFFFFF (흰색) — 카드, 입력 박스
-  RGB(255, 255, 255)
+  /* Accent */
+  --accent-primary: #7170ff;   /* 주요 액션, 포커스 링 */
+  --accent-hover: #828fff;     /* 주요 액션 hover */
 
-Border:
-  #E5E7EB (연한 회색선) — 구분선
-  RGB(229, 231, 235)
-
-Status Colors:
-  Success: #10B981 (초록)
-  Warning: #F59E0B (주황)
-  Danger: #EF4444 (빨강)
-  Info: #3B82F6 (파랑)
+  /* Status */
+  --status-success: #27a644;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #5e6ad2;
+}
 ```
 
 ### 사용 규칙
 
 ```
-버튼:
-  Primary Action: #2563EB (푸른색) — [선택] [Export] [승인]
-  Secondary: #1F2937 (검정) — [보류] [상세]
-  Success: #10B981 (초록) — [저장 완료] [발행 준비]
-  Danger: #EF4444 (빨강) — [폐기] [재검수 필요]
+앱 배경:
+  - html/body: var(--surface-base)
+  - 고정 내비게이션/헤더: var(--surface-panel)
+  - 콘텐츠 카드/폼/알림: var(--surface-card)
+  - hover/active/강조 표면: var(--surface-raised)
+
+버튼/포커스:
+  - Primary Action: var(--accent-primary) — [선택] [Export] [승인]
+  - Primary Hover: var(--accent-hover)
+  - Focus Visible: 2px solid var(--accent-primary)
 
 텍스트:
-  주제목: #1F2937 (검정) — 타이틀, H1
-  본문: #374151 (진회색) — 설명, 본문
-  라벨: #6B7280 (중간회색) — "상태", "점수"
-  보조: #9CA3AF (연한회색) — 날짜, 작은 텍스트
+  - 주제목/H1/핵심 숫자: var(--text-primary)
+  - 본문/설명/일반 메뉴: var(--text-secondary)
+  - 라벨/날짜/보조 텍스트: var(--text-muted)
 
-점수 / 숫자:
-  Homefeed 점수: #2563EB
-  Search 점수: #3B82F6
-  Revenue 점수: #03C75A
-  Risk 점수: #EF4444
+구분선:
+  - 약한 패널 경계: var(--border-subtle)
+  - 카드/폼 기본 경계: var(--border-default)
 
 상태 라벨:
-  opportunity_found: #3B82F6 (파랑)
-  assigned: #2563EB (진파랑)
-  compliance_checked: #F59E0B (주황)
-  published_manually: #10B981 (초록)
-  archived: #9CA3AF (회색)
+  - success / published / ready: var(--status-success)
+  - warning / compliance_pending: var(--status-warning)
+  - danger / compliance_failed / risk: var(--status-error)
+  - info / scan / report: var(--status-info)
 ```
 
 ---
@@ -131,27 +131,27 @@ Body (본문)
   Size: 14px
   Weight: Regular (400)
   Line-height: 1.6
-  Color: #374151
+  Color: var(--text-secondary)
   예: 카드 설명, 메모
 
 Label (라벨)
   Size: 12px
   Weight: Medium (500)
   Line-height: 1.5
-  Color: #6B7280
+  Color: var(--text-muted)
   예: "상태: 검수 중"
 
 Small (보조 텍스트)
   Size: 12px
   Weight: Regular (400)
   Line-height: 1.4
-  Color: #9CA3AF
+  Color: var(--text-muted)
   예: 날짜, 시간
 
 Score (점수)
   Size: 24px (숫자만)
   Weight: Bold (700)
-  Color: 상태별 (파랑/초록/빨강)
+  Color: 상태별 token (var(--status-info/success/error))
   예: "82" (하단에 "/100")
 
 CTA Button
@@ -188,27 +188,27 @@ CTA Button
 
 크기: 너비 100% (반응형), 높이 약 180px
 카드 스타일:
-  - 배경: #FFFFFF
-  - 테두리: 1px #E5E7EB
+  - 배경: var(--surface-card)
+  - 테두리: 1px solid var(--border-default)
   - 테두리반경: 8px
-  - 박스섀도우: 0 1px 3px rgba(0,0,0,0.1)
-  - 호버 시: 박스섀도우 강화, 배경 #F3F4F6
+  - 박스섀도우: none 또는 0 1px 3px rgba(0,0,0,0.24)
+  - 호버 시: 배경 var(--surface-raised)
   - 패딩: 20px
   - 마진: 16px 0
 
 점수 디자인:
   - 각 점수는 원형 또는 칩 형태
-  - 배경색: 해당 점수 색상 (옅은 버전)
-  - 텍스트: 짙은 색상
-  - 예: HomeFeed 72/100 → 배경 #DBEAFE, 텍스트 #1E40AF
+  - 배경색: var(--surface-raised) 또는 상태 token의 낮은 불투명도
+  - 텍스트: var(--text-primary)
+  - 예: HomeFeed 72/100 → 배경 var(--surface-raised), 텍스트 var(--status-info)
 
 버튼:
   - 크기: 32px 높이
   - 폰트: 12px Semibold
   - 패딩: 0 12px
-  - [선택]: 배경 #2563EB, 텍스트 흰색 → 호버 #1D4ED8
-  - [보류]: 배경 #E5E7EB, 텍스트 #374151
-  - [폐기]: 배경 #FEE2E2, 텍스트 #991B1B
+  - [선택]: 배경 var(--accent-primary), 텍스트 var(--text-primary) → 호버 var(--accent-hover)
+  - [보류]: 배경 var(--surface-raised), 텍스트 var(--text-secondary)
+  - [폐기]: 배경 rgba(239, 68, 68, 0.12), 텍스트 var(--status-error)
 ```
 
 ### 칸반 보드 (Content Production Pipeline)
@@ -271,15 +271,15 @@ CTA Button
 └─────────────────────────────────────────┘
 
 입력 필드 스타일:
-  - 배경: #FFFFFF
-  - 테두리: 1px #E5E7EB
+  - 배경: var(--surface-card)
+  - 테두리: 1px solid var(--border-default)
   - 테두리반경: 6px
   - 패딩: 12px 14px
   - 폰트: 14px Regular
-  - 포커스 시: 테두리 #2563EB, 박스섀도우 0 0 0 3px rgba(37, 99, 235, 0.1)
+  - 포커스 시: outline 2px solid var(--accent-primary), outline-offset 2px
 
 라벨:
-  - 폰트: 12px Semibold, #1F2937
+  - 폰트: 12px Semibold, var(--text-primary)
   - 마진 하단: 6px
 ```
 
@@ -300,13 +300,13 @@ CTA Button
 │ HomeFeed │
 │ /100     │
 └──────────┘
-배경: #DBEAFE (옅은 파랑)
+배경: var(--surface-raised)
 테두리반경: 8px
 패딩: 12px
 
 근거 텍스트 (하단):
   - 폰트: 12px Regular
-  - 색상: #6B7280
+  - 색상: var(--text-muted)
   - 마진 상단: 8px
   - 줄바꿈 허용
 ```
@@ -344,10 +344,10 @@ CTA Button
 │ [자동 수정 적용] [수동 수정]         │
 └─────────────────────────────────────┘
 
-배경색:
-  통과: #ECFDF5 (옅은 초록)
-  경고: #FFFBEB (옅은 주황)
-  실패: #FEF2F2 (옅은 빨강)
+배경/강조:
+  통과: var(--surface-card) + var(--status-success) 강조선
+  경고: var(--surface-card) + var(--status-warning) 강조선
+  실패: var(--surface-card) + var(--status-error) 강조선
 ```
 
 ---
@@ -394,18 +394,17 @@ Desktop:
 
 ---
 
-## 5. 다크 모드 (향후)
+## 5. 색상 모드
 
-현재는 라이트 모드만 지원. 필요 시 다음 색상으로 확장:
+구현 기준은 다크 command-center 단일 모드입니다. 라이트 모드 팔레트는 MVP 계약에서 제외하며, 신규 화면은 1장 컬러 시스템의 CSS token만 사용합니다.
 
 ```css
-다크 모드 팔레트:
-Primary: #1F2937 → #F3F4F6 (역반전)
-Background: #F7F8FA → #111827
-Card: #FFFFFF → #1F2937
-Border: #E5E7EB → #374151
-Text: #1F2937 → #F3F4F6
-Accent: 유지 (#03C75A, #2563EB)
+필수 기준:
+  - background/surface: var(--surface-base/panel/card/raised)
+  - text: var(--text-primary/secondary/muted)
+  - border: var(--border-subtle/default)
+  - action/focus: var(--accent-primary/hover)
+  - status: var(--status-success/warning/error/info)
 ```
 
 ---
@@ -417,11 +416,11 @@ WCAG 2.1 AA 준수:
 
 컬러 대비:
   - 텍스트 vs 배경: 최소 4.5:1 (일반), 3:1 (큰 텍스트)
-  - 예: #1F2937 텍스트 on #FFFFFF = 14.5:1 ✓
+  - 예: var(--text-primary) on var(--surface-base)는 AA 대비를 유지해야 함
 
 포커스 표시:
-  - 버튼 포커스: 파란 테두리 2px + 4px offset
-  - 입력 포커스: 파란 테두리 2px
+  - 버튼 포커스: var(--accent-primary) 2px outline + 2px offset
+  - 입력 포커스: var(--accent-primary) 2px outline + 2px offset
 
 키보드 네비게이션:
   - Tab 순서: 좌상→우하
@@ -457,7 +456,7 @@ AI 처리 진행: 진행률 바 (상단 또는 카드 내)
 **정보성 토스트** (자동 소멸)
 ```css
 자동 닫기: 4초 후 페이드아웃
-배경: #DBEAFE (옅은 파랑)
+배경: var(--surface-raised), 강조선: var(--status-info)
 아이콘: ℹ️ (정보)
 예: "변경사항이 저장되었습니다"
 ```
@@ -465,7 +464,7 @@ AI 처리 진행: 진행률 바 (상단 또는 카드 내)
 **에러 / 컴플라이언스 토스트** (수동 해제)
 ```css
 자동 소멸: 금지 — 수동으로 [×] 해제 필수
-배경: #FEE2E2 (옅은 빨강) / #FFFBEB (옅은 주황)
+배경: var(--surface-raised), 강조선: var(--status-error) 또는 var(--status-warning)
 아이콘: ✗ (실패) / ⚠️ (경고)
 재확인 경로: [다시 보기] 또는 [상세 보기] 버튼 표시
 예: "검수 실패: 대가성 문구 필수" → [수정하기] 제공
@@ -474,7 +473,7 @@ AI 처리 진행: 진행률 바 (상단 또는 카드 내)
 **성공 메시지**
 ```css
 자동 닫기: 2초 후 페이드아웃
-배경: #D1FAE5 (옅은 초록)
+배경: var(--surface-raised), 강조선: var(--status-success)
 아이콘: ✓ (체크)
 예: "발행 완료!"
 ```
@@ -485,5 +484,5 @@ AI 처리 진행: 진행률 바 (상단 또는 카드 내)
 
 - **Upstream documents referenced**: 00-source-plan.md (12장 메인페이지 디자인 설계 / 12.6 디자인 톤), 01-prd.md (운영 원칙)
 - **Downstream documents affected**: 06-screens.md (화면별 상세 컴포넌트), HTML/CSS 구현 (tailwindcss 또는 styled-components)
-- **Open questions**: 다크 모드 지원 시기, 커스텀 폰트 또는 시스템 폰트만 사용, 애니메이션 성능 최적화 필요 정도
+- **Open questions**: 라이트/다중 색상 모드는 post-MVP 검토, 커스텀 폰트 또는 시스템 폰트만 사용, 애니메이션 성능 최적화 필요 정도
 - **Assumptions**: Next.js + CSS-in-JS 또는 Tailwind CSS 사용 가능, 브라우저 지원 최신 2개 버전, 모바일 터치 반응성 중요

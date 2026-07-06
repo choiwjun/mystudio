@@ -9,3 +9,9 @@ prisma/dev.db
 .codegraph
 .omo
 tsconfig.tsbuildinfo
+.gjc/_session-*/.session-activity.json
+.gjc/_session-*/state/
+.gjc/_session-*/plans/
+.gjc/_session-*/reports/
+.gjc/_session-*/runtime/
+.gjc/_session-gajae_code_*/runtime/

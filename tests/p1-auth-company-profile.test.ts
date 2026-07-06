@@ -1,6 +1,9 @@
 import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { POST as loginPOST } from "@/app/api/auth/login/route";
+import { GET as sessionGET } from "@/app/api/auth/session/route";
+import { sanitizeLoginRedirectPath } from "@/components/auth/LoginForm";
 import { withAuthenticatedApi } from "@/lib/auth/guards";
 import { validateOwnerCredentials } from "@/lib/auth/owner";
 import { verifyPasswordHash } from "@/lib/auth/password";
@@ -8,6 +11,7 @@ import { getLoginLock, recordLoginFailure, resetLoginAttemptsForTests } from "@/
 import { createOwnerSession, readSessionFromRequest, sessionCookieName } from "@/lib/auth/session";
 import { isCompanyProfileComplete, serializeCompanyProfile } from "@/lib/company-profile/service";
 import { proxy } from "@/proxy";
+import * as errorLogger from "@/lib/logging/errorLogger";
 
 const ownerPasswordHash =
   "pbkdf2$sha256$310000$paperclip-example-salt$Nm73P_nLX5Z1vTXAE6Yik62lcGYJZGdxyAMNpc-7cYQ";
@@ -18,6 +22,10 @@ beforeEach(() => {
   process.env["OWNER_PASSWORD_HASH"] = ownerPasswordHash;
   process.env["ERROR_LOG_ENABLED"] = "false";
   resetLoginAttemptsForTests();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("P1 owner authentication", () => {
@@ -37,6 +45,59 @@ describe("P1 owner authentication", () => {
       ok: false,
       reason: "invalid_credentials",
     });
+  });
+
+  it("fails closed when the owner email is not explicitly configured", async () => {
+    delete process.env["OWNER_EMAIL"];
+
+    await expect(
+      validateOwnerCredentials({ email: "owner@example.com", password: "paperclip-dev-password" }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "owner_email_unconfigured",
+    });
+
+    process.env["OWNER_EMAIL"] = "   ";
+    await expect(
+      validateOwnerCredentials({ email: "owner@example.com", password: "paperclip-dev-password" }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "owner_email_unconfigured",
+    });
+  });
+
+  it("does not include the session token in the successful login response body", async () => {
+    const response = await loginPOST(
+      new NextRequest("http://localhost/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "owner@example.com",
+          password: "paperclip-dev-password",
+        }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain(sessionCookieName);
+    expect(payload.data).toMatchObject({
+      user: {
+        email: "owner@example.com",
+        name: "Owner",
+      },
+      csrf_token: expect.any(String),
+      expires_at: expect.any(String),
+    });
+    expect(payload.data).not.toHaveProperty("token");
+  });
+
+  it("sanitizes login redirect targets to same-origin relative paths", () => {
+    expect(sanitizeLoginRedirectPath("/hq?tab=home#top")).toBe("/hq?tab=home#top");
+    expect(sanitizeLoginRedirectPath(null)).toBe("/");
+    expect(sanitizeLoginRedirectPath("https://evil.example/hq")).toBe("/");
+    expect(sanitizeLoginRedirectPath("//evil.example/hq")).toBe("/");
+    expect(sanitizeLoginRedirectPath("/\\evil.example")).toBe("/");
+    expect(sanitizeLoginRedirectPath("not-a-path")).toBe("/");
   });
 
   it("locks a login key for one minute after five failures", () => {
@@ -90,6 +151,38 @@ describe("P1 owner authentication", () => {
       success: false,
       error: { code: "UNAUTHORIZED" },
     });
+  });
+
+  it("does not write per-request error logs for unauthenticated proxy or session probes", async () => {
+    process.env["ERROR_LOG_ENABLED"] = "true";
+    const recordErrorLog = vi.spyOn(errorLogger, "recordErrorLog").mockResolvedValue(undefined);
+
+    const proxyResponse = await proxy(new NextRequest("http://localhost/api/company-profile"));
+    const sessionResponse = await sessionGET(new NextRequest("http://localhost/api/auth/session"));
+    const malformedCookie = `${sessionCookieName}=%E0%A4%A`;
+    const malformedSessionResponse = await sessionGET(
+      new NextRequest("http://localhost/api/auth/session", {
+        headers: { cookie: malformedCookie },
+      }),
+    );
+
+    const guardedResponse = await withAuthenticatedApi("test.get", () =>
+      Response.json({ ok: true }),
+    )(new NextRequest("http://localhost/api/private.v1"));
+    const malformedGuardResponse = await withAuthenticatedApi("test.get", () =>
+      Response.json({ ok: true }),
+    )(
+      new NextRequest("http://localhost/api/private.v1", {
+        headers: { cookie: malformedCookie },
+      }),
+    );
+    expect(proxyResponse.status).toBe(401);
+    expect(sessionResponse.status).toBe(401);
+    expect(guardedResponse.status).toBe(401);
+    expect(malformedSessionResponse.status).toBe(401);
+    expect(malformedGuardResponse.status).toBe(401);
+    expect(recordErrorLog).not.toHaveBeenCalled();
+
   });
 
   it("requires csrf for authenticated state-changing API handlers", async () => {

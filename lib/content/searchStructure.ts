@@ -1,13 +1,13 @@
 import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
-import { MockAIAdapter } from "@/lib/ai/mockAdapter";
+import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import { getOrCreateCompanyProfile } from "@/lib/company-profile/service";
+import { serializeActivePlacementProducts } from "@/lib/content/placement";
 import { loadContentPackageRecord, transitionContentPackageStatus } from "@/lib/content/repository";
 import { serializeDraft } from "@/lib/content/serializers";
 import { prisma } from "@/lib/db";
 import { AI_GENERATION_COST_USD, assertAiBudgetAllows } from "@/lib/logging/costBudget";
 import { recordCostLog } from "@/lib/logging/costLogger";
-import { serializeProduct } from "@/lib/products/service";
 
 export const searchStructureSchema = z.object({
   content_package_id: z.string().min(1),
@@ -15,6 +15,17 @@ export const searchStructureSchema = z.object({
 
 function markdownFromHeadings(headings: readonly string[]): string {
   return headings.map((heading) => `## ${heading}`).join("\n\n");
+}
+
+const searchStructureTransitionStatuses: ReadonlySet<PackageStatus> = new Set([
+  PackageStatus.selected,
+  PackageStatus.assigned,
+  PackageStatus.brief_created,
+  PackageStatus.homefeed_packaged,
+]);
+
+function shouldTransitionToSearchStructured(status: PackageStatus): boolean {
+  return searchStructureTransitionStatuses.has(status);
 }
 
 export async function generateSearchStructure(input: z.infer<typeof searchStructureSchema>) {
@@ -36,11 +47,11 @@ export async function generateSearchStructure(input: z.infer<typeof searchStruct
     };
   }
 
-  const adapter = new MockAIAdapter();
+  const adapter = createRuntimeAIAdapter();
   const companyProfile = await getOrCreateCompanyProfile();
   const output = await adapter.generateSearchStructure({
     topic: contentPackage.topic.title,
-    products: contentPackage.shoppingConnectLinks.map((link) => serializeProduct(link.product)),
+    products: serializeActivePlacementProducts(contentPackage.shoppingConnectLinks),
     companyProfile,
   });
   const faq: Prisma.InputJsonValue = output.faq.map((item) => ({
@@ -73,13 +84,15 @@ export async function generateSearchStructure(input: z.infer<typeof searchStruct
           },
         });
 
-  await transitionContentPackageStatus({
-    id: contentPackage.id,
-    fromStatus: contentPackage.status,
-    toStatus: PackageStatus.search_structured,
-    progress: 0.35,
-    reason: "Search structure generated",
-  });
+  if (shouldTransitionToSearchStructured(contentPackage.status)) {
+    await transitionContentPackageStatus({
+      id: contentPackage.id,
+      fromStatus: contentPackage.status,
+      toStatus: PackageStatus.search_structured,
+      progress: Math.max(contentPackage.progress ?? 0, 0.35),
+      reason: "Search structure generated",
+    });
+  }
   await recordCostLog({
     model: "mock",
     task: "generateSearchStructure",

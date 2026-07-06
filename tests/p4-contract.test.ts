@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
+import type { Product } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { MockAIAdapter } from "@/lib/ai/mockAdapter";
+import { ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
+import { AIAdapterConfigurationError, createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import { serializeActivePlacementProducts } from "@/lib/content/placement";
 import { calculateHqStatus } from "@/lib/hq/status";
 import { evaluateDailyAiBudget } from "@/lib/logging/costBudget";
 import {
@@ -7,11 +12,93 @@ import {
   buildHermesMemoryContext,
   summarizeHookTypeStats,
 } from "@/lib/memory/patterns";
+import { buildTopProductCategories } from "@/lib/memory/service";
 import {
   detectPlatformFromUrl,
   summarizePerformance,
   summarizeRevenue,
 } from "@/lib/performance/metrics";
+import { directRevenueCategoryEntries } from "@/lib/performance/service";
+import { parseNaverProductFromUrl } from "@/lib/products/service";
+
+const performanceServiceSource = readFileSync("lib/performance/service.ts", "utf8");
+const hermesServiceSource = readFileSync("lib/hermes/service.ts", "utf8");
+const memoryServiceSource = readFileSync("lib/memory/service.ts", "utf8");
+const productServiceSource = readFileSync("lib/products/service.ts", "utf8");
+const contentServiceSource = readFileSync("lib/content/service.ts", "utf8");
+
+const fixtureDate = new Date("2026-07-06T00:00:00.000Z");
+
+function productFixture(overrides: Partial<Product> = {}): Product {
+  return {
+    id: "product_fixture",
+    productName: "Fixture product",
+    productUrl: "https://example.com/product",
+    source: "manual",
+    price: null,
+    priceCheckedAt: null,
+    imageUrl: null,
+    category: null,
+    memo: null,
+    createdAt: fixtureDate,
+    updatedAt: fixtureDate,
+    ...overrides,
+  };
+}
+
+describe("P4 AI runtime adapter contract", () => {
+  it("allows mock AI only for explicit test mode", () => {
+    expect(
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "mock",
+        NODE_ENV: "test",
+      }),
+    ).toBeInstanceOf(MockAIAdapter);
+  });
+
+  it("fails closed instead of defaulting to mock in production", () => {
+    expect(() =>
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "mock",
+        NODE_ENV: "production",
+      }),
+    ).toThrow(AIAdapterConfigurationError);
+    expect(() =>
+      createRuntimeAIAdapter({
+        NODE_ENV: "production",
+      }),
+    ).toThrow(AIAdapterConfigurationError);
+  });
+
+  it("validates configured provider credentials without falling back to mock", () => {
+    expect(() =>
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "openai",
+        NODE_ENV: "production",
+      }),
+    ).toThrow(/OPENAI_API_KEY/);
+    expect(() =>
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "claude",
+        NODE_ENV: "production",
+      }),
+    ).toThrow(/CLAUDE_API_KEY/);
+    expect(
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "openai",
+        NODE_ENV: "production",
+        OPENAI_API_KEY: "test-key",
+      }),
+    ).toBeInstanceOf(OpenAIAdapter);
+    expect(
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "claude",
+        CLAUDE_API_KEY: "test-key",
+        NODE_ENV: "production",
+      }),
+    ).toBeInstanceOf(ClaudeAIAdapter);
+  });
+});
 
 describe("P4 HQ status contract", () => {
   it("returns Warning when daily AI cost reaches the soft threshold", () => {
@@ -137,6 +224,156 @@ describe("P4 performance contract", () => {
       top_content_revenue: 30_000,
     });
   });
+
+  it("summarizes revenue by category instead of only latest content fallback", () => {
+    const summary = summarizeRevenue(
+      [
+        {
+          content_title: "Low value item",
+          category: "생활",
+          direct_revenue: 2_000,
+          indirect_revenue: 3_000,
+        },
+        {
+          content_title: "High value item",
+          category: "테크",
+          direct_revenue: 10_000,
+          indirect_revenue: 40_000,
+        },
+        {
+          content_title: "Second tech item",
+          category: "테크",
+          direct_revenue: 0,
+          indirect_revenue: 25_000,
+        },
+      ] as Parameters<typeof summarizeRevenue>[0],
+      100_000,
+    );
+
+    expect(summary).toMatchObject({
+      month_total: 80_000,
+      top_content_title: "High value item",
+      top_content_revenue: 50_000,
+      top_category: "테크",
+      category_rankings: [
+        { category: "테크", revenue: 75_000, sample_count: 2 },
+        { category: "생활", revenue: 5_000, sample_count: 1 },
+      ],
+    });
+  });
+
+  it("attributes direct revenue only to distinct active linked product categories", () => {
+    const entries = directRevenueCategoryEntries({
+      directRevenue: 90_000,
+      contentPackage: {
+        topic: { title: "Package topic" },
+        shoppingConnectLinks: [
+          { isActive: true, product: { category: "테크" } },
+          { isActive: true, product: { category: "테크" } },
+          { isActive: true, product: { category: "생활" } },
+          { isActive: false, product: { category: "비활성" } },
+        ],
+      },
+    });
+
+    expect(entries).toEqual([
+      {
+        content_title: "Package topic",
+        category: "테크",
+        direct_revenue: 45_000,
+        indirect_revenue: 0,
+      },
+      {
+        content_title: "Package topic",
+        category: "생활",
+        direct_revenue: 45_000,
+        indirect_revenue: 0,
+      },
+    ]);
+  });
+
+  it("requires explicit package binding when performance is recorded", () => {
+    expect(performanceServiceSource).toContain("content_package_id: z.string().min(1)");
+    expect(performanceServiceSource).not.toContain("resolveContentPackageId");
+    expect(performanceServiceSource).not.toContain('orderBy: { updatedAt: "desc" }');
+    expect(performanceServiceSource).toContain("directRevenueCategoryEntries");
+    expect(performanceServiceSource).toContain(
+      "shoppingConnectLinks: { include: { product: true } }",
+    );
+    expect(performanceServiceSource).not.toContain("category: log.contentPackage.topic.title");
+  });
+});
+
+describe("G008 product commerce contract", () => {
+  it("enriches product imports from deterministic URL metadata without network scraping", () => {
+    const product = parseNaverProductFromUrl(
+      new URL(
+        "https://search.shopping.naver.com/catalog/desk-42?query=%EC%8A%A4%ED%83%A0%EB%94%A9%20%EB%8D%B0%EC%8A%A4%ED%81%AC&price=129000&category=%ED%99%88%EC%98%A4%ED%94%BC%EC%8A%A4&image=https%3A%2F%2Fexample.com%2Fdesk.png",
+      ),
+    );
+
+    expect(product).toEqual({
+      product_name: "스탠딩 데스크",
+      product_url:
+        "https://search.shopping.naver.com/catalog/desk-42?query=%EC%8A%A4%ED%83%A0%EB%94%A9%20%EB%8D%B0%EC%8A%A4%ED%81%AC&price=129000&category=%ED%99%88%EC%98%A4%ED%94%BC%EC%8A%A4&image=https%3A%2F%2Fexample.com%2Fdesk.png",
+      source: "naver_shopping",
+      price: 129000,
+      image_url: "https://example.com/desk.png",
+      category: "홈오피스",
+      memo: expect.stringContaining("URL import"),
+    });
+  });
+
+  it("keeps valid percent signs in deterministic import metadata", () => {
+    const product = parseNaverProductFromUrl(
+      new URL(
+        "https://search.shopping.naver.com/search/all?query=100%25%20cotton&category=%ED%8C%A8%EB%B8%8C%EB%A6%AD",
+      ),
+    );
+
+    expect(product).toMatchObject({
+      product_name: "100% cotton",
+      category: "패브릭",
+    });
+  });
+
+  it("excludes inactive ShoppingConnect products from content placement inputs", () => {
+    const activeProduct = productFixture({
+      id: "active_product",
+      productName: "Active product",
+      category: "테크",
+    });
+    const inactiveProduct = productFixture({
+      id: "inactive_product",
+      productName: "Inactive product",
+      category: "비활성",
+    });
+
+    expect(
+      serializeActivePlacementProducts([
+        { isActive: true, product: activeProduct },
+        { isActive: false, product: inactiveProduct },
+      ]).map((product) => product.product_name),
+    ).toEqual(["Active product"]);
+  });
+
+  it("rejects metadata-poor imports instead of creating a generic product fallback", () => {
+    expect(() =>
+      parseNaverProductFromUrl(new URL("https://search.shopping.naver.com/search/all")),
+    ).toThrow(/PRODUCT_IMPORT_BLOCKED:missing_product_metadata/);
+    expect(productServiceSource).not.toContain('"Naver Shopping Product"');
+  });
+
+  it("does not mask persistence failures as not-found shopping link results", () => {
+    expect(productServiceSource).toContain("isRecordNotFoundError");
+    expect(productServiceSource).not.toContain(".catch(() => null)");
+    expect(productServiceSource).not.toContain(".catch(() => false)");
+  });
+
+  it("does not catch-all mask draft persistence failures as not found", () => {
+    expect(contentServiceSource).toContain("isRecordNotFoundError");
+    expect(contentServiceSource).not.toContain(".catch(() => null)");
+  });
 });
 
 describe("P4 memory contract", () => {
@@ -259,5 +496,63 @@ describe("P4 memory contract", () => {
       { hook_type: "seasonal_timing", average_views: 500, sample_count: 1 },
       { hook_type: "checklist", average_views: 200, sample_count: 2 },
     ]);
+  });
+
+  it("builds top product categories from active revenue evidence without duplication", () => {
+    const categories = buildTopProductCategories({
+      revenueLogs: [],
+      performanceLogs: [
+        {
+          directRevenue: 90_000,
+          views: 300,
+          clicks: 30,
+          recordedAt: fixtureDate,
+          contentPackage: {
+            shoppingConnectLinks: [
+              {
+                isActive: true,
+                product: { category: "테크", productName: "Tech A", price: 10_000 },
+              },
+              {
+                isActive: true,
+                product: { category: "테크", productName: "Tech B", price: 20_000 },
+              },
+              {
+                isActive: true,
+                product: { category: "생활", productName: "Life", price: 30_000 },
+              },
+              {
+                isActive: false,
+                product: { category: "비활성", productName: "Inactive", price: 40_000 },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(categories).toEqual([
+      { category: "테크", product_name: "Tech A", price: 10_000 },
+      { category: "생활", product_name: "Life", price: 30_000 },
+    ]);
+  });
+
+  it("aggregates persisted Company Memory patterns before Hermes reuse", () => {
+    expect(hermesServiceSource).toContain("weightedMemoryAverage");
+    expect(hermesServiceSource).toContain("patternType");
+    expect(hermesServiceSource).toContain("patternText");
+    expect(hermesServiceSource).toContain("category");
+    expect(hermesServiceSource).toContain("usedInRecommendations");
+    expect(hermesServiceSource).toContain("increment");
+    expect(hermesServiceSource).not.toContain("prisma.companyMemory.groupBy");
+    expect(hermesServiceSource).not.toContain("take: 20");
+    expect(
+      hermesServiceSource.indexOf("await markCompanyMemoryUsed(memoryContext);"),
+    ).toBeGreaterThan(hermesServiceSource.indexOf("createdIds.push(memo.id);"));
+  });
+
+  it("does not rank product categories without revenue or performance evidence", () => {
+    expect(memoryServiceSource).not.toContain("if (categories.size === 0)");
+    expect(memoryServiceSource).not.toContain("updatedAt: product.updatedAt");
   });
 });

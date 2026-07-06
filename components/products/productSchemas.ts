@@ -14,6 +14,14 @@ export const productSchema = z.object({
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
+export const contentPackageSummarySchema = z.object({
+  id: z.string().min(1),
+  topic: z.object({
+    title: z.string().min(1),
+  }),
+  status: z.string().min(1),
+});
+
 
 export const shoppingConnectLinkSchema = z.object({
   id: z.string().min(1),
@@ -43,6 +51,10 @@ export const productListResponseSchema = z.object({
 export const productMutationResponseSchema = z.object({
   success: z.literal(true),
   data: productSchema,
+});
+export const contentPackageListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({ content_packages: z.array(contentPackageSummarySchema) }),
 });
 
 export const shoppingConnectLinkListResponseSchema = z.object({

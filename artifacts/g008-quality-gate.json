@@ -1,0 +1,170 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Architect closure agent://52-G008ArchitectClosure approved G008 with CLEAR/CLEAR/CLEAR after verifying PRODUCT_IMPORT_BLOCKED-only fallback, ShoppingConnect management, active-link placement, active deduped category attribution, weighted Company Memory aggregation, post-success Hermes memory usage, and P2025-only draft persistence not-found handling.",
+    "commands": [
+      "architect review agent://52-G008ArchitectClosure",
+      "prior architect approval agent://49-G008ArchitectFinal"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA closure agent://51-G008QaClosure and cleanup closure agent://50-G008CleanupClosure passed with no blockers. Focused runtime verification passed: npm test -- tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts tests/hq-screen-contract.test.ts (5 files, 75 tests), npm run typecheck, and focused Biome check over changed G008 files.",
+    "e2eCommands": [
+      "npm test -- tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts tests/hq-screen-contract.test.ts",
+      "npm run typecheck"
+    ],
+    "redTeamCommands": [
+      "executor QA/red-team agent://51-G008QaClosure",
+      "executor cleanup report agent://50-G008CleanupClosure",
+      "npx biome check lib/content/placement.ts lib/content/service.ts lib/content/searchStructure.ts lib/products/service.ts app/api/shopping-connect-links/[id]/route.ts lib/performance/service.ts lib/memory/service.ts lib/hermes/service.ts components/products/ProductManager.tsx components/products/ProductTables.tsx tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g008-test-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g008-commerce-memory-test-report.json",
+        "description": "Focused API/package/product-commerce and memory-loop test report with command outputs and review evidence."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "g008-product-import",
+        "contractRef": "G008 product import enrichment and fail-closed fallback",
+        "obligation": "Deterministic Naver import metadata must enrich products; metadata-poor imports must be blocked; valid percent signs must not crash parsing; manual fallback must appear only for 422 PRODUCT_IMPORT_BLOCKED.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g008-api-package-tests"],
+        "adversarialCaseRefs": ["g008-metadata-poor-import", "g008-percent-import", "g008-import-fallback-gating"]
+      },
+      {
+        "id": "g008-shoppingconnect-management",
+        "contractRef": "G008 ShoppingConnect link management and placement",
+        "obligation": "ShoppingConnect links must support create, edit, package clearing, activation toggling, delete, freshness check, and inactive-link exclusion from generated placement.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g008-api-package-tests"],
+        "adversarialCaseRefs": ["g008-shoppingconnect-crud", "g008-inactive-placement"]
+      },
+      {
+        "id": "g008-performance-memory",
+        "contractRef": "G008 performance-to-package binding and Company Memory reuse",
+        "obligation": "Performance recording must require explicit content_package_id; revenue/category evidence must be active-link based, deduped, and split; Company Memory must use weighted aggregation and Hermes usage must increment only after successful new memo creation.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g008-api-package-tests"],
+        "adversarialCaseRefs": ["g008-revenue-split", "g008-weighted-memory", "g008-hermes-post-success"]
+      },
+      {
+        "id": "g008-persistence-errors",
+        "contractRef": "G008 persistence failure integrity",
+        "obligation": "Product, ShoppingConnect, and draft persistence errors must not be catch-all masked as not-found; only Prisma P2025 maps to null/not-found.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g008-api-package-tests"],
+        "adversarialCaseRefs": ["g008-persistence-not-masked"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "g008-api-package-tests",
+        "contractRef": "G008 API/package/product-commerce/memory behavior",
+        "surface": "api",
+        "invocation": "npm test -- tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts tests/hq-screen-contract.test.ts; npm run typecheck; focused npx biome check over changed G008 files",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "g008-metadata-poor-import",
+        "contractRef": "G008 product import enrichment and fail-closed fallback",
+        "scenario": "Naver Shopping URL lacks deterministic product metadata.",
+        "expectedBehavior": "Import parsing throws PRODUCT_IMPORT_BLOCKED:missing_product_metadata instead of creating a generic product.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-percent-import",
+        "contractRef": "G008 product import enrichment and fail-closed fallback",
+        "scenario": "Import metadata contains a legitimate percent sign such as query=100%25 cotton.",
+        "expectedBehavior": "Product name remains 100% cotton and parsing does not throw URIError.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-import-fallback-gating",
+        "contractRef": "G008 product import enrichment and fail-closed fallback",
+        "scenario": "Import API returns non-OK error that is not 422 PRODUCT_IMPORT_BLOCKED.",
+        "expectedBehavior": "Manual fallback is hidden and the UI reports automatic import failure rather than masking the error as manual fallback.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-shoppingconnect-crud",
+        "contractRef": "G008 ShoppingConnect link management and placement",
+        "scenario": "Owner edits link fields, clears package, toggles active state, deletes, and marks checked.",
+        "expectedBehavior": "Schemas/API/UI support PATCH content_package_id:null, is_active toggling, DELETE, and mark_checked without stale state drift.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-inactive-placement",
+        "contractRef": "G008 ShoppingConnect link management and placement",
+        "scenario": "A content package has active and inactive ShoppingConnect products.",
+        "expectedBehavior": "Inactive products are excluded from blog/search placement inputs and from performance/memory category attribution.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-revenue-split",
+        "contractRef": "G008 performance-to-package binding and Company Memory reuse",
+        "scenario": "Multiple active links include duplicate categories plus another category on one performance log.",
+        "expectedBehavior": "Revenue/category evidence dedupes duplicate categories and splits direct revenue across distinct active categories.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-weighted-memory",
+        "contractRef": "G008 performance-to-package binding and Company Memory reuse",
+        "scenario": "Persisted Company Memory contains multiple rows for the same pattern with different sample counts.",
+        "expectedBehavior": "Hermes context aggregation uses sample-count weighted averages, not unweighted group averages or arbitrary take limits.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-hermes-post-success",
+        "contractRef": "G008 performance-to-package binding and Company Memory reuse",
+        "scenario": "Hermes scan is idempotent, budget-blocked, or fails before creating a new memo.",
+        "expectedBehavior": "Company Memory usedInRecommendations increments only after at least one new memo is successfully created.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      },
+      {
+        "id": "g008-persistence-not-masked",
+        "contractRef": "G008 persistence failure integrity",
+        "scenario": "Product, ShoppingConnect, or draft persistence write fails for a reason other than Prisma P2025 not-found.",
+        "expectedBehavior": "The service rethrows the error instead of returning null/false that the route would convert to 404.",
+        "verdict": "passed",
+        "artifactRefs": ["g008-test-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "Full blocking loop rerun clean after resolving architect and cleanup blockers. Team was attempted via gjc team ultragoal-g008-final-cleanup-a-9b660619 but worker startup failed with provider model 404 and the team was shut down phase=cancelled; native executor cleanup/QA lanes and architect closure then passed clean. Final cleanup agent://50-G008CleanupClosure, QA agent://51-G008QaClosure, architect agent://52-G008ArchitectClosure, focused tests artifact://500, typecheck artifact://502, lint artifact://504.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npm test -- tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts tests/hq-screen-contract.test.ts",
+      "npm run typecheck",
+      "npx biome check lib/content/placement.ts lib/content/service.ts lib/content/searchStructure.ts lib/products/service.ts app/api/shopping-connect-links/[id]/route.ts lib/performance/service.ts lib/memory/service.ts lib/hermes/service.ts components/products/ProductManager.tsx components/products/ProductTables.tsx tests/p2-contract.test.ts tests/p3-contract.test.ts tests/p4-contract.test.ts tests/products-screen-contract.test.ts",
+      "executor cleanup agent://50-G008CleanupClosure",
+      "executor QA agent://51-G008QaClosure",
+      "architect review agent://52-G008ArchitectClosure"
+    ],
+    "blockers": []
+  }
+}

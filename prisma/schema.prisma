@@ -237,6 +237,7 @@ model Draft {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   complianceChecks ComplianceCheck[]
+  exports          Export[]          @relation("DraftExports")
 
   @@index([contentPackageId, channel])
   @@map("drafts")
@@ -274,14 +275,26 @@ model TitleCandidate {
 }
 
 model Export {
-  id               String         @id @default(cuid())
-  contentPackageId String         @map("content_package_id")
-  contentPackage   ContentPackage @relation("Exports", fields: [contentPackageId], references: [id], onDelete: Cascade)
-  format           ExportFormat
-  content          String
-  createdAt        DateTime       @default(now()) @map("created_at")
+  id                String           @id @default(cuid())
+  contentPackageId  String           @map("content_package_id")
+  contentPackage    ContentPackage   @relation("Exports", fields: [contentPackageId], references: [id], onDelete: Cascade)
+  draftId           String?          @map("draft_id")
+  draft             Draft?           @relation("DraftExports", fields: [draftId], references: [id], onDelete: SetNull)
+  complianceCheckId String?          @map("compliance_check_id")
+  complianceCheck   ComplianceCheck? @relation("ComplianceCheckExports", fields: [complianceCheckId], references: [id], onDelete: SetNull)
+  format            ExportFormat
+  channel           String?
+  content           String
+  storageKey        String?          @map("storage_key")
+  bundleFilename    String?          @map("bundle_filename")
+  byteSize          Int?             @map("byte_size")
+  checksumSha256    String?          @map("checksum_sha256")
+  manifestJson      Json?            @map("manifest_json")
+  createdAt         DateTime         @default(now()) @map("created_at")
 
   @@index([contentPackageId, createdAt])
+  @@index([draftId, createdAt])
+  @@index([complianceCheckId, createdAt])
   @@map("exports")
 }
 
@@ -334,6 +347,7 @@ model ComplianceCheck {
   exportAllowed    Boolean           @default(false) @map("export_allowed")
   checkedAt        DateTime          @default(now()) @map("checked_at")
   complianceIssues ComplianceIssue[]
+  exports          Export[]          @relation("ComplianceCheckExports")
 
   @@index([contentPackageId, pass])
   @@map("compliance_checks")

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G007",
+  "surface": "api-package-web-fallback",
+  "description": "Focused verification for staged content package workflow, UI source contracts, status integrity, and compliance/export binding.",
+  "commands": [
+    {
+      "command": "npm test -- tests/p3-contract.test.ts tests/p4-contract.test.ts tests/hq-screen-contract.test.ts",
+      "status": "passed",
+      "summary": "3 test files passed; 42 tests passed. Covers staged serialized fields, content detail controls, candidate replacement, status non-regression, compliance draft binding, stale export denial guards, explicit demo-only behavior, and real load failure fail-closed state."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "summary": "TypeScript noEmit passed after G007 backend/UI/compliance/export changes."
+    },
+    {
+      "command": "npx biome check lib/content/service.ts lib/content/searchStructure.ts lib/content/titleService.ts lib/compliance/service.ts lib/export/service.ts components/content/ContentPackageDetail.tsx components/content/ContentPackageLayout.tsx components/content/types.ts tests/p3-contract.test.ts",
+      "status": "passed",
+      "summary": "Focused Biome check passed for changed non-ignored files."
+    }
+  ],
+  "webAutomation": {
+    "status": "platform_unavailable",
+    "attemptedTool": "browser.open http://127.0.0.1:3000/packages/demo",
+    "failure": "Chromium failed to launch because libnspr4.so is missing in the WSL image.",
+    "fallbackEvidence": "Next dev server reached Ready; HTTP fetch of /packages/demo returned 307 to /login?from=%2Fpackages%2Fdemo, confirming route protection. UI behavior was covered by source contract tests and Team read-only inspection."
+  },
+  "teamEvidence": {
+    "team": "lane-a-g007-binding-cleanup-re-ab664b50",
+    "status": "phase=complete; tasks completed=2; workers stopped",
+    "statePath": ".gjc/_session-019f34b9-cd25-7000-a7f0-f949d2b5ad65/state/team/lane-a-g007-binding-cleanup-re-ab664b50",
+    "summary": "Team cleanup and QA found zero blocking findings; focused tests passed."
+  },
+  "architectEvidence": {
+    "agentRef": "agent://39-G007ArchitectAfterBinding",
+    "summary": "Architecture, product, and code statuses CLEAR; recommendation APPROVE; blockers empty."
+  }
+}

@@ -1,5 +1,14 @@
 export type ProductTab = "registered" | "new" | "refresh";
 
+export type ContentPackageSummary = {
+  readonly id: string;
+  readonly topic: {
+    readonly title: string;
+  };
+  readonly status: string;
+};
+
+
 export type Product = {
   readonly id: string;
   readonly product_name: string;
@@ -20,6 +29,13 @@ export type ProductFormValues = {
   readonly price: string;
   readonly category: string;
   readonly memo: string;
+};
+export type ShoppingConnectLinkFormValues = {
+  readonly product_id: string;
+  readonly content_package_id: string;
+  readonly shopping_connect_url: string;
+  readonly commission_rate: string;
+  readonly notes: string;
 };
 
 export type ShoppingConnectLink = {

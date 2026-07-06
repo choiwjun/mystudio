@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       case "blocked":
         return fail({ code: "COMPLIANCE_DISMISS_BLOCKED", message: result.reason }, 403);
       case "dismissed":
-        return ok(result.issue);
+        return ok({ issue: result.issue, compliance_check: result.compliance_check });
     }
   });
   return guarded(request);

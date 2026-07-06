@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G006",
+  "surface": "api",
+  "description": "Focused API/package verification for production OpenAI and Claude AIAdapter runtime paths.",
+  "commands": [
+    {
+      "command": "npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "summary": "2 test files passed; 22 tests passed. Covers runtime selection, missing credentials, malformed JSON, schema-invalid output, non-OK provider HTTP responses, all provider methods, and mock production rejection."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "summary": "TypeScript noEmit passed after provider adapter changes."
+    },
+    {
+      "command": "npx biome check lib/ai/adapter.ts lib/ai/runtime.ts lib/ai/providerAdapters.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "summary": "Focused Biome check passed for changed AI provider files and focused tests."
+    }
+  ],
+  "teamEvidence": {
+    "team": "lane-a-g006-cleanup-rerun-read-55f1e5c0",
+    "status": "phase=complete; tasks completed=2; workers stopped",
+    "statePath": ".gjc/_session-019f34b9-cd25-7000-a7f0-f949d2b5ad65/state/team/lane-a-g006-cleanup-rerun-read-55f1e5c0",
+    "summary": "Team cleanup and QA rerun reported zero blocking findings and focused tests passed."
+  },
+  "architectEvidence": {
+    "agentRef": "agent://32-G006ArchitectReviewExact",
+    "summary": "Architecture, product, and code statuses CLEAR; recommendation APPROVE; blockers empty."
+  }
+}

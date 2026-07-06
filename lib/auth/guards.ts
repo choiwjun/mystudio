@@ -38,11 +38,6 @@ export function withAuthenticatedApi(routeName: string, handler: AuthenticatedHa
   return withApiErrorLogging(routeName, async (request: NextRequest) => {
     const session = await readSessionFromRequest(request);
     if (session === null) {
-      await safeRecordAuthError(
-        request,
-        "UNAUTHORIZED",
-        "API request was rejected without a valid session.",
-      );
       return fail(
         {
           code: "UNAUTHORIZED",

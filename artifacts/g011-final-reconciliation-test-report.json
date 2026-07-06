@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G011",
+  "generatedAt": "2026-07-06T07:44:30Z",
+  "summary": "Final reconciliation verification for the complete durable Ultragoal run. A full test rerun exposed a lingering P0 boundary violation: content package progress updates in compliance/content/export services directly called prisma.contentPackage.update. The fix centralized progress writes in lib/content/repository.ts through updateContentPackageProgress while preserving existing status transition semantics. The final durable run was then reverified with full tests, typecheck, focused Biome on touched files, Prisma validation, production audit, and cleanup delegation.",
+  "commands": [
+    {
+      "id": "cmd-p0-rerun",
+      "command": "npm test -- tests/p0-contract.test.ts",
+      "status": "passed",
+      "artifactRef": "artifact://680",
+      "summary": "P0 contract test passed: 1 file, 9 tests."
+    },
+    {
+      "id": "cmd-full-tests-final",
+      "command": "npm test",
+      "status": "passed",
+      "artifactRef": "artifact://693",
+      "summary": "Full Vitest suite passed: 10 files, 119 tests."
+    },
+    {
+      "id": "cmd-typecheck-final",
+      "command": "npm run typecheck",
+      "status": "passed",
+      "artifactRef": "artifact://695",
+      "summary": "TypeScript no-emit typecheck passed."
+    },
+    {
+      "id": "cmd-biome-touched-final",
+      "command": "npx biome check lib/content/repository.ts lib/compliance/service.ts lib/content/service.ts lib/export/service.ts",
+      "status": "passed",
+      "artifactRef": "artifact://691",
+      "summary": "Focused Biome check over touched implementation files passed."
+    },
+    {
+      "id": "cmd-prisma-validate-final",
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed",
+      "summary": "Prisma schema validation passed."
+    },
+    {
+      "id": "cmd-prod-audit-final",
+      "command": "npm run audit:prod",
+      "status": "passed",
+      "summary": "Production npm audit found 0 vulnerabilities."
+    }
+  ],
+  "reviewEvidence": [
+    {
+      "id": "cleanup-implementation-boundary",
+      "kind": "implementation-cleanup-report",
+      "ref": "agent://74-G011StatusRoutingCleanup",
+      "status": "passed",
+      "summary": "Executor cleanup review found no blocking findings and no further edits were required."
+    }
+  ],
+  "nonBlockingObservations": [
+    {
+      "id": "broad-biome-preexisting-crlf",
+      "summary": "A broad Biome check over unrelated product files was attempted and failed on pre-existing CRLF formatting diagnostics outside the touched G011 files; it was not used as passing evidence. Focused Biome over the touched implementation boundary passed after formatting those files."
+    }
+  ],
+  "fixedFiles": [
+    "lib/content/repository.ts",
+    "lib/compliance/service.ts",
+    "lib/content/service.ts",
+    "lib/export/service.ts"
+  ],
+  "contractCoverage": [
+    {
+      "id": "g011-final-state",
+      "contractRef": "Ultragoal aggregate objective",
+      "obligation": "All required durable goals, including appended stories, are complete or superseded as appropriate and ledger receipts remain append-only.",
+      "evidenceRefs": ["cmd-full-tests-final", "cmd-typecheck-final", "cmd-prisma-validate-final"]
+    },
+    {
+      "id": "g011-repository-boundary",
+      "contractRef": "tests/p0-contract.test.ts: content package status mutation boundary",
+      "obligation": "Content package mutations outside lib/content/repository.ts route through repository helpers instead of direct prisma.contentPackage.update calls.",
+      "evidenceRefs": ["cmd-p0-rerun", "cmd-biome-touched-final", "cleanup-implementation-boundary"]
+    },
+    {
+      "id": "g011-production-readiness",
+      "contractRef": "Original production-readiness brief constraints",
+      "obligation": "Security, workflow, compliance/export, persistence, docs/navigation, and dependency hygiene remain verified after the final reconciliation fix.",
+      "evidenceRefs": ["cmd-full-tests-final", "cmd-typecheck-final", "cmd-prod-audit-final"]
+    }
+  ],
+  "blockers": []
+}

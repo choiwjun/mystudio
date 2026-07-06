@@ -1,4 +1,4 @@
-import type { Product, ShoppingConnectLink } from "@prisma/client";
+import { Prisma, type Product, type ShoppingConnectLink } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { validateProductImportUrl } from "@/lib/security/productImport";
@@ -29,6 +29,8 @@ export const shoppingConnectLinkCreateSchema = z.object({
 });
 
 export const shoppingConnectLinkPatchSchema = shoppingConnectLinkCreateSchema.partial().extend({
+  content_package_id: z.string().min(1).nullable().optional(),
+  is_active: z.boolean().optional(),
   mark_checked: z.boolean().optional(),
 });
 
@@ -105,18 +107,101 @@ export function serializeShoppingConnectLink(
   };
 }
 
+function isRecordNotFoundError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
+}
+
+function decodePathSegment(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function cleanImportedText(value: string): string {
+  return value
+    .replace(/\+/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[_|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function firstCleanParam(url: URL, names: readonly string[]): string | undefined {
+  for (const name of names) {
+    const value = url.searchParams.get(name);
+    if (value !== null) {
+      const cleaned = cleanImportedText(value);
+      if (cleaned.length > 0) {
+        return cleaned;
+      }
+    }
+  }
+  return undefined;
+}
+
+function cleanPathProductName(url: URL): string | undefined {
+  const segments = url.pathname
+    .split("/")
+    .map((segment) => cleanImportedText(decodePathSegment(segment)))
+    .filter((segment) => segment.length > 0 && !/^\d+$/.test(segment));
+
+  const ignoredSegments = new Set(["search", "all", "products", "product", "catalog", "ns"]);
+  const candidate = segments
+    .reverse()
+    .find((segment) => !ignoredSegments.has(segment.toLowerCase()) && !segment.includes("."));
+  return candidate;
+}
+function parseOptionalPrice(url: URL): number | undefined {
+  const rawPrice = firstCleanParam(url, ["price", "lowPrice", "salePrice", "productPrice"]);
+  if (rawPrice === undefined) {
+    return undefined;
+  }
+  const price = Number.parseInt(rawPrice.replace(/[^\d]/g, ""), 10);
+  return Number.isSafeInteger(price) && price >= 0 ? price : undefined;
+}
+
+function parseOptionalImageUrl(url: URL): string | undefined {
+  const imageUrl = firstCleanParam(url, ["image", "imageUrl", "img", "thumbnail", "thumb"]);
+  if (imageUrl === undefined) {
+    return undefined;
+  }
+  return z.string().url().safeParse(imageUrl).success ? imageUrl : undefined;
+}
+
 export function parseNaverProductFromUrl(url: URL): z.infer<typeof productCreateSchema> {
-  const queryName = url.searchParams.get("query") ?? url.searchParams.get("keyword");
-  const pathName = decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1) ?? "");
-  const productName = queryName ?? (pathName.length > 0 ? pathName : "Naver Shopping Product");
+  const productName =
+    firstCleanParam(url, [
+      "query",
+      "keyword",
+      "title",
+      "productTitle",
+      "productName",
+      "goodsName",
+      "itemName",
+      "name",
+    ]) ?? cleanPathProductName(url);
+  if (productName === undefined) {
+    throw new Error("PRODUCT_IMPORT_BLOCKED:missing_product_metadata");
+  }
+  const category = firstCleanParam(url, [
+    "catName",
+    "categoryName",
+    "category",
+    "cat",
+    "menu",
+    "displayCategoryName",
+  ]);
 
   return {
     product_name: productName,
     product_url: url.toString(),
     source: "naver_shopping",
-    price: undefined,
-    category: undefined,
-    memo: "URL import created this product. Confirm price before publishing.",
+    price: parseOptionalPrice(url),
+    image_url: parseOptionalImageUrl(url),
+    category,
+    memo: `Naver Shopping URL import from ${url.hostname}. Price needs confirmation before publishing.`,
   };
 }
 
@@ -135,8 +220,7 @@ export async function createProduct(
       productName: input.product_name,
       productUrl: input.product_url ?? "manual://product",
       source: input.source ?? "manual",
-      ...(input.price === undefined ? {} : { price: input.price }),
-      priceCheckedAt: new Date(),
+      ...(input.price === undefined ? {} : { price: input.price, priceCheckedAt: new Date() }),
       ...(input.image_url === undefined ? {} : { imageUrl: input.image_url }),
       ...(input.category === undefined ? {} : { category: input.category }),
       ...(input.memo === undefined ? {} : { memo: input.memo }),
@@ -159,8 +243,8 @@ export async function updateProduct(
   id: string,
   input: z.infer<typeof productPatchSchema>,
 ): Promise<SerializedProduct | null> {
-  const product = await prisma.product
-    .update({
+  try {
+    const product = await prisma.product.update({
       where: { id },
       data: {
         ...(input.product_name === undefined ? {} : { productName: input.product_name }),
@@ -171,16 +255,26 @@ export async function updateProduct(
         ...(input.category === undefined ? {} : { category: input.category }),
         ...(input.memo === undefined ? {} : { memo: input.memo }),
       },
-    })
-    .catch(() => null);
-  return product === null ? null : serializeProduct(product);
+    });
+    return serializeProduct(product);
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  return prisma.product
-    .delete({ where: { id } })
-    .then(() => true)
-    .catch(() => false);
+  try {
+    await prisma.product.delete({ where: { id } });
+    return true;
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 export async function listShoppingConnectLinks(
@@ -210,6 +304,17 @@ export async function createShoppingConnectLink(
   });
   return serializeShoppingConnectLink(link);
 }
+export async function deleteShoppingConnectLink(id: string): Promise<boolean> {
+  try {
+    await prisma.shoppingConnectLink.delete({ where: { id } });
+    return true;
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
 
 export async function updateShoppingConnectLink(
   id: string,
@@ -219,8 +324,8 @@ export async function updateShoppingConnectLink(
     input.mark_checked === true ||
     input.shopping_connect_url !== undefined ||
     input.commission_rate !== undefined;
-  const link = await prisma.shoppingConnectLink
-    .update({
+  try {
+    const link = await prisma.shoppingConnectLink.update({
       where: { id },
       data: {
         ...(input.product_id === undefined ? {} : { productId: input.product_id }),
@@ -235,9 +340,15 @@ export async function updateShoppingConnectLink(
           ? {}
           : { bonusCommission: input.bonus_commission }),
         ...(input.notes === undefined ? {} : { notes: input.notes }),
+        ...(input.is_active === undefined ? {} : { isActive: input.is_active }),
         ...(shouldMarkChecked ? { linkCheckedAt: new Date() } : {}),
       },
-    })
-    .catch(() => null);
-  return link === null ? null : serializeShoppingConnectLink(link);
+    });
+    return serializeShoppingConnectLink(link);
+  } catch (error) {
+    if (isRecordNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }

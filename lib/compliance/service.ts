@@ -1,7 +1,10 @@
 import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
 import { applyComplianceFixes, evaluateCompliance } from "@/lib/compliance/rules";
-import { transitionContentPackageStatus } from "@/lib/content/repository";
+import {
+  transitionContentPackageStatus,
+  updateContentPackageProgress,
+} from "@/lib/content/repository";
 import { serializeDraft } from "@/lib/content/serializers";
 import { prisma } from "@/lib/db";
 
@@ -11,12 +14,51 @@ export const complianceCheckSchema = z.object({
 });
 
 export const issueDismissSchema = z.object({
-  dismiss_reason: z.string().min(1).optional(),
+  dismiss_reason: z.string().trim().min(1).optional(),
 });
 
 type ComplianceCheckRecord = Prisma.ComplianceCheckGetPayload<{
   include: { complianceIssues: true };
 }>;
+type ComplianceIssueForExport = {
+  readonly severity: string;
+  readonly dismissedAt: Date | string | null;
+};
+
+export function deriveComplianceCheckExportAllowed(
+  issues: readonly ComplianceIssueForExport[],
+): boolean {
+  return issues.every(
+    (issue) =>
+      issue.severity === "low" || (issue.severity === "medium" && issue.dismissedAt !== null),
+  );
+}
+
+function serializeComplianceIssue(issue: ComplianceCheckRecord["complianceIssues"][number]) {
+  const dismissal =
+    issue.dismissedAt === null
+      ? null
+      : {
+          dismissed_at: issue.dismissedAt.toISOString(),
+          dismissed_by: issue.dismissedBy,
+          reason: issue.dismissReason,
+        };
+
+  return {
+    id: issue.id,
+    issue_type: issue.issueType,
+    severity: issue.severity,
+    message: issue.message,
+    suggested_fix: issue.suggestedFix,
+    blocks_export:
+      issue.severity === "high" || (issue.severity === "medium" && issue.dismissedAt === null),
+    dismissed: dismissal !== null,
+    dismissed_at: dismissal?.dismissed_at ?? null,
+    dismissed_by: dismissal?.dismissed_by ?? null,
+    dismiss_reason: dismissal?.reason ?? null,
+    dismissal,
+  };
+}
 
 export function serializeComplianceCheck(check: ComplianceCheckRecord) {
   return {
@@ -25,19 +67,84 @@ export function serializeComplianceCheck(check: ComplianceCheckRecord) {
     draft_id: check.draftId,
     risk_level: check.riskLevel,
     pass: check.pass,
-    export_allowed: check.exportAllowed,
+    export_allowed:
+      check.exportAllowed && deriveComplianceCheckExportAllowed(check.complianceIssues),
     checked_at: check.checkedAt.toISOString(),
-    issues: check.complianceIssues.map((issue) => ({
-      id: issue.id,
-      issue_type: issue.issueType,
-      severity: issue.severity,
-      message: issue.message,
-      suggested_fix: issue.suggestedFix,
-      dismissed_at: issue.dismissedAt?.toISOString() ?? null,
-      dismissed_by: issue.dismissedBy,
-      dismiss_reason: issue.dismissReason,
-    })),
+    issues: check.complianceIssues.map(serializeComplianceIssue),
   };
+}
+const compliancePassTransitionStatuses: ReadonlySet<PackageStatus> = new Set([
+  PackageStatus.selected,
+  PackageStatus.assigned,
+  PackageStatus.brief_created,
+  PackageStatus.homefeed_packaged,
+  PackageStatus.search_structured,
+  PackageStatus.revenue_links_attached,
+  PackageStatus.blog_draft_generated,
+  PackageStatus.sns_repurposed,
+  PackageStatus.compliance_checked,
+  PackageStatus.compliance_failed,
+]);
+
+const complianceFailTransitionStatuses: ReadonlySet<PackageStatus> = new Set([
+  PackageStatus.selected,
+  PackageStatus.assigned,
+  PackageStatus.brief_created,
+  PackageStatus.homefeed_packaged,
+  PackageStatus.search_structured,
+  PackageStatus.revenue_links_attached,
+  PackageStatus.blog_draft_generated,
+  PackageStatus.sns_repurposed,
+  PackageStatus.compliance_checked,
+  PackageStatus.owner_approval_required,
+]);
+
+async function updateComplianceStatus(input: {
+  readonly contentPackageId: string;
+  readonly currentStatus: PackageStatus;
+  readonly currentProgress: number | null;
+  readonly exportAllowed: boolean;
+}): Promise<void> {
+  if (input.exportAllowed) {
+    if (compliancePassTransitionStatuses.has(input.currentStatus)) {
+      await transitionContentPackageStatus({
+        id: input.contentPackageId,
+        fromStatus: input.currentStatus,
+        toStatus: PackageStatus.compliance_checked,
+        progress: 0.7,
+        reason: "Compliance check passed",
+      });
+      await transitionContentPackageStatus({
+        id: input.contentPackageId,
+        fromStatus: PackageStatus.compliance_checked,
+        toStatus: PackageStatus.owner_approval_required,
+        progress: 0.75,
+        reason: "Owner approval required",
+      });
+      return;
+    }
+    await updateContentPackageProgress({
+      id: input.contentPackageId,
+      progress: Math.max(input.currentProgress ?? 0, 0.75),
+    });
+    return;
+  }
+
+  if (complianceFailTransitionStatuses.has(input.currentStatus)) {
+    await transitionContentPackageStatus({
+      id: input.contentPackageId,
+      fromStatus: input.currentStatus,
+      toStatus: PackageStatus.compliance_failed,
+      progress: 0.65,
+      reason: "Compliance check failed",
+    });
+    return;
+  }
+
+  await updateContentPackageProgress({
+    id: input.contentPackageId,
+    progress: Math.max(input.currentProgress ?? 0, 0.65),
+  });
 }
 
 export async function runComplianceCheck(input: z.infer<typeof complianceCheckSchema>) {
@@ -47,7 +154,9 @@ export async function runComplianceCheck(input: z.infer<typeof complianceCheckSc
           where: { contentPackageId: input.content_package_id },
           orderBy: { updatedAt: "desc" },
         })
-      : await prisma.draft.findUnique({ where: { id: input.draft_id } });
+      : await prisma.draft.findFirst({
+          where: { id: input.draft_id, contentPackageId: input.content_package_id },
+        });
   if (draft === null) {
     return null;
   }
@@ -88,30 +197,12 @@ export async function runComplianceCheck(input: z.infer<typeof complianceCheckSc
     },
     include: { complianceIssues: true },
   });
-  if (result.export_allowed) {
-    await transitionContentPackageStatus({
-      id: input.content_package_id,
-      fromStatus: packageBeforeCheck.status,
-      toStatus: PackageStatus.compliance_checked,
-      progress: 0.7,
-      reason: "Compliance check passed",
-    });
-    await transitionContentPackageStatus({
-      id: input.content_package_id,
-      fromStatus: PackageStatus.compliance_checked,
-      toStatus: PackageStatus.owner_approval_required,
-      progress: 0.75,
-      reason: "Owner approval required",
-    });
-  } else {
-    await transitionContentPackageStatus({
-      id: input.content_package_id,
-      fromStatus: packageBeforeCheck.status,
-      toStatus: PackageStatus.compliance_failed,
-      progress: 0.65,
-      reason: "Compliance check failed",
-    });
-  }
+  await updateComplianceStatus({
+    contentPackageId: input.content_package_id,
+    currentStatus: packageBeforeCheck.status,
+    currentProgress: packageBeforeCheck.progress,
+    exportAllowed: result.export_allowed,
+  });
 
   return serializeComplianceCheck(check);
 }
@@ -168,20 +259,51 @@ export async function dismissComplianceIssue(
     };
   }
 
-  const updated = await prisma.complianceIssue.update({
-    where: { id },
-    data: {
-      dismissedAt: new Date(),
-      dismissedBy: "owner",
-      dismissReason: input.dismiss_reason ?? "low risk accepted",
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const dismissedIssue = await tx.complianceIssue.update({
+      where: { id },
+      data: {
+        dismissedAt: new Date(),
+        dismissedBy: "owner",
+        dismissReason: input.dismiss_reason ?? "low risk accepted",
+      },
+    });
+    const issues = await tx.complianceIssue.findMany({
+      where: { complianceCheckId: dismissedIssue.complianceCheckId },
+    });
+    const exportAllowed = deriveComplianceCheckExportAllowed(issues);
+    const complianceCheck = await tx.complianceCheck.update({
+      where: { id: dismissedIssue.complianceCheckId },
+      data: { exportAllowed },
+      include: { complianceIssues: true },
+    });
+    const contentPackage = await tx.contentPackage.findUnique({
+      where: { id: complianceCheck.contentPackageId },
+    });
+    return { complianceCheck, contentPackage, dismissedIssue, exportAllowed };
   });
+  if (updated.contentPackage !== null) {
+    await updateComplianceStatus({
+      contentPackageId: updated.complianceCheck.contentPackageId,
+      currentStatus: updated.contentPackage.status,
+      currentProgress: updated.contentPackage.progress,
+      exportAllowed: updated.exportAllowed,
+    });
+  }
+
   return {
     kind: "dismissed" as const,
     issue: {
-      id: updated.id,
-      dismissed_at: updated.dismissedAt?.toISOString() ?? null,
-      dismiss_reason: updated.dismissReason,
+      id: updated.dismissedIssue.id,
+      dismissed_at: updated.dismissedIssue.dismissedAt?.toISOString() ?? null,
+      dismissed_by: updated.dismissedIssue.dismissedBy,
+      dismiss_reason: updated.dismissedIssue.dismissReason,
+      dismissal: {
+        dismissed_at: updated.dismissedIssue.dismissedAt?.toISOString() ?? null,
+        dismissed_by: updated.dismissedIssue.dismissedBy,
+        reason: updated.dismissedIssue.dismissReason,
+      },
     },
+    compliance_check: serializeComplianceCheck(updated.complianceCheck),
   };
 }

@@ -6,20 +6,17 @@ import { usePathname } from "next/navigation";
 const departments = [
   { href: "/", label: "HQ", match: "exact" },
   { href: "/hermes", label: "Hermes", match: "prefix" },
-  { href: "/packages/demo", label: "Content Factory", match: "packages" },
+  { href: "/packages", label: "Content Factory", match: "prefix" },
   { href: "/products", label: "Revenue Desk", match: "prefix" },
   { href: "/compliance", label: "Compliance", match: "prefix" },
   { href: "/memory", label: "Company Memory", match: "prefix" },
   { href: "/performance", label: "Reports", match: "prefix" },
-  { href: "/settings", label: "Settings", match: "prefix" },
 ] as const;
 
 function isActivePath(pathname: string, department: (typeof departments)[number]): boolean {
   switch (department.match) {
     case "exact":
       return pathname === department.href;
-    case "packages":
-      return pathname.startsWith("/packages");
     case "prefix":
       return pathname === department.href || pathname.startsWith(`${department.href}/`);
   }

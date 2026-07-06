@@ -38,11 +38,17 @@ export const demoContentPackage: DetailContentPackage = {
       body_markdown:
         "출처: 네이버 쇼핑 검색 결과와 상품 상세 정보를 기준으로 정리했습니다.\n\n장마철 자취방 습기는 먼저 환기, 흡습, 제습 순서로 점검합니다.\n\n가격은 확인일 기준이며 변동될 수 있습니다.",
       comparison_table: "| 기준 | 확인 |\n| --- | --- |\n| 가격 | 기준일 필요 |",
+      faq: [
+        { question: "언제 가격을 다시 확인하나요?", answer: "게시 전과 7일 경과 시 다시 확인합니다." },
+        { question: "자동 게시되나요?", answer: "아니요. 검수와 승인 후 수동 게시합니다." },
+        { question: "쇼핑커넥트 표기는 필수인가요?", answer: "링크가 있으면 대가성 문구를 반드시 표시합니다." },
+      ],
       disclosure_text: "이 글은 쇼핑커넥트 활동을 포함할 수 있습니다.",
       price_notice: "가격은 확인일 기준이며 변동될 수 있습니다.",
       original_body:
         "출처: 네이버 쇼핑 검색 결과와 상품 상세 정보를 기준으로 정리했습니다.\n\n장마철 자취방 습기는 먼저 환기, 흡습, 제습 순서로 점검합니다.\n\n가격은 확인일 기준이며 변동될 수 있습니다.",
       updated_at: "2026-07-05T00:00:00.000Z",
+      status: "ready",
     },
   ],
   compliance_checks: [
@@ -62,31 +68,34 @@ export const demoContentPackage: DetailContentPackage = {
       price_checked_at: "2026-07-05T00:00:00.000Z",
     },
   ],
-};
-
-export const highRiskDemoContentPackage: DetailContentPackage = {
-  ...demoContentPackage,
-  id: "high-risk-demo",
-  status: "compliance_failed",
-  compliance_checks: [
+  title_candidates: [
     {
-      id: "demo_high_risk_check",
-      risk_level: "high",
-      pass: false,
-      export_allowed: false,
-      issues: [
-        {
-          id: "demo_high_risk_issue",
-          issue_type: "shopping_connect_disclosure_missing",
-          severity: "high",
-          message: "쇼핑커넥트 링크가 있지만 대가성 문구가 없습니다.",
-          suggested_fix: "본문 상단에 쇼핑커넥트 대가성 문구를 추가하세요.",
-        },
-      ],
+      id: "demo_title_candidate",
+      kind: "homefeed",
+      text: "장마철 자취방 습기, 지금 놓치면 후회하는 이유",
+      hook_type: "problem_empathy",
+      selected: true,
+    },
+  ],
+  shopping_connect_links: [
+    {
+      id: "demo_link",
+      product_id: "demo_product",
+      content_package_id: "demo",
+      shopping_connect_url: "https://shopping.example/demo",
+      commission_rate: 3.5,
+      bonus_commission: null,
+      link_checked_at: "2026-07-05T00:00:00.000Z",
+      is_active: true,
+      notes: "본문 비교표 하단 배치 후보",
+      stale: false,
+    },
+  ],
+  exports: [
+    {
+      id: "demo_export",
+      format: "markdown",
+      created_at: "2026-07-05T00:00:00.000Z",
     },
   ],
 };
-
-export function demoPackageForId(packageId: string): DetailContentPackage {
-  return packageId === "high-risk-demo" ? highRiskDemoContentPackage : demoContentPackage;
-}

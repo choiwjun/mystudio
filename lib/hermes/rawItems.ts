@@ -29,6 +29,26 @@ type NaverRuntime = {
   readonly config: NaverClientConfig;
 };
 
+export class NaverCredentialsMissingError extends Error {
+  readonly code = "NAVER_CREDENTIALS_MISSING";
+
+  constructor() {
+    super("Naver credentials are required to collect Hermes raw items.");
+    this.name = "NaverCredentialsMissingError";
+  }
+}
+
+export class NaverCollectionFailedError extends Error {
+  readonly code = "NAVER_COLLECTION_FAILED";
+  readonly cause: unknown;
+
+  constructor(cause: unknown) {
+    super(`Naver raw item collection failed: ${errorMessage(cause)}`);
+    this.name = "NaverCollectionFailedError";
+    this.cause = cause;
+  }
+}
+
 function expiresFrom(collectedAt: Date): Date {
   return new Date(collectedAt.getTime() + sevenDaysMs);
 }
@@ -37,7 +57,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown Naver search failure.";
 }
 
-function createNaverRuntime(): NaverRuntime | null {
+function createNaverRuntime(): NaverRuntime {
   const clientId = process.env["NAVER_CLIENT_ID"]?.trim();
   const clientSecret = process.env["NAVER_CLIENT_SECRET"]?.trim();
   if (
@@ -46,7 +66,7 @@ function createNaverRuntime(): NaverRuntime | null {
     clientSecret === undefined ||
     clientSecret === ""
   ) {
-    return null;
+    throw new NaverCredentialsMissingError();
   }
 
   const config = {
@@ -120,55 +140,9 @@ async function persistRawItems(
   );
 }
 
-async function fallbackRawItems(
-  query: string,
-  collectedAt: Date,
-): Promise<readonly RawItemInput[]> {
-  const previous = await prisma.rawItem.findMany({
-    where: { collectedAt: { gte: new Date(collectedAt.getTime() - sevenDaysMs) } },
-    orderBy: { collectedAt: "desc" },
-    take: 5,
-  });
-  if (previous.length > 0) {
-    return previous.map((item) => ({
-      itemType: item.itemType,
-      title: item.title,
-      url: item.url,
-      content: item.content,
-      metadata: {
-        query,
-        source: "fallback_previous_raw_item",
-        raw_item_id: item.id,
-      },
-      collectedAt,
-      expiresAt: expiresFrom(collectedAt),
-    }));
-  }
-
-  const fallback = [
-    {
-      itemType: "fallback",
-      title: `${query} 최근 스캔 결과 기반`,
-      url: `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
-      content: "Naver API 장애 또는 미설정으로 최근 스캔 결과 기반 보완 입력을 사용합니다.",
-      metadata: {
-        query,
-        source: "fallback_internal",
-      },
-      collectedAt,
-      expiresAt: expiresFrom(collectedAt),
-    },
-  ] satisfies readonly RawItemInput[];
-  await persistRawItems("fallback", "internal:fallback", fallback);
-  return fallback;
-}
-
 export async function collectHermesRawItems(query: string): Promise<readonly RawItemInput[]> {
   const collectedAt = new Date();
   const runtime = createNaverRuntime();
-  if (runtime === null) {
-    return fallbackRawItems(query, collectedAt);
-  }
 
   try {
     const [blogItems, shoppingItems] = await Promise.all([
@@ -201,6 +175,6 @@ export async function collectHermesRawItems(query: string): Promise<readonly Raw
       context: { query },
       ...(stackTrace === undefined ? {} : { stackTrace }),
     });
-    return fallbackRawItems(query, collectedAt);
+    throw new NaverCollectionFailedError(error);
   }
 }
