@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,11 +11,14 @@ import { verifyPasswordHash } from "@/lib/auth/password";
 import { getLoginLock, recordLoginFailure, resetLoginAttemptsForTests } from "@/lib/auth/rateLimit";
 import { createOwnerSession, readSessionFromRequest, sessionCookieName } from "@/lib/auth/session";
 import { isCompanyProfileComplete, serializeCompanyProfile } from "@/lib/company-profile/service";
-import { proxy } from "@/proxy";
 import * as errorLogger from "@/lib/logging/errorLogger";
+import { proxy } from "@/proxy";
 
 const ownerPasswordHash =
   "pbkdf2$sha256$310000$paperclip-example-salt$Nm73P_nLX5Z1vTXAE6Yik62lcGYJZGdxyAMNpc-7cYQ";
+const trdSource = readFileSync("docs/planning/02-trd.md", "utf8");
+const tasksSource = readFileSync("docs/planning/06-tasks.md", "utf8");
+const codingConventionSource = readFileSync("docs/planning/07-coding-convention.md", "utf8");
 
 beforeEach(() => {
   process.env["NEXTAUTH_SECRET"] = "test-nextauth-secret";
@@ -29,6 +33,22 @@ afterEach(() => {
 });
 
 describe("P1 owner authentication", () => {
+  it("keeps planning docs aligned with jose signed-cookie auth", () => {
+    for (const source of [trdSource, tasksSource, codingConventionSource]) {
+      expect(source).toContain("jose");
+      expect(source).toContain("paperclip_session");
+      expect(source).toContain("NEXTAUTH_SECRET");
+      expect(source).not.toContain("NextAuth.js");
+      expect(source).not.toContain("NEXTAUTH_URL");
+      expect(source).not.toContain("JWT 토큰 발급");
+    }
+
+    expect(trdSource).toContain("Bearer Token 및 `next-auth` 패키지는 사용하지 않음");
+    expect(tasksSource).toContain("Bearer token 또는 `next-auth` 패키지는 사용하지 않음");
+    expect(codingConventionSource).toContain(
+      "Bearer token/next-auth 없이 쿠키 세션 + CSRF 가드만 사용",
+    );
+  });
   it("verifies the configured single-user password hash", () => {
     expect(verifyPasswordHash("paperclip-dev-password", ownerPasswordHash)).toBe(true);
     expect(verifyPasswordHash("wrong-password", ownerPasswordHash)).toBe(false);
@@ -182,7 +202,6 @@ describe("P1 owner authentication", () => {
     expect(malformedSessionResponse.status).toBe(401);
     expect(malformedGuardResponse.status).toBe(401);
     expect(recordErrorLog).not.toHaveBeenCalled();
-
   });
 
   it("requires csrf for authenticated state-changing API handlers", async () => {

@@ -1,0 +1,167 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Final G005 review is clean. AI slop cleanup reports agent://148-G005CleanupCodeFinal and agent://149-G005CleanupDocsFinal returned CLEAR with blockers empty. Code review agent://150-G005ArchitectCodeClean confirmed exact CategoryPlaybook and PromptTemplate queries are separated from partial fallbacks, generationContext reaches blog/search adapters, and no blockers remain. Docs/tests review agent://151-G005ArchitectDocsClean confirmed jose signed-cookie paperclip_session + CSRF docs and meaningful G005/auth-drift tests. Earlier QA blockers for exact-priority truncation and source-string-only coverage were resolved and rerun cleanly.",
+    "commands": [
+      "agent://148-G005CleanupCodeFinal",
+      "agent://149-G005CleanupDocsFinal",
+      "agent://150-G005ArchitectCodeClean",
+      "agent://151-G005ArchitectDocsClean"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA agent://152-G005ExecutorQaFinal passed with no blockers. Leader verification after final fixes passed: artifact://1041 Biome write, artifact://1045 focused p3/p1 tests with 57 passing tests, artifact://1049 Biome check, artifact://1055 typecheck, artifact://1061 full npm test with 144 passing tests, and Prisma validate. QA adversarial coverage passed for exact-match exclusion by partial truncation, missing blog/search context wiring, unbounded queries, wrong PromptTemplate selection, stale NextAuth/Bearer wording, and tests passing while behavior is absent.",
+    "e2eCommands": [
+      "npm test -- tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts",
+      "npm test"
+    ],
+    "redTeamCommands": [
+      "agent://152-G005ExecutorQaFinal"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g005-generation-docs-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g005-generation-docs-test-report.json",
+        "description": "Leader verification report with focused/full test, typecheck, Biome, Prisma validate, and blocker-resolution evidence."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "g005-category-playbook-context",
+        "contractRef": "G005 CategoryPlaybook generation context",
+        "obligation": "Exact active product/company category playbooks are fetched before broad topic-token partials and bounded before adapter use.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g005-api-package-surface"],
+        "adversarialCaseRefs": ["g005-exact-category-priority", "g005-bounded-context"]
+      },
+      {
+        "id": "g005-prompt-template-context",
+        "contractRef": "G005 PromptTemplate generation context",
+        "obligation": "Exact prompt-template aliases are fetched before partial fallback and selected into ContentInput.generationContext.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g005-api-package-surface"],
+        "adversarialCaseRefs": ["g005-wrong-template-shadow", "g005-bounded-context"]
+      },
+      {
+        "id": "g005-runtime-wiring",
+        "contractRef": "G005 blog/search generation wiring",
+        "obligation": "generateContentPackage and generateSearchStructure pass loaded generationContext to adapter calls.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g005-api-package-surface"],
+        "adversarialCaseRefs": ["g005-missing-blog-context", "g005-missing-search-context", "g005-no-op-service-path"]
+      },
+      {
+        "id": "g005-auth-doc-drift",
+        "contractRef": "G005 jose signed-cookie planning docs",
+        "obligation": "Planning docs describe jose paperclip_session + CSRF auth and do not present NextAuth.js/Bearer/JWT-token issuance as implementation.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g005-doc-contract-surface"],
+        "adversarialCaseRefs": ["g005-stale-nextauth-wording"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "g005-api-package-surface",
+        "contractRef": "G005 generation context API/package behavior",
+        "surface": "api",
+        "invocation": "npm test -- tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts; npm test; npm run typecheck; npx biome check relevant files; npx prisma validate",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-doc-contract-surface",
+        "contractRef": "G005 planning documentation contract",
+        "surface": "package",
+        "invocation": "npm test -- tests/p1-auth-company-profile.test.ts via focused p1/p3 test run",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "g005-exact-category-priority",
+        "contractRef": "G005 CategoryPlaybook generation context",
+        "scenario": "24 broad partial category matches exist alongside an exact active category playbook.",
+        "expectedBehavior": "The exact category playbook remains selected first and cannot be truncated away by partial query ordering.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-wrong-template-shadow",
+        "contractRef": "G005 PromptTemplate generation context",
+        "scenario": "A high-version partial template name shadows the exact blog_draft_generation template.",
+        "expectedBehavior": "The exact template is selected before partial fallback regardless of partial version.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-missing-blog-context",
+        "contractRef": "G005 blog/search generation wiring",
+        "scenario": "Blog draft service omits generationContext from adapter input.",
+        "expectedBehavior": "Runtime service test fails unless generateBlogDraft receives generationContext.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-missing-search-context",
+        "contractRef": "G005 blog/search generation wiring",
+        "scenario": "Search structure service omits generationContext from adapter input.",
+        "expectedBehavior": "Runtime service test fails unless generateSearchStructure receives generationContext.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-bounded-context",
+        "contractRef": "G005 bounded context queries",
+        "scenario": "Playbook/template tables contain many partial matches.",
+        "expectedBehavior": "Every Prisma findMany call is bounded and returned context is sliced before adapter use.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-stale-nextauth-wording",
+        "contractRef": "G005 jose signed-cookie planning docs",
+        "scenario": "Planning docs still describe NextAuth.js, NEXTAUTH_URL, Bearer token, or JWT-token issuance semantics.",
+        "expectedBehavior": "Contract tests fail unless docs describe jose paperclip_session + CSRF and reject stale wording.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      },
+      {
+        "id": "g005-no-op-service-path",
+        "contractRef": "G005 blog/search generation wiring",
+        "scenario": "Generation services become no-ops while source-string sentinels remain present.",
+        "expectedBehavior": "Runtime module-boundary service tests fail because adapter calls and persistence/status side effects are asserted.",
+        "verdict": "passed",
+        "artifactRefs": ["g005-generation-docs-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORT: agent://148-G005CleanupCodeFinal and agent://149-G005CleanupDocsFinal were CLEAR with no blockers. Blocking QA and architecture findings were fixed by exact-first CategoryPlaybook/PromptTemplate queries plus behavior-level runtime wiring tests; the full verification loop reran cleanly with Biome, focused tests, typecheck, full npm test, Prisma validate, architect reviews, and executor QA all passing.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npx biome check --write lib/content/generationContext.ts tests/p3-contract.test.ts",
+      "npm test -- tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts",
+      "npx biome check lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/content/generationContext.ts lib/content/service.ts lib/content/searchStructure.ts tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts docs/planning/02-trd.md docs/planning/06-tasks.md docs/planning/07-coding-convention.md",
+      "npm run typecheck",
+      "npm test",
+      "npx prisma validate",
+      "agent://148-G005CleanupCodeFinal",
+      "agent://149-G005CleanupDocsFinal",
+      "agent://150-G005ArchitectCodeClean",
+      "agent://151-G005ArchitectDocsClean",
+      "agent://152-G005ExecutorQaFinal"
+    ],
+    "blockers": []
+  }
+}

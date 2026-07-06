@@ -1,6 +1,13 @@
 import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
-import { applyComplianceFixes, evaluateCompliance } from "@/lib/compliance/rules";
+import type { AIAdapter, ComplianceOutput } from "@/lib/ai/adapter";
+import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import {
+  applyComplianceFixes,
+  type ComplianceRuleIssue,
+  evaluateCompliance,
+  type PolicyRuleContext,
+} from "@/lib/compliance/rules";
 import {
   transitionContentPackageStatus,
   updateContentPackageProgress,
@@ -25,6 +32,13 @@ type ComplianceIssueForExport = {
   readonly dismissedAt: Date | string | null;
 };
 
+type RunComplianceCheckOptions = {
+  readonly aiAdapter?: AIAdapter;
+  readonly createAIAdapter?: () => AIAdapter;
+};
+
+type ComplianceRiskLevel = "low" | "medium" | "high";
+
 export function deriveComplianceCheckExportAllowed(
   issues: readonly ComplianceIssueForExport[],
 ): boolean {
@@ -32,6 +46,75 @@ export function deriveComplianceCheckExportAllowed(
     (issue) =>
       issue.severity === "low" || (issue.severity === "medium" && issue.dismissedAt !== null),
   );
+}
+
+function deriveRiskLevel(issues: readonly { readonly severity: string }[]): ComplianceRiskLevel {
+  if (issues.some((issue) => issue.severity === "high")) {
+    return "high";
+  }
+  if (issues.some((issue) => issue.severity === "medium")) {
+    return "medium";
+  }
+  return "low";
+}
+
+export function mergeComplianceIssues(input: {
+  readonly ruleIssues: readonly ComplianceRuleIssue[];
+  readonly semanticOutput: ComplianceOutput | null;
+  readonly semanticError?: unknown;
+}): {
+  readonly pass: boolean;
+  readonly risk_level: ComplianceRiskLevel;
+  readonly export_allowed: boolean;
+  readonly issues: readonly ComplianceRuleIssue[];
+} {
+  const semanticIssues: ComplianceRuleIssue[] =
+    input.semanticOutput?.issues.map((issue) => ({
+      issue_type: `semantic_${issue.type}`,
+      severity: issue.severity,
+      message: issue.message,
+      ...(issue.suggested_fix === undefined ? {} : { suggested_fix: issue.suggested_fix }),
+    })) ?? [];
+
+  if (input.semanticOutput === null) {
+    semanticIssues.push({
+      issue_type: "semantic_review_unavailable",
+      severity: "high",
+      message:
+        "AI semantic compliance review is unavailable; export is blocked until semantic review succeeds.",
+      suggested_fix: "Configure a runtime AI adapter and rerun compliance review.",
+    });
+  }
+
+  const issues = [...input.ruleIssues, ...semanticIssues];
+  const riskLevel = deriveRiskLevel(issues);
+  return {
+    pass: issues.length === 0,
+    risk_level: riskLevel,
+    export_allowed: deriveComplianceCheckExportAllowed(
+      issues.map((issue) => ({ severity: issue.severity, dismissedAt: null })),
+    ),
+    issues,
+  };
+}
+
+async function runSemanticComplianceReview(input: {
+  readonly adapter: AIAdapter;
+  readonly bodyMarkdown: string;
+  readonly hasShoppingConnectLinks: boolean;
+  readonly hasPriceMentions: boolean;
+  readonly policyRules: readonly PolicyRuleContext[];
+}): Promise<ComplianceOutput | null> {
+  try {
+    return await input.adapter.checkCompliance({
+      bodyMarkdown: input.bodyMarkdown,
+      hasShoppingConnectLinks: input.hasShoppingConnectLinks,
+      hasPriceMentions: input.hasPriceMentions,
+      policyRules: input.policyRules,
+    });
+  } catch {
+    return null;
+  }
 }
 
 function serializeComplianceIssue(issue: ComplianceCheckRecord["complianceIssues"][number]) {
@@ -147,7 +230,10 @@ async function updateComplianceStatus(input: {
   });
 }
 
-export async function runComplianceCheck(input: z.infer<typeof complianceCheckSchema>) {
+export async function runComplianceCheck(
+  input: z.infer<typeof complianceCheckSchema>,
+  options: RunComplianceCheckOptions = {},
+) {
   const draft =
     input.draft_id === undefined
       ? await prisma.draft.findFirst({
@@ -167,16 +253,48 @@ export async function runComplianceCheck(input: z.infer<typeof complianceCheckSc
     return null;
   }
 
-  const shoppingLinkCount = await prisma.shoppingConnectLink.count({
-    where: { contentPackageId: input.content_package_id, isActive: true },
-  });
+  const [shoppingLinkCount, policyRuleRecords] = await Promise.all([
+    prisma.shoppingConnectLink.count({
+      where: { contentPackageId: input.content_package_id, isActive: true },
+    }),
+    prisma.policyRule.findMany({
+      where: { isActive: true },
+      select: { ruleType: true, ruleCode: true, description: true },
+      orderBy: [{ ruleType: "asc" }, { ruleCode: "asc" }],
+    }),
+  ]);
+  const policyRules = policyRuleRecords.map((rule) => ({
+    rule_type: rule.ruleType,
+    rule_code: rule.ruleCode,
+    description: rule.description,
+  }));
   const bodyMarkdown = draft.bodyMarkdown ?? "";
-  const result = evaluateCompliance({
+  const hasShoppingConnectLinks = shoppingLinkCount > 0;
+  const hasPriceMentions = /[0-9,]+원|가격/.test(bodyMarkdown);
+  const ruleResult = evaluateCompliance({
     body_markdown: bodyMarkdown,
-    has_shopping_connect_links: shoppingLinkCount > 0,
-    has_price_mentions: /[0-9,]+원|가격/.test(bodyMarkdown),
+    has_shopping_connect_links: hasShoppingConnectLinks,
+    has_price_mentions: hasPriceMentions,
     disclosure_text: draft.disclosureText,
     price_notice: draft.priceNotice,
+    policy_rules: policyRules,
+  });
+  let semanticOutput: ComplianceOutput | null = null;
+  try {
+    const adapter = options.aiAdapter ?? options.createAIAdapter?.() ?? createRuntimeAIAdapter();
+    semanticOutput = await runSemanticComplianceReview({
+      adapter,
+      bodyMarkdown,
+      hasShoppingConnectLinks,
+      hasPriceMentions,
+      policyRules,
+    });
+  } catch {
+    semanticOutput = null;
+  }
+  const result = mergeComplianceIssues({
+    ruleIssues: ruleResult.issues,
+    semanticOutput,
   });
 
   const check = await prisma.complianceCheck.create({

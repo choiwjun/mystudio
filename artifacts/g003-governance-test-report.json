@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "goalId": "G003",
+  "kind": "api-package-test-report",
+  "summary": "G003 integrates compliance/HQ AI governance: compliance now loads active policy_rules, sends them to deterministic and adapter-backed semantic review, merges semantic issues additively without weakening rule authority, fails closed when semantic review is unavailable, generates HQ daily briefings through the runtime AI adapter, and records provider calls with provider:model cost-log identity plus required usage/cost metering.",
+  "changedFiles": [
+    "lib/ai/adapter.ts",
+    "lib/ai/mockAdapter.ts",
+    "lib/ai/providerAdapters.ts",
+    "lib/ai/runtime.ts",
+    "lib/logging/costLogger.ts",
+    "lib/compliance/rules.ts",
+    "lib/compliance/service.ts",
+    "lib/hq/service.ts",
+    "tests/p3-contract.test.ts",
+    "tests/hq-screen-contract.test.ts",
+    "tests/ai-provider-adapters.test.ts",
+    "tests/p4-contract.test.ts"
+  ],
+  "delegation": [
+    "Implementation slice agent 95-G003AiCore",
+    "Implementation slice agent 96-G003ComplianceGovernance",
+    "Implementation slice agent 97-G003HqGovernance",
+    "Cleanup agent 103-G003CleanupCoreRerun",
+    "Cleanup agent 104-G003CleanupServicesRerun",
+    "Architect review agent 105-G003ArchitectFinal",
+    "Executor QA agent 106-G003ExecutorQaRerun"
+  ],
+  "verification": [
+    {
+      "command": "npx biome check --write lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/ai/providerAdapters.ts lib/ai/runtime.ts lib/logging/costLogger.ts lib/compliance/rules.ts lib/compliance/service.ts lib/hq/service.ts tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "evidence": "Biome formatted/organized touched G003 files successfully."
+    },
+    {
+      "command": "npx biome check lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/ai/providerAdapters.ts lib/ai/runtime.ts lib/logging/costLogger.ts lib/compliance/rules.ts lib/compliance/service.ts lib/hq/service.ts tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "evidence": "Biome reported OK for the touched G003 files."
+    },
+    {
+      "command": "npm test -- tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "evidence": "Focused G003-relevant Vitest run reported 4 files passed, 86 tests passed."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "evidence": "tsc --noEmit completed successfully after G003 fixes."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "evidence": "Full Vitest suite reported 10 files passed, 134 tests passed."
+    },
+    {
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed",
+      "evidence": "Prisma schema validated successfully."
+    }
+  ],
+  "contractCoverage": [
+    {
+      "id": "g003-compliance-semantic-additive",
+      "status": "covered",
+      "evidence": "mergeComplianceIssues appends semantic issues and ignores hostile semantic pass output when rule issues block export."
+    },
+    {
+      "id": "g003-policy-rules-governance",
+      "status": "covered",
+      "evidence": "runComplianceCheck loads active policy_rules and passes them into evaluateCompliance and adapter.checkCompliance; baseline rules remain active when active policy rules are missing."
+    },
+    {
+      "id": "g003-hq-runtime-adapter-briefing",
+      "status": "covered",
+      "evidence": "createDailyBriefing calls createRuntimeAIAdapter().generateDailyBriefing with company profile and opportunity memo context and persists AI output fields."
+    },
+    {
+      "id": "g003-provider-cost-identity",
+      "status": "covered",
+      "evidence": "Provider adapters log provider:model identity, pipeline step, usage tokens, estimated cost, and reject missing logging/metering outside test paths."
+    }
+  ],
+  "blockers": []
+}

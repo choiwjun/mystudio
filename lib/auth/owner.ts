@@ -12,7 +12,10 @@ export type CredentialResult =
     }
   | {
       readonly ok: false;
-      readonly reason: "invalid_credentials" | "owner_email_unconfigured" | "password_hash_unconfigured";
+      readonly reason:
+        | "invalid_credentials"
+        | "owner_email_unconfigured"
+        | "password_hash_unconfigured";
     };
 
 export function getOwnerEmail(): string | null {

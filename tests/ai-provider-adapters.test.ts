@@ -60,19 +60,28 @@ const compliance = {
   issues: [],
 };
 
-function openAIResponse(content: unknown): Response {
+const dailyBriefing = {
+  goals: "오늘 콘텐츠 1개를 승인 가능한 상태까지 진행합니다.",
+  focus_categories: ["자취", "생활"],
+  priority_angle: "폭염 전 체크리스트",
+  strategy_note: "회사 프로필과 최신 기회 메모를 기준으로 실행 가능한 콘텐츠를 우선합니다.",
+};
+
+function openAIResponse(content: unknown, usage?: Record<string, unknown>): Response {
   return Response.json({
     choices: [
       { message: { content: typeof content === "string" ? content : JSON.stringify(content) } },
     ],
+    ...(usage === undefined ? {} : { usage }),
   });
 }
 
-function claudeResponse(content: unknown): Response {
+function claudeResponse(content: unknown, usage?: Record<string, unknown>): Response {
   return Response.json({
     content: [
       { type: "text", text: typeof content === "string" ? content : JSON.stringify(content) },
     ],
+    ...(usage === undefined ? {} : { usage }),
   });
 }
 
@@ -113,7 +122,8 @@ describe("AI provider adapters", () => {
       .mockResolvedValueOnce(openAIResponse(searchStructure))
       .mockResolvedValueOnce(openAIResponse(snsVariant))
       .mockResolvedValueOnce(openAIResponse({ score: 81 }))
-      .mockResolvedValueOnce(openAIResponse(compliance));
+      .mockResolvedValueOnce(openAIResponse(compliance))
+      .mockResolvedValueOnce(openAIResponse(dailyBriefing));
     const adapter = new OpenAIAdapter({ apiKey: "test-key", fetch: fetchMock });
 
     await expect(
@@ -139,7 +149,13 @@ describe("AI provider adapters", () => {
         hasPriceMentions: true,
       }),
     ).resolves.toEqual(compliance);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    await expect(
+      adapter.generateDailyBriefing({
+        companyProfile: { companyName: "Paperclip", primaryCategories: ["자취", "생활"] },
+        opportunityMemoContext: { latestMemo: { topic: opportunityMemo.topic } },
+      }),
+    ).resolves.toEqual(dailyBriefing);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
   });
 
   it("parses all Claude method outputs through schemas", async () => {
@@ -150,7 +166,8 @@ describe("AI provider adapters", () => {
       .mockResolvedValueOnce(claudeResponse(searchStructure))
       .mockResolvedValueOnce(claudeResponse(snsVariant))
       .mockResolvedValueOnce(claudeResponse({ score: 81 }))
-      .mockResolvedValueOnce(claudeResponse(compliance));
+      .mockResolvedValueOnce(claudeResponse(compliance))
+      .mockResolvedValueOnce(claudeResponse(dailyBriefing));
     const adapter = new ClaudeAIAdapter({ apiKey: "test-key", fetch: fetchMock });
 
     await expect(
@@ -176,7 +193,64 @@ describe("AI provider adapters", () => {
         hasPriceMentions: true,
       }),
     ).resolves.toEqual(compliance);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    await expect(
+      adapter.generateDailyBriefing({
+        companyProfile: { companyName: "Paperclip", primaryCategories: ["자취", "생활"] },
+        opportunityMemoContext: { latestMemo: { topic: opportunityMemo.topic } },
+      }),
+    ).resolves.toEqual(dailyBriefing);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it("records provider identity, HQ daily briefing step, and usage tokens through injected cost loggers", async () => {
+    const openAICostLogger = vi.fn();
+    const claudeCostLogger = vi.fn();
+    const openAIFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        openAIResponse(dailyBriefing, { prompt_tokens: 12.9, completion_tokens: 7 }),
+      );
+    const claudeFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(claudeResponse(dailyBriefing, { input_tokens: 21, output_tokens: 9 }));
+
+    await new OpenAIAdapter({
+      apiKey: "test-key",
+      fetch: openAIFetch,
+      model: "gpt-4o-mini",
+      costLogger: openAICostLogger,
+    }).generateDailyBriefing({
+      companyProfile: { companyName: "Paperclip", primaryCategories: ["자취"] },
+    });
+    await new ClaudeAIAdapter({
+      apiKey: "test-key",
+      fetch: claudeFetch,
+      model: "claude-3-5-haiku-latest",
+      costLogger: claudeCostLogger,
+    }).generateDailyBriefing({
+      companyProfile: { companyName: "Paperclip", primaryCategories: ["자취"] },
+    });
+
+    expect(openAICostLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "openai:gpt-4o-mini",
+        task: "generateDailyBriefing",
+        pipelineStep: "hq",
+        inputTokens: 12,
+        outputTokens: 7,
+        costUsd: expect.any(Number),
+      }),
+    );
+    expect(claudeCostLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "claude:claude-3-5-haiku-latest",
+        task: "generateDailyBriefing",
+        pipelineStep: "hq",
+        inputTokens: 21,
+        outputTokens: 9,
+        costUsd: expect.any(Number),
+      }),
+    );
   });
 
   it("fails closed on malformed provider JSON", async () => {

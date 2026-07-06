@@ -1,0 +1,223 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "agent://122-G004ArchitectUltimate reviewed G004 after final fixes and found CLEAR architecture/product/code: manual product_url/image_url/source wiring, deterministic bounded import, protocol restrictions, no scraping/crawling claim, and SSRF protections including IPv6 special-use handling. agent://121-G004CleanupUltimate produced AI SLOP CLEANUP REPORT with zero blockers and zero advisories.",
+    "commands": [
+      "architect review agent://122-G004ArchitectUltimate",
+      "cleanup review agent://121-G004CleanupUltimate"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "agent://123-G004QaUltimate passed final read-only QA/red-team matrix. Leader-run verification after the final IPv6 fix passed: focused products/P4 tests (2 files, 36 tests), Biome check on G004 files, typecheck, full npm test (10 files, 139 tests), and Prisma validate. Evidence artifact: artifacts/g004-product-completion-test-report.json.",
+    "e2eCommands": [
+      "npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts",
+      "npm test"
+    ],
+    "redTeamCommands": [
+      "npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g004-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g004-product-completion-test-report.json",
+        "description": "Final G004 API/package contract and security test report with command artifact references."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "g004-c1",
+        "contractRef": "G004 manual product metadata",
+        "obligation": "Manual create/edit carries product_url, image_url, and source; blank optional fields are omitted; existing edit metadata is seeded and PATCHed.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g004-s1", "g004-s2"],
+        "adversarialCaseRefs": ["g004-a1", "g004-a2"]
+      },
+      {
+        "id": "g004-c2",
+        "contractRef": "G004 deterministic bounded import",
+        "obligation": "Import derives metadata only from bounded URL/path/query fields, rejects metadata-poor imports, and never fetches or scrapes remote content.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g004-s3"],
+        "adversarialCaseRefs": ["g004-a3", "g004-a4", "g004-a5"]
+      },
+      {
+        "id": "g004-c3",
+        "contractRef": "G004 SSRF/security gate",
+        "obligation": "Import URL is bounded, HTTPS-only, Naver-host allowlisted, DNS-checked, and rejects private/reserved IPv4 plus IPv6 special-use/link-local/multicast/documentation/translation/6to4/IPv4-mapped private ranges.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g004-s4"],
+        "adversarialCaseRefs": ["g004-a6", "g004-a7", "g004-a8", "g004-a9"]
+      },
+      {
+        "id": "g004-c4",
+        "contractRef": "G004 URL protocol and UI copy",
+        "obligation": "Manual product_url permits only http/https/manual, image_url permits only http/https, imported image URL is syntactically validated, and UI copy does not claim crawling.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g004-s5", "g004-s6"],
+        "adversarialCaseRefs": ["g004-a10", "g004-a11"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "g004-s1",
+        "contractRef": "G004 manual product metadata",
+        "surface": "package",
+        "invocation": "Static package/API inspection plus npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-s2",
+        "contractRef": "G004 edit product metadata",
+        "surface": "package",
+        "invocation": "Static ProductEditPanel/ProductManager/service inspection plus focused product tests",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-s3",
+        "contractRef": "G004 deterministic bounded import",
+        "surface": "api",
+        "invocation": "parseNaverProductFromUrl exercised by tests/p4-contract.test.ts via npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-s4",
+        "contractRef": "G004 SSRF/security gate",
+        "surface": "api",
+        "invocation": "isPrivateAddress and validateProductImportUrl source contract covered by tests/products-screen-contract.test.ts and tests/p4-contract.test.ts",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-s5",
+        "contractRef": "G004 product/image URL protocol validation",
+        "surface": "api",
+        "invocation": "productCreateSchema protocol tests in tests/p4-contract.test.ts",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-s6",
+        "contractRef": "G004 UI copy",
+        "surface": "package",
+        "invocation": "products-screen contract asserts URL information copy and absence of 자동 크롤링 in product UI/status source",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "g004-a1",
+        "contractRef": "G004 manual product metadata",
+        "scenario": "Blank product_url/image_url/source in manual form.",
+        "expectedBehavior": "Blank optional fields are omitted and createProduct defaults product_url/source to manual://product/manual.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a2",
+        "contractRef": "G004 edit product metadata",
+        "scenario": "Existing product edit with product_url/image_url/source already populated.",
+        "expectedBehavior": "Edit form seeds and PATCHes all three metadata fields without dropping them.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a3",
+        "contractRef": "G004 deterministic bounded import",
+        "scenario": "Metadata-poor Naver URL without product query/path metadata.",
+        "expectedBehavior": "Import throws PRODUCT_IMPORT_BLOCKED:missing_product_metadata and creates no generic fallback product.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a4",
+        "contractRef": "G004 deterministic bounded import",
+        "scenario": "Overlong query/path metadata.",
+        "expectedBehavior": "Imported product/category text is truncated to schema bounds and import URL length is capped.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a5",
+        "contractRef": "G004 deterministic bounded import",
+        "scenario": "Attempted network scraping or HTML parser enrichment.",
+        "expectedBehavior": "Product import service contains no fetch/axios/cheerio/jsdom scraping path and uses deterministic URL metadata only.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a6",
+        "contractRef": "G004 SSRF/security gate",
+        "scenario": "Unsupported domain or http protocol.",
+        "expectedBehavior": "Validator rejects before parsing/creating product.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a7",
+        "contractRef": "G004 SSRF/security gate",
+        "scenario": "Private/reserved IPv4 DNS result.",
+        "expectedBehavior": "0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12, 192.0/24, 192.168/16, 198.18/15, and >=224 are blocked.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a8",
+        "contractRef": "G004 SSRF/security gate",
+        "scenario": "IPv6 private/special-use addresses.",
+        "expectedBehavior": "Loopback, unspecified, ULA, fe80::/10, multicast, NAT64, discard-only, 2001::/23, 2001:db8::/32, 2002::/16, 3fff::/20, and IPv4-mapped private addresses are blocked while public IPv6 is not.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a9",
+        "contractRef": "G004 SSRF/security gate",
+        "scenario": "IPv4-mapped private IPv6 address such as ::ffff:127.0.0.1.",
+        "expectedBehavior": "Mapped private address delegates to IPv4 classifier and is blocked.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a10",
+        "contractRef": "G004 URL protocol validation",
+        "scenario": "javascript: in manual product_url or image_url, or invalid imported thumbnail.",
+        "expectedBehavior": "Manual unsafe schemes are rejected; invalid imported image metadata is omitted.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      },
+      {
+        "id": "g004-a11",
+        "contractRef": "G004 UI copy",
+        "scenario": "Product import UI copy implies crawling/scraping.",
+        "expectedBehavior": "UI/status text says URL information import and tests assert 자동 크롤링 is absent.",
+        "verdict": "passed",
+        "artifactRefs": ["g004-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORT agent://121-G004CleanupUltimate is CLEAR/APPROVE with zero blockers/advisories. Earlier cleanup blockers were fixed and full loop was rerun cleanly. Final leader verification passed focused products/P4 tests, Biome check, typecheck, full npm test, and Prisma validate after the latest IPv6 fix.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts",
+      "npx biome check components/products/types.ts components/products/productForm.ts components/products/ProductCreatePanel.tsx components/products/ProductEditPanel.tsx components/products/ProductManager.tsx lib/products/service.ts lib/security/productImport.ts tests/products-screen-contract.test.ts tests/p4-contract.test.ts",
+      "npm run typecheck",
+      "npm test",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate"
+    ],
+    "blockers": []
+  }
+}

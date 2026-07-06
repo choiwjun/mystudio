@@ -17,7 +17,7 @@
 | **Job Runner** | Vercel Cron | 매일 Hermes 스캔 / 성과 집계 자동화 |
 | **Storage** | Supabase Storage | 이미지, Export 파일 저장 |
 | **AI 모델** | Open Question | 교체 가능한 인터페이스 뒤에 구현. 후보: Claude API / OpenAI API / 작업별 라우팅 |
-| **인증** | NextAuth.js (단일 사용자) | 간단한 로그인, 멀티유저 불필요 |
+| **인증** | jose signed-cookie session (단일 Owner) | `paperclip_session` httpOnly 서명 쿠키, CSRF 토큰, 멀티유저 불필요 |
 | **모니터링** | Error logs + Cost logs | 기본 에러 추적, AI 호출 비용 기록 |
 | **Environment** | Vercel Environment Variables | API 키, DB 주소 등 보안 관리 |
 
@@ -641,8 +641,9 @@ export type OpportunityMemo = z.infer<typeof OpportunityMemoSchema>;
 DATABASE_URL=postgresql://...@supabase.com/postgres
 
 # Auth
-NEXTAUTH_SECRET=...
-NEXTAUTH_URL=https://paperclip.vercel.app
+NEXTAUTH_SECRET=... # legacy-compatible name; jose paperclip_session signing secret
+OWNER_EMAIL=owner@example.com
+OWNER_PASSWORD_HASH=...
 
 # AI Model (미결)
 # OPENAI_API_KEY=...
@@ -729,11 +730,13 @@ ERROR_LOG_ENABLED=true
 
 ## 10. 보안 & 컴플라이언스
 
-- **인증 (A4 — NextAuth 세션 쿠키 단일 방식으로 확정)**:
-  - 방식: NextAuth.js 중심의 **쿠키 기반 세션 인증** (Bearer Token 문구 폐기)
-  - 자격증명: env 환경변수 기반 단일 Credentials provider (사용자명/비밀번호)
-  - 보호: rate limit 미들웨어 (5회 실패 시 1분 lock, 자동 lockout 금지 — 유일 사용자 자기잠금 방지)
-  - CSRF 방어: 상태 변경 API(`POST /api/hq/decisions`, `POST /api/compliance/*/apply-fixes` 등)는 CSRF 토큰 검증 필수
+- **인증 (A4 — jose signed-cookie 단일 Owner 세션 방식으로 확정)**:
+  - 방식: `jose`로 서명한 httpOnly `paperclip_session` 쿠키 기반 세션 인증. Bearer Token 및 `next-auth` 패키지는 사용하지 않음
+  - 자격증명: `OWNER_EMAIL` + `OWNER_PASSWORD_HASH` 환경변수 기반 단일 Owner 로그인
+  - 로그인 성공: `POST /api/auth/login`은 `paperclip_session` 쿠키와 응답 본문의 CSRF 토큰(`csrf_token`)을 발급
+  - 세션 조회: `GET /api/auth/session`은 쿠키를 읽어 사용자 정보, CSRF 토큰, 만료 시각을 반환
+  - 보호: middleware/proxy가 `jose` 쿠키를 검증하고 미인증 API 요청은 401 처리. rate limit 미들웨어는 5회 실패 시 1분 lock, 자동 lockout 금지 — 유일 사용자 자기잠금 방지
+  - CSRF 방어: 상태 변경 API(`POST /api/hq/decisions`, `POST /api/compliance/*/apply-fixes` 등)는 세션의 CSRF 토큰과 `x-csrf-token` 헤더 일치 검증 필수
   - 세션 만료 중 자동 저장 손실 방지: 에디터 자동 저장 실패 시 로컬 스토리지 보존 → 재로그인 후 재전송 경로 제공
   
 - **HTTPS**: 모든 통신 암호화

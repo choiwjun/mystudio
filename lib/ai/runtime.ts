@@ -1,6 +1,7 @@
 import type { AIAdapter } from "@/lib/ai/adapter";
 import { MockAIAdapter } from "@/lib/ai/mockAdapter";
 import { ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
+import { recordCostLog } from "@/lib/logging/costLogger";
 
 export class AIAdapterConfigurationError extends Error {
   constructor(message: string) {
@@ -88,6 +89,7 @@ export function createRuntimeAIAdapter(
       apiKey,
       fetch: options.fetch,
       model: options.openAIModel,
+      costLogger: recordCostLog,
     });
   }
 
@@ -96,5 +98,6 @@ export function createRuntimeAIAdapter(
     apiKey,
     fetch: options.fetch,
     model: options.claudeModel,
+    costLogger: recordCostLog,
   });
 }

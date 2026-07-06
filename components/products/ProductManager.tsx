@@ -165,7 +165,7 @@ export function ProductManager() {
   }
 
   async function importProduct(): Promise<void> {
-    setStatus("자동 크롤링 중");
+    setStatus("URL 정보 가져오는 중");
     const response = await fetch("/api/products/import", {
       method: "POST",
       headers: {
@@ -285,6 +285,9 @@ export function ProductManager() {
       price: product.price?.toString() ?? "",
       category: product.category ?? "",
       memo: product.memo ?? "",
+      product_url: product.product_url,
+      image_url: product.image_url ?? "",
+      source: product.source,
     });
   }
 

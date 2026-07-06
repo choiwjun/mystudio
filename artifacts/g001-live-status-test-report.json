@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "web-test-report",
+  "story": "G001 Live HQ and Performance status UX",
+  "changedFiles": [
+    "components/hq/HqStatusBadge.tsx",
+    "components/AppHeader.tsx",
+    "app/(app)/page.tsx",
+    "app/(app)/performance/page.tsx",
+    "components/performance/PerformanceRecorder.tsx",
+    "tests/hq-screen-contract.test.ts",
+    "tests/p4-contract.test.ts",
+    "specs/screens/performance.yaml",
+    "docs/planning/06-tasks.md"
+  ],
+  "verification": [
+    {
+      "kind": "command",
+      "command": "npx biome check components/hq/HqStatusBadge.tsx components/AppHeader.tsx 'app/(app)/page.tsx' 'app/(app)/performance/page.tsx' components/performance/PerformanceRecorder.tsx tests/hq-screen-contract.test.ts tests/p4-contract.test.ts specs/screens/performance.yaml docs/planning/06-tasks.md",
+      "status": "passed",
+      "summary": "Focused Biome check passed for the touched implementation/test surface; Biome reports checked files and no fixes applied."
+    },
+    {
+      "kind": "command",
+      "command": "npm test -- tests/hq-screen-contract.test.ts tests/p4-contract.test.ts",
+      "status": "passed",
+      "summary": "Focused G001/P4 contract tests passed: 2 files, 37 tests."
+    },
+    {
+      "kind": "command",
+      "command": "npm run typecheck",
+      "status": "passed",
+      "summary": "TypeScript typecheck passed."
+    },
+    {
+      "kind": "command",
+      "command": "npm test",
+      "status": "passed",
+      "summary": "Full Vitest suite passed: 10 files, 121 tests."
+    },
+    {
+      "kind": "command",
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed",
+      "summary": "Prisma schema validation passed."
+    },
+    {
+      "kind": "command",
+      "command": "npm run audit:prod",
+      "status": "passed",
+      "summary": "Production dependency audit found 0 vulnerabilities."
+    }
+  ],
+  "reviewEvidence": {
+    "deliveryClosure": "agent://78-G001DeliveryClosure",
+    "architectClear": "agent://85-G001ArchitectClear",
+    "qaClear": "agent://86-G001QaClear"
+  },
+  "contractCoverage": [
+    {
+      "id": "g001-live-status-label",
+      "status": "covered",
+      "evidence": "HqStatusBadge fetches /api/hq/status and formats the backend status instead of page constants."
+    },
+    {
+      "id": "g001-live-missing-performance-count",
+      "status": "covered",
+      "evidence": "HqStatusBadge validates and renders needs_performance_log on HQ and Performance status surfaces."
+    },
+    {
+      "id": "g001-ai-budget-display",
+      "status": "covered",
+      "evidence": "HqStatusBadge validates ai_budget and renders AI usage/cost/cap in full mode."
+    },
+    {
+      "id": "g001-refresh-after-performance-save",
+      "status": "covered",
+      "evidence": "PerformanceRecorder dispatches requestHqStatusRefresh immediately after successful POST before weekly summary refresh; summary refresh failures are isolated."
+    },
+    {
+      "id": "g001-doc-spec-alignment",
+      "status": "covered",
+      "evidence": "performance.yaml and 06-tasks distinguish the content_package selector from five metric fields."
+    }
+  ],
+  "blockers": []
+}

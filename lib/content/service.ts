@@ -4,6 +4,7 @@ import type { BlogDraftOutput } from "@/lib/ai/adapter";
 import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import { getOrCreateCompanyProfile } from "@/lib/company-profile/service";
 import { runComplianceCheck } from "@/lib/compliance/service";
+import { loadContentGenerationContext } from "@/lib/content/generationContext";
 import { serializeActivePlacementProducts } from "@/lib/content/placement";
 import {
   listContentPackageRecords,
@@ -220,10 +221,17 @@ export async function generateContentPackage(id: string) {
   const adapter = createRuntimeAIAdapter();
   const companyProfile = await getOrCreateCompanyProfile();
   const products = serializeActivePlacementProducts(contentPackage.shoppingConnectLinks);
+  const generationContext = await loadContentGenerationContext({
+    task: "generateBlogDraft",
+    topic: contentPackage.topic.title,
+    shoppingConnectLinks: contentPackage.shoppingConnectLinks,
+    companyProfile,
+  });
   const output = await adapter.generateBlogDraft({
     topic: contentPackage.topic.title,
     products,
     companyProfile,
+    generationContext,
   });
   const faq: Prisma.InputJsonValue = output.faq.map((item) => ({
     question: item.question,

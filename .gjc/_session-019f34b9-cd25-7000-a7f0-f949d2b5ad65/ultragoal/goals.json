@@ -1,424 +1,214 @@
 {
   "version": 1,
-  "brief": "Remediate the externally validated security and production-readiness findings from .gjc/context/review-findings-validation-20260705T233915Z.md without reverting unrelated user work.\\n\\n@goal: Harden AI and external-source runtime boundaries\\nReplace direct MockAIAdapter construction in production paths with configured runtime adapter selection, add real adapter/key handling or explicit fail-fast behavior, and stop Hermes raw item collection from silently fabricating fallback inputs when Naver credentials or API calls fail. Preserve mock usage only for explicit non-production/test paths and contract tests.\\n\\n@goal: Fix cron and auth/security issues\\nMake Vercel Cron invocation compatible with the deployed contract, verify cron secrets from supported headers without proxy bypass gaps, remove login open redirects/token leakage, remove duplicate NextAuth exposure if unused, fail closed on missing owner email/password config, and prevent unauthenticated request logging from becoming a DoS vector.\\n\\n@goal: Remove demo-data masking and tighten dependency hygiene\\nStop content detail API failures from being masked as demo data for real package ids, keep deliberate demo behavior explicit, pin or remove unsafe dependency declarations, and add focused regression tests for the remediated findings.\\n\\n@goal: Verify remediation end-to-end\\nRun focused contract/type/lint verification for the changed surfaces, perform final cleanup/review/QA gates, and checkpoint durable evidence.",
+  "brief": "Original constraints: implement every item from the latest docs-vs-source gap analysis recommendation list. Preserve fail-closed security behavior, avoid reverting unrelated user work, use Team/native role agents for big scope, and verify each story before checkpointing.\n\n@goal: Live HQ and Performance status UX\nReplace hardcoded HQ/header/performance status strings with live hq_status, AI budget, and needs_performance_log values from authoritative backend status APIs. The AppHeader, HQ home topbar, and Performance page/recorder must display current counts/status and preserve documented UX.\n\n@goal: Editor autosave recovery\nImplement session-expiry/transient-failure draft autosave preservation for content package editing. Failed autosave content must be saved locally, restored after reload/relogin, resendable, and cleared only after successful persistence.\n\n@goal: Compliance and HQ AI governance integration\nAdd adapter-backed compliance semantic review while preserving rule-engine authority, connect active policy_rules into compliance governance, use runtime AI adapter for HQ daily briefing generation, and record real AI adapter/model identity in cost logs.\n\n@goal: Product import and manual product completion\nComplete product URL import/manual fallback semantics by safely enriching or explicitly bounded parsing and adding missing manual fields for product_url, image_url, and source while preserving SSRF protections.\n\n@goal: Generation context and documentation drift\nConnect PromptTemplate/CategoryPlaybook to generation context where useful or mark them explicitly deferred, and update planning docs that still describe NextAuth instead of the implemented jose signed-cookie session model.\n\n@goal: Final verification and durable reconciliation\nRun focused and full verification, cleanup/review/QA gates, checkpoint every story with structured evidence, and reconcile inline goal state only after a fresh final aggregate receipt exists.",
   "gjcGoalMode": "aggregate",
   "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
   "goals": [
     {
       "id": "G001",
-      "title": "Remediate the externally validated security and production-readiness findings...",
-      "objective": "Remediate the externally validated security and production-readiness findings from .gjc/context/review-findings-validation-20260705T233915Z.md without reverting unrelated user work.\\n\\n@goal: Harden AI and external-source runtime boundaries\\nReplace direct MockAIAdapter construction in production paths with configured runtime adapter selection, add real adapter/key handling or explicit fail-fast behavior, and stop Hermes raw item collection from silently fabricating fallback inputs when Naver credentials or API calls fail. Preserve mock usage only for explicit non-production/test paths and contract tests.\\n\\n@goal: Fix cron and auth/security issues\\nMake Vercel Cron invocation compatible with the deployed contract, verify cron secrets from supported headers without proxy bypass gaps, remove login open redirects/token leakage, remove duplicate NextAuth exposure if unused, fail closed on missing owner email/password config, and prevent unauthenticated request logging from becoming a DoS vector.\\n\\n@goal: Remove demo-data masking and tighten dependency hygiene\\nStop content detail API failures from being masked as demo data for real package ids, keep deliberate demo behavior explicit, pin or remove unsafe dependency declarations, and add focused regression tests for the remediated findings.\\n\\n@goal: Verify remediation end-to-end\\nRun focused contract/type/lint verification for the changed surfaces, perform final cleanup/review/QA gates, and checkpoint durable evidence.",
-      "status": "superseded",
-      "createdAt": "2026-07-06T00:05:04.399Z",
-      "updatedAt": "2026-07-06T00:05:46.275Z",
-      "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-      "steering": {
-        "kind": "split_subgoal",
-        "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-        "rationale": "Splitting keeps each validated remediation area independently auditable and verifiable.",
-        "replacementGoalIds": [
-          "G002",
-          "G003",
-          "G004",
-          "G005"
-        ]
+      "title": "Live HQ and Performance status UX",
+      "objective": "Replace hardcoded HQ/header/performance status strings with live hq_status, AI budget, and needs_performance_log values from authoritative backend status APIs. The AppHeader, HQ home topbar, and Performance page/recorder must display current counts/status and preserve documented UX.",
+      "status": "complete",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T13:14:07.710Z",
+      "startedAt": "2026-07-06T12:31:32.085Z",
+      "completedAt": "2026-07-06T13:14:07.710Z",
+      "evidence": "Implemented live HQ and Performance status UX: added API-backed HqStatusBadge for AppHeader, HQ home, and Performance page; removed static Status Focus / 성과 미기록 1건 production copy; status badge validates /api/hq/status data including needs_performance_log and ai_budget; PerformanceRecorder refreshes all mounted badges immediately after successful performance-log save and isolates weekly summary refresh failure; aligned performance spec/docs around content_package selector plus five metric fields. Verification passed focused Biome, focused tests, full npm test, typecheck, Prisma validate, prod audit, architect CLEAR review 85-G001ArchitectClear, and QA passed 86-G001QaClear with artifact artifacts/g001-live-status-test-report.json.",
+      "completionVerification": {
+        "schemaVersion": 1,
+        "receiptId": "2a98ec67-0736-4dbb-af2a-aeb0df484acd",
+        "verifiedAt": "2026-07-06T13:14:07.710Z",
+        "goalId": "G001",
+        "receiptKind": "per-goal",
+        "goalStatusBeforeCheckpoint": "active",
+        "gjcGoalMode": "aggregate",
+        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
+        "qualityGateHash": "5852d5345f23d6b8d92cf890f3e3684a749627477724dd979812e5bc43c483c1",
+        "planGeneration": "f6cc7202aa0b42150154c4aaddaaf9a5349d08507a7a038a09e8cd3b5d9d41ea",
+        "basis": {
+          "planHashBeforeCheckpoint": "575753d3312e00b0e44ab66b3919acd996b5a004b54d908721418f6e0e6401f5",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "50654115-8bc0-473e-be67-e1678b5ab043",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T13:14:07.710Z",
+          "relevantGoalIdsBeforeCheckpoint": [
+            "G001"
+          ],
+          "requiredGoalSetHashBeforeCheckpoint": "df5a0c2d67aef2c83d4ed86148a41feb1ecd53139bd18499f5f5c3071bda0069"
+        },
+        "checkpointLedgerEventId": "e792f23a-45db-4a99-a3f6-ed73de7d2a5f"
       }
     },
     {
       "id": "G002",
-      "title": "Harden AI and external-source runtime boundaries",
-      "objective": "Replace direct MockAIAdapter construction in production paths with configured runtime adapter selection, add real adapter/key handling or explicit fail-fast behavior, and stop Hermes raw item collection from silently fabricating fallback inputs when Naver credentials or API calls fail. Preserve mock usage only for explicit non-production/test paths and contract tests.",
+      "title": "Editor autosave recovery",
+      "objective": "Implement session-expiry/transient-failure draft autosave preservation for content package editing. Failed autosave content must be saved locally, restored after reload/relogin, resendable, and cleared only after successful persistence.",
       "status": "complete",
-      "createdAt": "2026-07-06T00:05:46.275Z",
-      "updatedAt": "2026-07-06T00:27:11.818Z",
-      "steering": {
-        "kind": "split_replacement",
-        "sourceGoalId": "G001",
-        "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-        "rationale": "Splitting keeps each validated remediation area independently auditable and verifiable."
-      },
-      "startedAt": "2026-07-06T00:05:50.894Z",
-      "completedAt": "2026-07-06T00:27:11.818Z",
-      "evidence": "Implemented configured AI adapter fail-closed runtime selection, removed production direct MockAIAdapter callsites, removed Hermes raw-item fallback masking, fixed failed locked scan stale success fallback, and verified with focused lint, typecheck, p2/p4 tests, cleanup sweep, architect review, and QA red-team receipts.",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T13:43:39.810Z",
+      "startedAt": "2026-07-06T13:14:08.036Z",
+      "completedAt": "2026-07-06T13:43:39.810Z",
+      "evidence": "Implemented G002 editor autosave recovery: failed PATCH autosaves now write a package+draft scoped local recovery record before 401 redirect or transient-failure return; reload/relogin restores valid differing local recovery, leaves it resendable through the existing autosave effect, clears only after successful PATCH or same-body persisted evidence, updates the saved draft baseline after PATCH success, and blocks generate/search/apply-fixes/restore-original draft replacement while recovery is pending. Verification passed focused Biome, focused P3 tests, typecheck, full npm test, cleanup CLEAR job 90-G002CleanupRerun, architect CLEAR job 93-G002ArchitectFinal, and QA passed job 94-G002QaFinal with artifacts/g002-autosave-recovery-test-report.json and artifacts/g002-quality-gate.json.",
       "completionVerification": {
         "schemaVersion": 1,
-        "receiptId": "620829fe-2dcc-40a2-abd9-fc7e3d416fe6",
-        "verifiedAt": "2026-07-06T00:27:11.818Z",
+        "receiptId": "3545e423-2998-4313-82e3-f2d44bc1dd85",
+        "verifiedAt": "2026-07-06T13:43:39.810Z",
         "goalId": "G002",
         "receiptKind": "per-goal",
         "goalStatusBeforeCheckpoint": "active",
         "gjcGoalMode": "aggregate",
         "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "729eb8028e4f7b48e7ad9b2aa22db3224fc859bf86a7bd6832c84064cccbbcdb",
-        "planGeneration": "8031d986764df7a3cc74458094194541e63e9226cc594c1e5f0d54fea086bd4d",
+        "qualityGateHash": "7231e2bd56cd436543604945fe64ce1db366399eee5395ff6139b4849c9169c3",
+        "planGeneration": "9dfe2f9fc83a338c91a793766417a8773952435543028cdb6bb6321c354a441f",
         "basis": {
-          "planHashBeforeCheckpoint": "91845ca1aeb7e5a84b2914cdbe4b8cfb07cd35c74adec8bd5db80e4505692cbd",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "e36ab544-b921-4899-9720-392fd7c1c277",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T00:27:11.818Z",
+          "planHashBeforeCheckpoint": "437d9a0c0087477842cb3a30b2f502d4c82514d7c8026428cf0410db128b6001",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "34d1be37-5786-4725-8344-ea54b73b871b",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T13:43:39.810Z",
           "relevantGoalIdsBeforeCheckpoint": [
             "G002"
           ],
-          "requiredGoalSetHashBeforeCheckpoint": "270eee18b0beb9253c589e4f6d8c94ce6e0b25aeff6c76426ad7c8553cd042a5"
+          "requiredGoalSetHashBeforeCheckpoint": "7ebd8f29235785825d4ccc9079117d660169a7a4b98e63def142e200e637026e"
         },
-        "checkpointLedgerEventId": "8eccb6ac-fdbe-491c-bb5b-8a2f0965e3c2"
+        "checkpointLedgerEventId": "179c91ee-a62b-49cb-a771-6282c619d2b7"
       }
     },
     {
       "id": "G003",
-      "title": "Fix cron and auth/security issues",
-      "objective": "Make Vercel Cron invocation compatible with the deployed contract, verify cron secrets from supported headers without proxy bypass gaps, remove login open redirects/token leakage, remove duplicate NextAuth exposure if unused, fail closed on missing owner email/password config, and prevent unauthenticated request logging from becoming a DoS vector.",
+      "title": "Compliance and HQ AI governance integration",
+      "objective": "Add adapter-backed compliance semantic review while preserving rule-engine authority, connect active policy_rules into compliance governance, use runtime AI adapter for HQ daily briefing generation, and record real AI adapter/model identity in cost logs.",
       "status": "complete",
-      "createdAt": "2026-07-06T00:05:46.275Z",
-      "updatedAt": "2026-07-06T01:00:52.371Z",
-      "steering": {
-        "kind": "split_replacement",
-        "sourceGoalId": "G001",
-        "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-        "rationale": "Splitting keeps each validated remediation area independently auditable and verifiable."
-      },
-      "startedAt": "2026-07-06T00:27:12.045Z",
-      "completedAt": "2026-07-06T01:00:52.371Z",
-      "evidence": "Implemented cron GET/Bearer and legacy secret verification with constant-time comparison, tightened proxy pass-through, removed login open redirect and token-in-body leak, removed duplicate NextAuth files/dependency, failed closed on owner config, and removed unauthenticated logging DoS paths including malformed cookies. Verified with focused lint, typecheck, p1/p2 tests, cleanup sweep, architect review, and QA red-team receipts.",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T14:16:39.839Z",
+      "startedAt": "2026-07-06T13:43:40.066Z",
+      "completedAt": "2026-07-06T14:16:39.839Z",
+      "evidence": "Implemented G003 compliance and HQ AI governance integration: AIAdapter now exposes metadata, policy-aware compliance input, provider-backed daily briefing generation, and provider cost logging with provider:model identity, required usage metering, estimated known-model cost, and test-only logging disable. Compliance loads active policy_rules, applies active descriptions/context while keeping mandatory baseline rules fail-active, runs adapter-backed semantic review additively, and fails closed on semantic review unavailability. HQ daily briefing now uses createRuntimeAIAdapter().generateDailyBriefing with company profile plus recent opportunity memo context. Verification passed focused Biome, focused G003 tests, typecheck, full npm test, Prisma validate, cleanup CLEAR jobs 103/104, architect CLEAR job 105, and executor QA passed job 106 with artifacts/g003-governance-test-report.json and artifacts/g003-quality-gate.json.",
       "completionVerification": {
         "schemaVersion": 1,
-        "receiptId": "09a63119-bce2-47bc-b8ef-56da493c08cf",
-        "verifiedAt": "2026-07-06T01:00:52.371Z",
+        "receiptId": "1d620491-9a9a-4dba-a615-8bf53260de30",
+        "verifiedAt": "2026-07-06T14:16:39.839Z",
         "goalId": "G003",
         "receiptKind": "per-goal",
         "goalStatusBeforeCheckpoint": "active",
         "gjcGoalMode": "aggregate",
         "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "bcb6186b5269cbb995c801534738cbf6a358bd495b961e4d1b2a45834e0af1aa",
-        "planGeneration": "277c3920400dd65ad21ef27265bf188e93f43f253d2241fc10197add26b027ef",
+        "qualityGateHash": "f18294f8eeab06a5e26e0c87ccee95d7f9accb5ea8cb6ee1cfbdcde3931ba112",
+        "planGeneration": "72f27521fb1ce4ce1e09f776ab0084b224f3702f7ebd32aba15c5103f2fd5715",
         "basis": {
-          "planHashBeforeCheckpoint": "30a6efb3951ed276dd7a8869fff56cdbccfacae34b130641060ca48c9ea0ca59",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "35d8192d-bb19-4071-a611-7d8ea5750f1a",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T01:00:52.371Z",
+          "planHashBeforeCheckpoint": "e1d1e7594170f68992a2ecc7be3dfa5674a0cde05364ca656c418031c55dbd98",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "6fc52155-fe4a-4f30-9e25-0c220ae623e1",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T14:16:39.839Z",
           "relevantGoalIdsBeforeCheckpoint": [
             "G003"
           ],
-          "requiredGoalSetHashBeforeCheckpoint": "2783953614b903fb2c54d37d30286cff094c5becbab8f1bbfe23486adeadc497"
+          "requiredGoalSetHashBeforeCheckpoint": "268a755c5016c92af66207dfbff0c213530c5c1bbc544967322d5f42de982f82"
         },
-        "checkpointLedgerEventId": "fb160c09-3251-4aca-86f4-2bf62a35c378"
+        "checkpointLedgerEventId": "1d97b6c2-22ae-47ae-b951-29e03fa9977f"
       }
     },
     {
       "id": "G004",
-      "title": "Remove demo-data masking and tighten dependency hygiene",
-      "objective": "Stop content detail API failures from being masked as demo data for real package ids, keep deliberate demo behavior explicit, pin or remove unsafe dependency declarations, and add focused regression tests for the remediated findings.",
+      "title": "Product import and manual product completion",
+      "objective": "Complete product URL import/manual fallback semantics by safely enriching or explicitly bounded parsing and adding missing manual fields for product_url, image_url, and source while preserving SSRF protections.",
       "status": "complete",
-      "createdAt": "2026-07-06T00:05:46.275Z",
-      "updatedAt": "2026-07-06T01:18:11.779Z",
-      "steering": {
-        "kind": "split_replacement",
-        "sourceGoalId": "G001",
-        "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-        "rationale": "Splitting keeps each validated remediation area independently auditable and verifiable."
-      },
-      "startedAt": "2026-07-06T01:00:52.689Z",
-      "completedAt": "2026-07-06T01:18:11.779Z",
-      "evidence": "Stopped real content detail load failures and demo-prefixed action ids from using demo data/bypasses by requiring explicit packageId demo, pinned dependency declarations, removed unused dompurify/pino and duplicate next-auth, pinned ky to Node-20-compatible 1.14.0, and verified with focused lint, typecheck, p0/p3 tests, prod audit, cleanup sweep, architect review, and QA red-team receipts.",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T15:16:09.919Z",
+      "startedAt": "2026-07-06T14:16:40.070Z",
+      "completedAt": "2026-07-06T15:16:09.919Z",
+      "evidence": "Implemented G004 product import/manual product completion: manual create/edit now carries product_url, image_url, and source; optional blanks are trimmed/omitted with manual defaults; product_url/image_url protocols are restricted; deterministic Naver import is bounded and URL-metadata-only; import UI no longer claims crawling; validateProductImportUrl remains the mandatory SSRF gate with HTTPS Naver host allowlist, DNS all-address lookup, hardened IPv4/IPv6 private/reserved/special-use blocking, and no scraping. Verification passed final focused product/P4 tests, Biome check, typecheck, full npm test, Prisma validate, cleanup CLEAR job 121-G004CleanupUltimate, architect CLEAR job 122-G004ArchitectUltimate, and QA passed job 123-G004QaUltimate with artifacts/g004-product-completion-test-report.json and artifacts/g004-quality-gate.json.",
       "completionVerification": {
         "schemaVersion": 1,
-        "receiptId": "c47890b6-9b1f-4a67-a0fa-a4e2b2ccd852",
-        "verifiedAt": "2026-07-06T01:18:11.779Z",
+        "receiptId": "cd9d2225-1326-4ebb-8a79-017bcc6d219e",
+        "verifiedAt": "2026-07-06T15:16:09.919Z",
         "goalId": "G004",
         "receiptKind": "per-goal",
         "goalStatusBeforeCheckpoint": "active",
         "gjcGoalMode": "aggregate",
         "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "986d12d57b9cd3255590b2cefa7348bbc09452e10ad96ca36f4ec3ea4629f35d",
-        "planGeneration": "3fffb5ccd1dec20a9468a671149a693755e3a5843a317fbca824572ccc589a0c",
+        "qualityGateHash": "7e1b3430c441b5b94690f0b38537ec7ebee80013c78046f94e985bf2c7972d47",
+        "planGeneration": "a1d37d4c35f968988a94bfb91765036222a1acffabc331f937ea261054b1447c",
         "basis": {
-          "planHashBeforeCheckpoint": "a0cfaa535065dad6de977b7ec79e5447e5a56273e3dae9a33a487564a486cffb",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "7ce68b4b-e22f-4e36-980d-63933520cf69",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T01:18:11.779Z",
+          "planHashBeforeCheckpoint": "72e29475062ab8f110478ae8ffa28a910ec914ac4eca196a74d6d42a67a9c7a9",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "ccbc7064-878c-43f7-a0bd-33f151d0948c",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T15:16:09.919Z",
           "relevantGoalIdsBeforeCheckpoint": [
             "G004"
           ],
-          "requiredGoalSetHashBeforeCheckpoint": "07d1d80aa9416421e457689240c1150d63ceacd52b622039949c9feac5d2e262"
+          "requiredGoalSetHashBeforeCheckpoint": "0ebe87963458e8dadf47c34a44975df8d736884012d413c54188db4268ab283b"
         },
-        "checkpointLedgerEventId": "05c6e6f0-1380-4ded-a903-0eacc7b87979"
+        "checkpointLedgerEventId": "e4b25551-cef8-446e-856d-3935d750809e"
       }
     },
     {
       "id": "G005",
-      "title": "Verify remediation end-to-end",
-      "objective": "Run focused contract/type/lint verification for the changed surfaces, perform final cleanup/review/QA gates, and checkpoint durable evidence.",
+      "title": "Generation context and documentation drift",
+      "objective": "Connect PromptTemplate/CategoryPlaybook to generation context where useful or mark them explicitly deferred, and update planning docs that still describe NextAuth instead of the implemented jose signed-cookie session model.",
       "status": "complete",
-      "createdAt": "2026-07-06T00:05:46.275Z",
-      "updatedAt": "2026-07-06T01:29:20.922Z",
-      "steering": {
-        "kind": "split_replacement",
-        "sourceGoalId": "G001",
-        "evidence": "Initial create-goals command preserved delimiter text with literal escapes, producing one oversized goal instead of independent stories.",
-        "rationale": "Splitting keeps each validated remediation area independently auditable and verifiable."
-      },
-      "startedAt": "2026-07-06T01:18:11.988Z",
-      "completedAt": "2026-07-06T01:29:20.922Z",
-      "evidence": "Completed final remediation verification: full npm test passed 81 tests, typecheck passed, product-scoped Biome lint passed, Prisma validate passed with required env, production audit found 0 vulnerabilities, and final cleanup/architecture/QA reviews approved all G002-G004 remediations with zero blockers. Root npm run lint remains blocked only by nested .gjc team worktree configs while product lint passes.",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T16:26:29.022Z",
+      "startedAt": "2026-07-06T15:16:10.101Z",
+      "completedAt": "2026-07-06T16:26:29.022Z",
+      "evidence": "Implemented G005 generation context and documentation drift: CategoryPlaybook and PromptTemplate context now load through bounded exact-first queries, exact category/template matches cannot be truncated by broad partial fallbacks, blog/search generation passes generationContext to AI adapters, MockAIAdapter reflects playbook/template context, and planning docs/tests align jose signed-cookie paperclip_session + CSRF auth instead of NextAuth.js. Verification passed Biome, focused p3/p1 tests, typecheck, full npm test, Prisma validate, cleanup CLEAR agents 148/149, architect synthesis CLEAR agent 154, and executor QA passed agent 152 with artifacts/g005-generation-docs-test-report.json.",
       "completionVerification": {
         "schemaVersion": 1,
-        "receiptId": "2ff8db0c-0d38-4981-bb56-8f5b835a5aee",
-        "verifiedAt": "2026-07-06T01:29:20.922Z",
+        "receiptId": "cc544d68-c6de-477d-9b7e-2a81aba287a0",
+        "verifiedAt": "2026-07-06T16:26:29.022Z",
         "goalId": "G005",
         "receiptKind": "per-goal",
         "goalStatusBeforeCheckpoint": "active",
         "gjcGoalMode": "aggregate",
         "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "db07c25441727f5cb8cb9befa7aea0725b3216f155a68cce9c2c6eefd671b178",
-        "planGeneration": "222489d72e234212e25c03c4da879e509ea46d46e13167690800b87a670f68ba",
+        "qualityGateHash": "5109697146a1755f9290ddd087df1088810c4ab1ac10a342f59753dbcf227e36",
+        "planGeneration": "78b9f0ebea2c5bb9edc5b32a271cd358824e73c6c65c8b36685afbe74c15dd91",
         "basis": {
-          "planHashBeforeCheckpoint": "9e043d7e440d0476993da4786e0721c68bf30f998d91dbcd3347cd94ef082862",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "deb74e81-4cb2-4ab9-b867-5f2842f4ea6d",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T01:29:20.922Z",
+          "planHashBeforeCheckpoint": "303e2bdf150e10bc1e893be0e8c5d56c1bc58bed5262b68f346840272f31d410",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "252a50af-cc08-448b-a549-bdbc331e55fb",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T16:26:29.022Z",
           "relevantGoalIdsBeforeCheckpoint": [
             "G005"
           ],
-          "requiredGoalSetHashBeforeCheckpoint": "f86cb1bd5a688c4d63f5a7c077526678fd9e61a00ade590182a73a902d4b2eff"
+          "requiredGoalSetHashBeforeCheckpoint": "40941b8f71491da9c25b66c60bb7a8f6a6bb8c7abde34e1a78c4d3e9b8a24779"
         },
-        "checkpointLedgerEventId": "4ac7ee1e-d9e8-4eff-ad12-a13362eb3646"
+        "checkpointLedgerEventId": "ce088f23-d1f6-4885-923a-44c4b5c3756c"
       }
     },
     {
       "id": "G006",
-      "title": "Implement real AI provider adapters",
-      "objective": "Implement production-ready OpenAI and Claude AI adapter call paths for the existing AIAdapter interface, including structured response parsing, schema validation, fail-closed errors, and focused tests. Preserve explicit mock usage only for non-production/test paths.",
+      "title": "Final verification and durable reconciliation",
+      "objective": "Run focused and full verification, cleanup/review/QA gates, checkpoint every story with structured evidence, and reconcile inline goal state only after a fresh final aggregate receipt exists.",
       "status": "complete",
-      "createdAt": "2026-07-06T02:43:16.381Z",
-      "updatedAt": "2026-07-06T03:14:52.076Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "User accepted docs gap analysis and requested all missing work proceed; prior team analysis found lib/ai/runtime.ts real provider paths fail with not implemented.",
-        "rationale": "Real provider support is a prerequisite for documented Hermes, HQ, content, and compliance AI-backed behavior."
-      },
-      "startedAt": "2026-07-06T02:43:53.537Z",
-      "completedAt": "2026-07-06T03:14:52.076Z",
-      "evidence": "Implemented production OpenAI and Claude AIAdapter runtime paths with fetch-based provider adapters, schema-validated JSON parsing for all AIAdapter methods, fail-closed handling for malformed JSON, schema-invalid output, non-OK HTTP, missing credentials, and production mock mode; verified by focused tests, typecheck, focused Biome, Team cleanup/QA rerun, and architect review.",
+      "createdAt": "2026-07-06T12:31:25.269Z",
+      "updatedAt": "2026-07-06T16:44:47.138Z",
+      "startedAt": "2026-07-06T16:26:29.178Z",
+      "completedAt": "2026-07-06T16:44:47.138Z",
+      "evidence": "Completed G006 final verification and durable reconciliation readiness: G001-G005 durable per-goal receipts are present, no failed/blocked/pending required goals remain, product-scope Biome check passed, typecheck passed, npm test passed 145 tests, Prisma validate passed, production build passed after /packages force-dynamic DB-prerender fix, cleanup CLEAR agent 155, aggregate architect CLEAR agent 156, executor QA readiness passed agent 158, with evidence in artifacts/g006-final-verification-report.json and artifacts/g006-quality-gate.json.",
       "completionVerification": {
         "schemaVersion": 1,
-        "receiptId": "16cfd762-0dcd-4f19-8bf6-09ebc525d447",
-        "verifiedAt": "2026-07-06T03:14:52.076Z",
+        "receiptId": "47b95885-f202-424f-a063-76fa043a18e9",
+        "verifiedAt": "2026-07-06T16:44:47.138Z",
         "goalId": "G006",
-        "receiptKind": "per-goal",
-        "goalStatusBeforeCheckpoint": "active",
-        "gjcGoalMode": "aggregate",
-        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "73ce14854e1bace06fe7b7b8366c6d85e9c958965a932843bd5c3b173bfcbc33",
-        "planGeneration": "eaa5652662622ac9766d7b5ff3d4900464ccff87ab44e334bc61aa9e4054d529",
-        "basis": {
-          "planHashBeforeCheckpoint": "e54b03166e86c456d8b333c8ba2246a3e071d45809d21b93139565da7efc90f2",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "3bbbad28-d146-4e2b-aef2-483642f8e95f",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T03:14:52.076Z",
-          "relevantGoalIdsBeforeCheckpoint": [
-            "G006"
-          ],
-          "requiredGoalSetHashBeforeCheckpoint": "dc9df4cb7b8156a575ea36eb131870152dd5e6b0ee5d6f8d978d2f237543f72f"
-        },
-        "checkpointLedgerEventId": "48e969a2-5dcb-4eb1-89fa-a2a28e87c281"
-      }
-    },
-    {
-      "id": "G007",
-      "title": "Complete content generation workflow",
-      "objective": "Implement the documented staged content package workflow end to end: product-driven generation trigger from the UI/API, title candidates, search structure, link placement, FAQ/comparison support, autosave/edit state, compliance handoff, and user-visible content detail fields without demo masking.",
-      "status": "complete",
-      "createdAt": "2026-07-06T02:43:22.886Z",
-      "updatedAt": "2026-07-06T04:28:14.504Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "User accepted docs gap analysis and requested all missing work proceed; team analysis found content package generation endpoints exist but UI does not trigger them and detail view omits documented fields.",
-        "rationale": "Content package generation is the central documented MVP loop and must be independently verifiable."
-      },
-      "startedAt": "2026-07-06T03:14:52.360Z",
-      "completedAt": "2026-07-06T04:28:14.504Z",
-      "evidence": "Implemented staged content package workflow: real UI/API generation controls for package, title, search structure, compliance/export/approval; persisted and displayed title candidates, FAQ, comparison table, disclosure, price notice and shopping-connect context; prevented repeated candidate buildup; preserved fail-closed demo/load failures; added monotonic status guards and compliance/export draft binding; verified with focused tests, typecheck, focused Biome, Team cleanup/QA, and architect review.",
-      "completionVerification": {
-        "schemaVersion": 1,
-        "receiptId": "897211d0-ac43-4943-8e6b-ccab8a23b521",
-        "verifiedAt": "2026-07-06T04:28:14.504Z",
-        "goalId": "G007",
-        "receiptKind": "per-goal",
-        "goalStatusBeforeCheckpoint": "active",
-        "gjcGoalMode": "aggregate",
-        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "d4488676b569148648353fc09df1b04600a1c04fa9783317d8020e3ed639d9a8",
-        "planGeneration": "3c9b5e6b591f6d5d00ac3ea54c6c510cefae4ddb16ab0f7cc7f798a86bcacff6",
-        "basis": {
-          "planHashBeforeCheckpoint": "d10203a5c4f204f1ad7414688a3adb1c62bdfd7ea15f9d7fb506bc12ee43451f",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "32211495-0c73-4f2c-8357-12dbbcf47f68",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T04:28:14.504Z",
-          "relevantGoalIdsBeforeCheckpoint": [
-            "G007"
-          ],
-          "requiredGoalSetHashBeforeCheckpoint": "84f8b86dec4c7de65aa289b99f1cee53b9451f1db008e7e27cbc6414ea00d3d6"
-        },
-        "checkpointLedgerEventId": "02febf89-3c5b-48c2-ab08-ab8acb0a3cbf"
-      }
-    },
-    {
-      "id": "G008",
-      "title": "Complete product commerce and memory loop",
-      "objective": "Implement documented product import enrichment, ShoppingConnect link management/placement, performance-to-package binding, revenue or conversion pattern aggregation, and Company Memory reuse so product, performance, and memory screens operate from real persisted data.",
-      "status": "complete",
-      "createdAt": "2026-07-06T02:43:29.528Z",
-      "updatedAt": "2026-07-06T05:53:21.668Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "User accepted docs gap analysis and requested all missing work proceed; team analysis found product import only parses URL text, shopping links lack UI flow, performance uses a hardcoded URL, and memory excludes one-off logs from reusable patterns.",
-        "rationale": "Product, performance, and memory are separable persisted data surfaces that feed generation quality and reporting."
-      },
-      "startedAt": "2026-07-06T04:28:14.764Z",
-      "completedAt": "2026-07-06T05:53:21.668Z",
-      "evidence": "Implemented G008 product commerce and memory loop: deterministic fail-closed Naver import enrichment, ShoppingConnect create/edit/deactivate/delete/check UI/API, active-link content placement, explicit performance package binding, active deduped/split revenue and Company Memory category evidence, weighted persisted memory aggregation, post-success Hermes memory usage, and P2025-only not-found handling for product/link/draft persistence. Verified with npm test (5 files, 75 tests), typecheck, focused Biome, cleanup subagent 50-G008CleanupClosure, QA subagent 51-G008QaClosure, and architect subagent 52-G008ArchitectClosure.",
-      "completionVerification": {
-        "schemaVersion": 1,
-        "receiptId": "ac0ade97-09f5-4471-959f-5c5a49f5acf0",
-        "verifiedAt": "2026-07-06T05:53:21.668Z",
-        "goalId": "G008",
-        "receiptKind": "per-goal",
-        "goalStatusBeforeCheckpoint": "active",
-        "gjcGoalMode": "aggregate",
-        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "2970441ab03741a6dd14cffe90f06f427f8e3c66c8b2f26afb6bcf97797b8cd7",
-        "planGeneration": "6a4c37e66d77205a38b01ee8a42d78cd6593ea560b74bc8b4ca737059335529b",
-        "basis": {
-          "planHashBeforeCheckpoint": "4aa37840f6ad5b0ef64f994614aa18e56bb27f60abd285494f12ecd6e3c8c2f3",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "c7935520-3efb-4a8b-a3ee-eefe88c79581",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T05:53:21.668Z",
-          "relevantGoalIdsBeforeCheckpoint": [
-            "G008"
-          ],
-          "requiredGoalSetHashBeforeCheckpoint": "a0b7c8f313d6aa6a0d0046d2d323028b2bd065aa258b0005941981141458405b"
-        },
-        "checkpointLedgerEventId": "0e95bb35-953f-4dca-bd98-8e7943380bf0"
-      }
-    },
-    {
-      "id": "G009",
-      "title": "Complete compliance export and persistence governance",
-      "objective": "Implement documented compliance coverage, export bundle fidelity, storage/audit metadata, migration reproducibility, and retention cleanup for production-readiness while preserving fail-closed security behavior.",
-      "status": "complete",
-      "createdAt": "2026-07-06T02:43:37.243Z",
-      "updatedAt": "2026-07-06T06:52:45.733Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "User accepted docs gap analysis and requested all missing work proceed; team analysis found compliance rules are partial, ZIP export is a JSON manifest, migrations are absent, and retention cleanup is missing.",
-        "rationale": "Compliance, export, and persistence governance are release gates and should be delivered as one auditable backend story."
-      },
-      "startedAt": "2026-07-06T05:53:22.028Z",
-      "completedAt": "2026-07-06T06:52:45.733Z",
-      "evidence": "Implemented G009 compliance export and persistence governance: compliance rules now cover shopping disclosure, price notice, source attribution, unsupported claims, direct-use claims, and content depth; high issues remain fail-closed, medium dismissal requires audit reason and recomputes export readiness, and UI uses the returned compliance check. Export now has strict request parsing, issue-level fail-closed readiness replay, actual PK ZIP bundle payload with manifest, styled escaped HTML, binary ZIP download, storage/audit metadata with byte-size/checksum from artifact bytes, deterministic schema/migration coverage, and retention cleanup dry-run/execute fail-closed validation. Verified with focused Biome, P3 tests, typecheck, Prisma validate/generate, cleanup reports 55-G009CleanupCompliance 61-G009CleanupExportRerun 62-G009CleanupPersistenceRerun, architect 63-G009ArchitectReviewRerun, executor QA 64-G009ExecutorQaRerun, and artifacts/g009-compliance-export-test-report.json.",
-      "completionVerification": {
-        "schemaVersion": 1,
-        "receiptId": "40348d9d-0418-407c-b67e-3d796aecf26d",
-        "verifiedAt": "2026-07-06T06:52:45.733Z",
-        "goalId": "G009",
-        "receiptKind": "per-goal",
-        "goalStatusBeforeCheckpoint": "active",
-        "gjcGoalMode": "aggregate",
-        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "c1ef40e2865d45f6e5d1aee85b0f05a1b7cbfb16bc0a1b445af0007e8ccad6b4",
-        "planGeneration": "e8110d04cf39a9f13e1d2c65fbb2e59d79517511bbc22c5138f9988af6618e3b",
-        "basis": {
-          "planHashBeforeCheckpoint": "61cdb0009c87d0994549160d35989bb7d0ecec62c08e891ac51f90d83128a8e4",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "875d96f6-2ccd-436a-9b28-ea10215e9554",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T06:52:45.733Z",
-          "relevantGoalIdsBeforeCheckpoint": [
-            "G009"
-          ],
-          "requiredGoalSetHashBeforeCheckpoint": "9dd37c27b35a7dfd84193551aefc5a93c575eb1d8dc395798f9ad46ed9205d8e"
-        },
-        "checkpointLedgerEventId": "5f27e169-433b-4810-989d-8fd1c2bb5d94"
-      }
-    },
-    {
-      "id": "G010",
-      "title": "Align UX design docs and verification",
-      "objective": "Align app navigation and visual design with the documented MVP contract, remove production demo-entry exposure, update docs drift where implementation intentionally diverges, and add focused regression or contract coverage for the newly implemented missing surfaces.",
-      "status": "complete",
-      "createdAt": "2026-07-06T02:43:43.676Z",
-      "updatedAt": "2026-07-06T07:24:36.007Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "User accepted docs gap analysis and requested all missing work proceed; team analysis found dark styling drift, /packages/demo production navigation, stale generated docs assumptions, and mostly static tests without live workflow coverage.",
-        "rationale": "The final story should close visible UX/documentation/test drift after functional stories land."
-      },
-      "startedAt": "2026-07-06T06:52:45.954Z",
-      "completedAt": "2026-07-06T07:24:36.007Z",
-      "evidence": "Implemented G010 UX navigation/design verification: production Content Factory and Compliance entry points now route to the persisted /packages index instead of /packages/demo, /packages lists real content packages from listContentPackages(null), Settings is removed from sidebar and compliance body while remaining header-routed, package progress no longer masks unknown values as 0%, active nav prefix matching is segment-safe, dark command-center design docs/specs are aligned with implemented CSS tokens, and focused ux-navigation contract coverage was added. Verified with focused Biome, related UX/HQ/P3 contract tests, typecheck, cleanup reports 68-G010CleanupDocs and 71-G010CleanupCodeRerun, architect review 72-G010ArchitectReviewRerun, executor QA 73-G010ExecutorQaRerun, and artifacts/g010-ux-navigation-test-report.json.",
-      "completionVerification": {
-        "schemaVersion": 1,
-        "receiptId": "1e4f2d95-c1a7-407e-ab87-23274413bf10",
-        "verifiedAt": "2026-07-06T07:24:36.007Z",
-        "goalId": "G010",
-        "receiptKind": "per-goal",
-        "goalStatusBeforeCheckpoint": "active",
-        "gjcGoalMode": "aggregate",
-        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "bc5f2f959b5dbe3b666a7cda95b05212a3d06254c5a328bc7f2cfb633d8d6ea0",
-        "planGeneration": "af6106d792548a0c060b8aa5999de742d9dee7ebee3f05e67e2544cc4a2cf2fe",
-        "basis": {
-          "planHashBeforeCheckpoint": "21d464026170af8c1d8c65a0d217d408d51397773cfaf720badc65b01fd7d2c9",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "603ed948-aceb-4a1b-bc4a-67814a0ddfa3",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T07:24:36.007Z",
-          "relevantGoalIdsBeforeCheckpoint": [
-            "G010"
-          ],
-          "requiredGoalSetHashBeforeCheckpoint": "06e45a73a30bcc6bcb068eb05ef2b49e12b26a1831719e04945bcf609b6cb0ec"
-        },
-        "checkpointLedgerEventId": "7857360f-0208-4bce-a421-4f22882ad254"
-      }
-    },
-    {
-      "id": "G011",
-      "title": "Reconcile final inline goal completion",
-      "objective": "Verify the fully completed durable ultragoal run after final aggregate nudges, produce a fresh final aggregate receipt without product-code changes, and reconcile the inline GJC goal state.",
-      "status": "complete",
-      "createdAt": "2026-07-06T07:35:45.137Z",
-      "updatedAt": "2026-07-06T07:59:02.648Z",
-      "steering": {
-        "kind": "add_subgoal",
-        "evidence": "Durable status is complete and G010 final aggregate receipt exists, but subsequent premature_complete nudge events for G010 make the final receipt stale under latest relevant ledger semantics; adding an explicit reconciliation story keeps the audit trail append-only.",
-        "rationale": "A fresh final required story creates a new auditable final aggregate receipt without silently mutating or deleting existing ledger evidence."
-      },
-      "startedAt": "2026-07-06T07:36:01.486Z",
-      "completedAt": "2026-07-06T07:59:02.648Z",
-      "evidence": "Completed G011 final reconciliation: durable nudges were preserved append-only, a small P0 repository-boundary regression found by final verification was fixed by routing compliance/content/export progress writes through lib/content/repository.ts updateContentPackageProgress, and the full final loop reran cleanly with P0 test, full test suite, typecheck, focused Biome, Prisma validate, production audit, cleanup review 74-G011StatusRoutingCleanup, architect 77-G011ArchitectFinalRerun, executor QA 76-G011ExecutorQaFinal, and artifacts/g011-final-reconciliation-test-report.json.",
-      "completionVerification": {
-        "schemaVersion": 1,
-        "receiptId": "e5b00490-e9a1-4321-8e77-d47c52e76484",
-        "verifiedAt": "2026-07-06T07:59:02.648Z",
-        "goalId": "G011",
         "receiptKind": "final-aggregate",
         "goalStatusBeforeCheckpoint": "active",
         "gjcGoalMode": "aggregate",
         "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
-        "qualityGateHash": "cc545302a01da97626f7c1d4ceb693af76e0dc3fb76825e51afa961e1e123259",
-        "planGeneration": "1a30ab57e2d08b403e15c03ac417d387c6b4f5b807bd490b296e9b66f8fe74c9",
+        "qualityGateHash": "af8f139c2ed3785b2ad41811477f973dc23717bca515398ffd730f28f83a161a",
+        "planGeneration": "2f772030bb2bb9836f008a3f850e9796fde009b4255698610639402b0c898bb6",
         "basis": {
-          "planHashBeforeCheckpoint": "747cdc866f24f72dcb9e69a0d595468ce16eb973dd2cf2c309ca36909b2ee773",
-          "latestRelevantLedgerEventIdBeforeCheckpoint": "564cd388-c25b-4081-99ea-bca4a858e85d",
-          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T07:59:02.648Z",
+          "planHashBeforeCheckpoint": "dfbb32744eebc9946f26ae7e3434590de941cefde6c0ce9ff111b697794c2dc6",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "0275ad70-e501-40cb-90cd-e07185baa85e",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-06T16:44:47.138Z",
           "relevantGoalIdsBeforeCheckpoint": [
+            "G001",
             "G002",
             "G003",
             "G004",
             "G005",
-            "G006",
-            "G007",
-            "G008",
-            "G009",
-            "G010",
-            "G011"
+            "G006"
           ],
-          "requiredGoalSetHashBeforeCheckpoint": "4c37adc01309634395397ba56bc963f2bcf90c52f8018f4bbdcf6b847e83506d"
+          "requiredGoalSetHashBeforeCheckpoint": "e12e1e6359a69cf1f771c1f500c7b741d21767e9120467671bb5ca05d18a7f54"
         },
-        "checkpointLedgerEventId": "bc38f215-bec1-41db-a0e6-e173468d9d40"
+        "checkpointLedgerEventId": "8b110b01-d91d-4edc-b1ea-18adfefd76be"
       }
     }
   ],
-  "createdAt": "2026-07-06T00:05:04.399Z",
-  "updatedAt": "2026-07-06T08:10:19.040Z",
-  "state_revision": 33
+  "createdAt": "2026-07-06T12:31:25.269Z",
+  "updatedAt": "2026-07-06T16:44:47.138Z",
+  "state_revision": 46
 }

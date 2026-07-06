@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export const policyRuleContextSchema = z.object({
+  rule_type: z.string(),
+  rule_code: z.string(),
+  description: z.string(),
+});
+
 export const complianceInputSchema = z.object({
   body_markdown: z.string(),
   has_shopping_connect_links: z.boolean(),
@@ -7,6 +13,7 @@ export const complianceInputSchema = z.object({
   disclosure_text: z.string().nullable().optional(),
   price_notice: z.string().nullable().optional(),
   has_verified_product_evidence: z.boolean().optional(),
+  policy_rules: z.array(policyRuleContextSchema).optional(),
 });
 
 export const complianceIssueSchema = z.object({
@@ -17,6 +24,7 @@ export const complianceIssueSchema = z.object({
 });
 
 export type ComplianceRuleInput = z.infer<typeof complianceInputSchema>;
+export type PolicyRuleContext = z.infer<typeof policyRuleContextSchema>;
 export type ComplianceRuleIssue = z.infer<typeof complianceIssueSchema>;
 
 const bannedExpressions = ["100%", "무조건", "완벽", "최저가", "1위", "최고"] as const;
@@ -47,6 +55,39 @@ function hasSourceAttribution(input: ComplianceRuleInput): boolean {
   return /출처|source|https?:\/\//i.test(input.body_markdown);
 }
 
+function isBaselinePolicyRule(ruleType: string, ruleCode: string): boolean {
+  return (
+    (ruleType === "compliance" &&
+      (ruleCode === "shopping_connect_disclosure_required" ||
+        ruleCode === "price_checked_at_required")) ||
+    (ruleType === "content" && ruleCode === "unused_product_review_forbidden")
+  );
+}
+
+function isPolicyRuleActive(
+  input: ComplianceRuleInput,
+  ruleType: string,
+  ruleCode: string,
+): boolean {
+  if (isBaselinePolicyRule(ruleType, ruleCode) || input.policy_rules === undefined) {
+    return true;
+  }
+
+  return input.policy_rules.some(
+    (rule) => rule.rule_type === ruleType && rule.rule_code === ruleCode,
+  );
+}
+
+function activePolicyRuleDescription(
+  input: ComplianceRuleInput,
+  ruleType: string,
+  ruleCode: string,
+): string | undefined {
+  return input.policy_rules?.find(
+    (rule) => rule.rule_type === ruleType && rule.rule_code === ruleCode,
+  )?.description;
+}
+
 export function evaluateCompliance(input: ComplianceRuleInput): {
   readonly pass: boolean;
   readonly risk_level: "low" | "medium" | "high";
@@ -55,20 +96,32 @@ export function evaluateCompliance(input: ComplianceRuleInput): {
 } {
   const issues: ComplianceRuleIssue[] = [];
 
-  if (input.has_shopping_connect_links && !hasDisclosure(input)) {
+  if (
+    isPolicyRuleActive(input, "compliance", "shopping_connect_disclosure_required") &&
+    input.has_shopping_connect_links &&
+    !hasDisclosure(input)
+  ) {
     issues.push({
       issue_type: "shopping_connect_disclosure_missing",
       severity: "high",
-      message: "쇼핑커넥트 링크가 있지만 대가성 문구가 없습니다.",
+      message:
+        activePolicyRuleDescription(input, "compliance", "shopping_connect_disclosure_required") ??
+        "쇼핑커넥트 링크가 있지만 대가성 문구가 없습니다.",
       suggested_fix: "본문 상단에 쇼핑커넥트 대가성 문구를 추가하세요.",
     });
   }
 
-  if (input.has_price_mentions && !hasPriceNotice(input)) {
+  if (
+    isPolicyRuleActive(input, "compliance", "price_checked_at_required") &&
+    input.has_price_mentions &&
+    !hasPriceNotice(input)
+  ) {
     issues.push({
       issue_type: "price_notice_missing",
       severity: "high",
-      message: "가격 언급이 있지만 가격 기준일 문구가 없습니다.",
+      message:
+        activePolicyRuleDescription(input, "compliance", "price_checked_at_required") ??
+        "가격 언급이 있지만 가격 기준일 문구가 없습니다.",
       suggested_fix: "가격은 확인일 기준이며 변동될 수 있다는 문구를 추가하세요.",
     });
   }
@@ -114,11 +167,17 @@ export function evaluateCompliance(input: ComplianceRuleInput): {
     });
   }
 
-  if (directUsePattern.test(input.body_markdown) && input.has_verified_product_evidence !== true) {
+  if (
+    isPolicyRuleActive(input, "content", "unused_product_review_forbidden") &&
+    directUsePattern.test(input.body_markdown) &&
+    input.has_verified_product_evidence !== true
+  ) {
     issues.push({
       issue_type: "unverified_direct_use_claim",
       severity: "medium",
-      message: "검증되지 않은 직접 사용 또는 후기 표현이 포함되어 있습니다.",
+      message:
+        activePolicyRuleDescription(input, "content", "unused_product_review_forbidden") ??
+        "검증되지 않은 직접 사용 또는 후기 표현이 포함되어 있습니다.",
       suggested_fix: "직접 사용 근거를 연결하거나 후기/실사용 표현을 객관적 설명으로 바꾸세요.",
     });
   }

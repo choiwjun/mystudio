@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "goalId": "G002",
+  "kind": "web-test-report",
+  "summary": "G002 autosave recovery implementation preserves failed draft autosave bodies in package+draft scoped localStorage, restores them after reload/relogin, resends through the existing autosave PATCH path, clears recovery only after successful persistence or same-body persisted evidence, and blocks draft-replacing actions while recovery is pending.",
+  "changedFiles": [
+    "components/content/ContentPackageDetail.tsx",
+    "tests/p3-contract.test.ts"
+  ],
+  "verification": [
+    {
+      "command": "npx biome check components/content/ContentPackageDetail.tsx tests/p3-contract.test.ts",
+      "status": "passed",
+      "evidence": "Biome reported OK after the final G002 edits."
+    },
+    {
+      "command": "npm test -- tests/p3-contract.test.ts",
+      "status": "passed",
+      "evidence": "Vitest reported 1 test file passed, 31 tests passed."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "evidence": "tsc --noEmit completed successfully."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "evidence": "Full suite reported 10 test files passed, 123 tests passed after final restore-original guard."
+    }
+  ],
+  "reviewRefs": [
+    "agent://90-G002CleanupRerun",
+    "agent://93-G002ArchitectFinal",
+    "agent://94-G002QaFinal"
+  ],
+  "contractCoverage": [
+    {
+      "id": "g002-local-save",
+      "status": "covered",
+      "evidence": "Autosave failure writes createDraftRecoveryRecord to localStorage before returning or redirecting on 401."
+    },
+    {
+      "id": "g002-restore-resend",
+      "status": "covered",
+      "evidence": "Load effect restores scoped differing local recovery into draftBody; autosave effect PATCHes body_markdown: draftBody."
+    },
+    {
+      "id": "g002-clear-only-success",
+      "status": "covered",
+      "evidence": "clearDraftRecovery occurs after awaited PATCH success or when loaded server body already equals the recovery body."
+    },
+    {
+      "id": "g002-draft-replacement-guard",
+      "status": "covered",
+      "evidence": "Generate package, search structure, apply fixes, and restore original all call blockDraftReplacementWhileRecovering while recoveryAvailable is true."
+    }
+  ],
+  "blockers": []
+}

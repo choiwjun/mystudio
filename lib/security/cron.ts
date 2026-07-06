@@ -1,5 +1,5 @@
-import { fail } from "@/lib/api/response";
 import { timingSafeEqual } from "node:crypto";
+import { fail } from "@/lib/api/response";
 
 export type CronGuardResult =
   | { readonly allowed: true }
@@ -70,7 +70,8 @@ export function verifyCronSecret(
       response: fail(
         {
           code: "UNAUTHORIZED",
-          message: "Cron endpoint requires a valid Authorization Bearer or x-cron-secret credential.",
+          message:
+            "Cron endpoint requires a valid Authorization Bearer or x-cron-secret credential.",
         },
         401,
       ),

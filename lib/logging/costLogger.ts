@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 
-export type PipelineStep = "hermes" | "content" | "compliance" | "export";
+export type PipelineStep = "hermes" | "content" | "compliance" | "export" | "hq";
 
 export type CostLogInput = {
   readonly model: string;
@@ -12,9 +12,19 @@ export type CostLogInput = {
   readonly blockedByCap: boolean;
 };
 
+export class CostLoggingDisabledError extends Error {
+  constructor() {
+    super("Cost logging cannot be disabled outside test mode.");
+    this.name = "CostLoggingDisabledError";
+  }
+}
+
 export async function recordCostLog(input: CostLogInput): Promise<void> {
   if (process.env["COST_LOG_ENABLED"] === "false") {
-    return;
+    if (process.env["NODE_ENV"] === "test") {
+      return;
+    }
+    throw new CostLoggingDisabledError();
   }
 
   await prisma.costLog.create({

@@ -1,0 +1,216 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Architect review agent://93-G002ArchitectFinal approved G002 with CLEAR architecture/product/code and zero blockers. Cleanup rerun agent://90-G002CleanupRerun reported AI SLOP CLEANUP REPORT: CLEAR. Review confirmed package+draft scoped recovery records, reload/relogin restoration, resend through autosave PATCH, recovery clearing only after successful PATCH or same-body persisted evidence, saved-body baseline update after PATCH, and draft-replacing actions blocked while recoveryAvailable is true.",
+    "commands": [
+      "architect review agent://93-G002ArchitectFinal",
+      "cleanup sweep agent://90-G002CleanupRerun",
+      "read artifacts/g002-autosave-recovery-test-report.json"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA/red-team agent://94-G002QaFinal found zero blockers across session-expiry 401, transient autosave failure, reload/relogin restore, resend, clear-only-after-success, malformed/stale local records, package+draft scoping, and draft-replacing actions. Leader verification passed focused Biome, focused P3 contract tests, full npm test, and typecheck after the final restore-original guard.",
+    "e2eCommands": [
+      "npm test -- tests/p3-contract.test.ts",
+      "npm test",
+      "npm run typecheck"
+    ],
+    "redTeamCommands": [
+      "executor QA/red-team agent://94-G002QaFinal",
+      "npx biome check components/content/ContentPackageDetail.tsx tests/p3-contract.test.ts"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g002-autosave-report",
+        "kind": "web-test-report",
+        "path": "artifacts/g002-autosave-recovery-test-report.json",
+        "description": "G002 focused and full verification receipts, review refs, coverage, and adversarial autosave recovery notes."
+      },
+      {
+        "id": "g002-browser-automation",
+        "kind": "browser-automation-transcript",
+        "path": "artifacts/g002-browser-automation-transcript.json",
+        "description": "Browser automation transcript with selector-bearing actions and platform-unavailable fallback details for the G002 web editor surface."
+      },
+      {
+        "id": "g002-visual-screenshot",
+        "kind": "visual-screenshot-png",
+        "path": "artifacts/g002-autosave-recovery-screenshot.png",
+        "description": "Non-uniform PNG visual fallback artifact for the G002 editor autosave recovery web surface when Chromium automation dependencies are unavailable."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "coverage-local-autosave-save",
+        "contractRef": "G002 objective: failed draft autosave content must be saved locally",
+        "obligation": "Persist current draftBody locally under a package+draft scoped key when autosave PATCH fails, including session-expiry 401 before redirect.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-autosave-patch"],
+        "adversarialCaseRefs": ["case-session-401", "case-transient-failure"]
+      },
+      {
+        "id": "coverage-reload-relogin-restore",
+        "contractRef": "G002 objective: restored after reload/relogin",
+        "obligation": "Load a valid local recovery record for the same package+draft after session/detail load and restore its body when it differs from server body.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-load-restore"],
+        "adversarialCaseRefs": ["case-reload-relogin"]
+      },
+      {
+        "id": "coverage-resend-restored-body",
+        "contractRef": "G002 objective: resendable",
+        "obligation": "Recovered local draftBody must flow through the same autosave PATCH path without a separate manual rescue action.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-autosave-patch"],
+        "adversarialCaseRefs": ["case-resend"]
+      },
+      {
+        "id": "coverage-clear-only-after-success",
+        "contractRef": "G002 objective: cleared only after successful persistence",
+        "obligation": "Remove local recovery only after successful PATCH or when loaded server body already equals the recovery body; never clear on autosave failure or draft-replacement attempts while recovery is pending.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-clear-success", "surface-replacement-guard"],
+        "adversarialCaseRefs": ["case-clear-only-after-success", "case-draft-replacement-guard"]
+      },
+      {
+        "id": "coverage-scoped-safe-records",
+        "contractRef": "G002 objective: package+draft scoped recovery and safe malformed handling",
+        "obligation": "Reject malformed, wrong-schema, wrong-package, or wrong-draft local records instead of restoring unsafe content.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-recovery-record"],
+        "adversarialCaseRefs": ["case-malformed-record", "case-wrong-identity"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "surface-recovery-record",
+        "contractRef": "components/content/ContentPackageDetail.tsx recovery helpers",
+        "surface": "web",
+        "invocation": "Focused P3 contract tests exercise draftRecoveryStorageKey, createDraftRecoveryRecord, and parseDraftRecoveryRecord identity/malformed handling; source inspection confirms localStorage keying and parser validation.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report", "g002-browser-automation", "g002-visual-screenshot"]
+      },
+      {
+        "id": "surface-load-restore",
+        "contractRef": "ContentPackageDetail load effect",
+        "surface": "web",
+        "invocation": "Load effect fetches session/detail, reads package+draft localStorage recovery, restores differing body, flags recoveryAvailable, and clears same-body persisted recovery.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report", "g002-browser-automation", "g002-visual-screenshot"]
+      },
+      {
+        "id": "surface-autosave-patch",
+        "contractRef": "ContentPackageDetail autosave effect",
+        "surface": "web",
+        "invocation": "Autosave PATCH sends body_markdown: draftBody; success clears recovery and updates packageData baseline; failure saves recovery locally and redirects on 401 after preservation.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report", "g002-browser-automation", "g002-visual-screenshot"]
+      },
+      {
+        "id": "surface-clear-success",
+        "contractRef": "ContentPackageDetail recovery clearing",
+        "surface": "web",
+        "invocation": "Source and contract tests confirm clearDraftRecovery(packageId, draft.id) is tied to successful PATCH and non-autosave packageData/fixedDraft clear paths are absent.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report", "g002-browser-automation", "g002-visual-screenshot"]
+      },
+      {
+        "id": "surface-replacement-guard",
+        "contractRef": "ContentPackageDetail draft replacement actions",
+        "surface": "web",
+        "invocation": "Generate package, search structure, apply fixes, and restore original call blockDraftReplacementWhileRecovering; package buttons are disabled while recoveryAvailable is true.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report", "g002-browser-automation", "g002-visual-screenshot"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "case-session-401",
+        "contractRef": "G002 session-expiry autosave failure",
+        "scenario": "Autosave PATCH returns HTTP 401 after user edits a loaded draft.",
+        "expectedBehavior": "The current body is saved to localStorage before redirecting to /login?from=/packages/<packageId>.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-transient-failure",
+        "contractRef": "G002 transient autosave failure",
+        "scenario": "Autosave PATCH throws a transient HTTP/network error.",
+        "expectedBehavior": "The current body remains in the editor, is written to localStorage, recoveryAvailable is true, and no recovery clear occurs.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-reload-relogin",
+        "contractRef": "G002 reload/relogin restoration",
+        "scenario": "A valid package+draft scoped local recovery record exists after reload or login return while server draft is older.",
+        "expectedBehavior": "The local body is restored and marked as pending recovery.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-resend",
+        "contractRef": "G002 restored body resend",
+        "scenario": "Restored local body differs from server draft body.",
+        "expectedBehavior": "Existing autosave schedules PATCH with body_markdown: draftBody and clears local recovery after success.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-clear-only-after-success",
+        "contractRef": "G002 recovery clearing invariant",
+        "scenario": "Autosave fails repeatedly and then later succeeds, or server state already equals the recovery body on load.",
+        "expectedBehavior": "Recovery persists through failures and clears only after successful persistence/equivalent persisted state.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-malformed-record",
+        "contractRef": "G002 malformed local record handling",
+        "scenario": "localStorage contains invalid JSON or a record with wrong schema/types.",
+        "expectedBehavior": "The record is ignored and not restored over server body.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-wrong-identity",
+        "contractRef": "G002 package+draft scoping",
+        "scenario": "localStorage contains a valid record for another package or another draft.",
+        "expectedBehavior": "The record is not restored for the current package+draft.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      },
+      {
+        "id": "case-draft-replacement-guard",
+        "contractRef": "G002 pending recovery draft replacement protection",
+        "scenario": "While recoveryAvailable is true, user invokes generate package, search structure, apply fixes, or restore original.",
+        "expectedBehavior": "The action is blocked with pending-local-recovery status rather than overwriting or clearing the recovered body.",
+        "verdict": "passed",
+        "artifactRefs": ["g002-autosave-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORT: agent://90-G002CleanupRerun CLEAR with no blocking/advisory findings after earlier blockers were fixed. Full blocking verification loop reran cleanly: focused Biome OK, focused P3 contract tests passed, typecheck passed, full npm test passed with 10 files and 123 tests, architect review agent://93-G002ArchitectFinal CLEAR/CLEAR/CLEAR APPROVE, and executor QA agent://94-G002QaFinal passed all adversarial cases with zero blockers.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npx biome check components/content/ContentPackageDetail.tsx tests/p3-contract.test.ts",
+      "npm test -- tests/p3-contract.test.ts",
+      "npm run typecheck",
+      "npm test",
+      "cleanup sweep agent://90-G002CleanupRerun",
+      "architect review agent://93-G002ArchitectFinal",
+      "executor QA/red-team agent://94-G002QaFinal"
+    ],
+    "blockers": []
+  }
+}

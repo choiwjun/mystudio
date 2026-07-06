@@ -115,7 +115,7 @@ project/
 ├── lib/
 │   ├── api.ts                   # API 클라이언트
 │   ├── db.ts                    # Prisma 클라이언트
-│   ├── auth.ts                  # NextAuth
+│   ├── auth/                    # jose signed-cookie session helpers
 │   ├── ai/
 │   │   ├── adapter.ts           # AI 어댑터 인터페이스
 │   │   ├── claude.ts            # Claude 구현 (미결)
@@ -390,7 +390,7 @@ export function OpportunityCard({ memo, onSelect }: OpportunityCardProps) {
 // app/api/hq/today/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { readSessionFromRequest } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { ApiResponse } from "@/types/api";
 
@@ -401,7 +401,7 @@ export async function GET(
 
   try {
     // 인증 확인
-    const session = await auth();
+    const session = await readSessionFromRequest(req);
     if (!session) {
       return NextResponse.json(
         {
@@ -490,7 +490,7 @@ export async function GET(
 // app/api/hq/decisions/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { readSessionFromRequest } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { validateDecisionRequest } from "@/lib/validators";
 import { PostHermesDecisionRequest } from "@/types/api";
@@ -501,7 +501,7 @@ export async function POST(
   const requestId = crypto.randomUUID();
 
   try {
-    const session = await auth();
+    const session = await readSessionFromRequest(req);
     if (!session) return unauthorized(requestId);
 
     // 요청 검증
@@ -1083,75 +1083,63 @@ export async function transitionStatus(
 ## 15. CSRF 및 Rate Limit 규칙 (F5)
 
 ```typescript
-// middleware.ts
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+// proxy.ts — 페이지/API 공통 세션 보호
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { readSessionFromRequest } from "@/lib/auth/session";
 
-export function middleware(req: NextRequest) {
-  // GET: CSRF 토큰 생성 → 쿠키 설정
-  if (req.method === 'GET') {
-    const response = NextResponse.next();
-    response.cookies.set('__csrfToken', crypto.randomBytes(16).toString('hex'), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 3600,
-    });
-    return response;
-  }
-  
-  // POST/PUT/DELETE: CSRF 검증
-  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
-    const isStateChange = ['/api/hq/decisions', '/api/compliance'].some(
-      path => req.nextUrl.pathname.startsWith(path)
+export async function proxy(request: NextRequest) {
+  const session = await readSessionFromRequest(request); // jose signed paperclip_session 검증
+  if (session === null && request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { success: false, error: { code: "UNAUTHORIZED" } },
+      { status: 401 },
     );
-    
-    if (isStateChange) {
-      const headerToken = req.headers.get('X-CSRF-Token');
-      const cookieToken = req.cookies.get('__csrfToken')?.value;
-      
-      if (headerToken !== cookieToken) {
-        return NextResponse.json(
-          { success: false, error: { code: 'CSRF_FAILED' } },
-          { status: 403 }
-        );
-      }
-    }
   }
-  
+
+  if (session === null) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return NextResponse.next();
 }
 
-// Rate Limit
-const requestCounts = new Map<string, number>();
+// lib/auth/guards.ts — 상태 변경 API 공통 가드
+import { withApiErrorLogging } from "@/lib/api/handler";
+import { fail } from "@/lib/api/response";
+import { readSessionFromRequest, type OwnerSession } from "@/lib/auth/session";
 
-export function rateLimit(key: string, limit: number = 5): boolean {
-  const count = (requestCounts.get(key) || 0) + 1;
-  requestCounts.set(key, count);
-  
-  if (count > limit) {
-    return false;
+function hasValidCsrf(request: NextRequest, session: OwnerSession): boolean {
+  if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") {
+    return true;
   }
-  
-  // 1분 후 초기화
-  setTimeout(() => requestCounts.delete(key), 60000);
-  return true;
+
+  return request.headers.get("x-csrf-token") === session.csrfToken;
 }
 
-// API 라우트
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  
-  if (!rateLimit(`decisions:${userId}`, 5)) {
-    return NextResponse.json(
-      { success: false, error: { code: 'RATE_LIMIT_EXCEEDED' } },
-      { status: 429 }
-    );
+export function withAuthenticatedApi(routeName: string, handler: AuthenticatedHandler) {
+  return withApiErrorLogging(routeName, async (request: NextRequest) => {
+    const session = await readSessionFromRequest(request);
+    if (session === null) {
+      return fail({ code: "UNAUTHORIZED", message: "Authentication is required." }, 401);
+    }
+
+    if (!hasValidCsrf(request, session)) {
+      return fail({ code: "CSRF_TOKEN_INVALID", message: "A valid CSRF token is required." }, 403);
+    }
+
+    return handler(request, session);
+  });
+}
+
+// API 라우트: Bearer token/next-auth 없이 쿠키 세션 + CSRF 가드만 사용
+export const POST = withAuthenticatedApi("hq.decisions.create", async (req, session) => {
+  if (!rateLimit(`decisions:${session.email}`, 5)) {
+    return fail({ code: "RATE_LIMIT_EXCEEDED", message: "Too many requests." }, 429);
   }
-  
+
   // ... 비즈니스 로직
-}
+});
 ```
 
 ---
@@ -1165,8 +1153,9 @@ export async function POST(req: NextRequest) {
 DATABASE_URL=postgresql://...@supabase.com/postgres
 
 # Authentication
-NEXTAUTH_SECRET=...
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=... # legacy-compatible name; jose paperclip_session signing secret
+OWNER_EMAIL=owner@example.com
+OWNER_PASSWORD_HASH=...
 
 # AI Models (Open Question)
 AI_ADAPTER=hybrid

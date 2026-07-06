@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const hqPageSource = readFileSync("app/(app)/page.tsx", "utf8");
 const appHeaderSource = readFileSync("components/AppHeader.tsx", "utf8");
 const appHeaderActionsSource = readFileSync("components/AppHeaderActions.tsx", "utf8");
+const hqStatusBadgeSource = readFileSync("components/hq/HqStatusBadge.tsx", "utf8");
 const hqKanbanBoardSource = readFileSync("components/hq/HqKanbanBoard.tsx", "utf8");
 const hqKanbanMappingSource = readFileSync("components/hq/kanban.ts", "utf8");
 const hqBriefingPanelSource = readFileSync("components/hq/HqBriefingPanel.tsx", "utf8");
@@ -24,6 +25,11 @@ const decisionServiceSource = readFileSync("lib/decisions/service.ts", "utf8");
 const hqDailyBriefingRouteSource = readFileSync("app/api/hq/daily-briefing/route.ts", "utf8");
 const hqServiceSource = readFileSync("lib/hq/service.ts", "utf8");
 const sharedTypesSource = readFileSync("specs/shared/types.yaml", "utf8");
+const performancePageSource = readFileSync("app/(app)/performance/page.tsx", "utf8");
+const performanceRecorderSource = readFileSync(
+  "components/performance/PerformanceRecorder.tsx",
+  "utf8",
+);
 
 const requiredKanbanColumns = [
   "opportunities",
@@ -139,6 +145,19 @@ describe("HQ main screen contract", () => {
     expect(hqWinningPatternsPanelSource).toContain("refresh_candidates");
   });
 
+  it("generates HQ daily briefing through the runtime AI adapter with profile and memo context", () => {
+    expect(hqServiceSource).toContain("createRuntimeAIAdapter().generateDailyBriefing");
+    expect(hqServiceSource).toContain("serializeDailyBriefingCompanyProfile(profile)");
+    expect(hqServiceSource).toContain("opportunityMemoContext");
+    expect(hqServiceSource).toContain("latestMemo:");
+    expect(hqServiceSource).toContain("recentMemos: recentMemos.map");
+    expect(hqServiceSource).toContain("goals: aiBriefing.goals");
+    expect(hqServiceSource).toContain("focusCategories: aiBriefing.focus_categories");
+    expect(hqServiceSource).not.toContain(
+      'goals: "오늘 콘텐츠 1개를 승인 가능한 상태까지 진행합니다."',
+    );
+  });
+
   it("updates content package status from HQ kanban drag and drop", () => {
     expect(contentServiceSource).toContain("contentPackageStatusPatchSchema");
     expect(contentServiceSource).toContain("updateContentPackageStatus");
@@ -194,5 +213,24 @@ describe("HQ main screen contract", () => {
     expect(hqDailyBriefingButtonSource).toContain('fetch("/api/hq/daily-briefing"');
     expect(hqDailyBriefingButtonSource).toContain("x-csrf-token");
     expect(hqDailyBriefingButtonSource).toContain("setProfileGuardOpen(true)");
+  });
+  it("renders live HQ status and performance reminder counts instead of static header copy", () => {
+    expect(appHeaderSource).toContain("HqStatusBadge");
+    expect(hqPageSource).toContain("HqStatusBadge");
+    expect(performancePageSource).toContain("HqStatusBadge");
+    expect(hqStatusBadgeSource).toContain('fetch("/api/hq/status")');
+    expect(hqStatusBadgeSource).toContain("needs_performance_log");
+    expect(hqStatusBadgeSource).toContain("ai_budget");
+    expect(hqStatusBadgeSource).toContain("window.addEventListener(hqStatusRefreshEvent");
+    expect(hqStatusBadgeSource).toContain("window.removeEventListener(hqStatusRefreshEvent");
+    expect(performanceRecorderSource).toContain("requestHqStatusRefresh()");
+    expect(performanceRecorderSource.indexOf("requestHqStatusRefresh();")).toBeLessThan(
+      performanceRecorderSource.indexOf("const performance = await getApiData<SummaryPayload>"),
+    );
+    expect(performanceRecorderSource).toContain("요약 새로고침 실패");
+    expect(appHeaderSource).not.toContain("Status Focus");
+    expect(hqPageSource).not.toContain("성과 미기록 1건");
+    expect(performancePageSource).not.toContain("성과 미기록 1건");
+    expect(performanceRecorderSource).not.toContain("성과 미기록 1건");
   });
 });

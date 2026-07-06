@@ -1,15 +1,20 @@
 import { readFileSync } from "node:fs";
-import { ExportFormat } from "@prisma/client";
-import { describe, expect, it } from "vitest";
+import { ExportFormat, PackageStatus } from "@prisma/client";
+import { describe, expect, it, vi } from "vitest";
 import {
+  createDraftRecoveryRecord,
+  draftRecoveryStorageKey,
   emptyContentPackageDetail,
   isExplicitDemoPackageId,
+  parseDraftRecoveryRecord,
 } from "@/components/content/ContentPackageDetail";
 import { demoContentPackage } from "@/components/content/demoPackage";
+import type { ComplianceInput } from "@/lib/ai/adapter";
 import { AIOutputValidationError, parseBlogDraftOutput } from "@/lib/ai/adapter";
 import { applyComplianceFixes, evaluateCompliance } from "@/lib/compliance/rules";
 import {
   deriveComplianceCheckExportAllowed,
+  mergeComplianceIssues,
   serializeComplianceCheck,
 } from "@/lib/compliance/service";
 import {
@@ -31,9 +36,13 @@ const contentTypesSource = readFileSync("components/content/types.ts", "utf8");
 const contentSerializerSource = readFileSync("lib/content/serializers.ts", "utf8");
 const contentServiceSource = readFileSync("lib/content/service.ts", "utf8");
 const titleServiceSource = readFileSync("lib/content/titleService.ts", "utf8");
+const searchStructureSource = readFileSync("lib/content/searchStructure.ts", "utf8");
+const generationContextSource = readFileSync("lib/content/generationContext.ts", "utf8");
+const aiAdapterSource = readFileSync("lib/ai/adapter.ts", "utf8");
 const complianceServiceSource = readFileSync("lib/compliance/service.ts", "utf8");
 const exportServiceSource = readFileSync("lib/export/service.ts", "utf8");
 const exportRouteSource = readFileSync("app/api/content-packages/[id]/export/route.ts", "utf8");
+const contentPackagesPageSource = readFileSync("app/(app)/packages/page.tsx", "utf8");
 const prismaSchemaSource = readFileSync("prisma/schema.prisma", "utf8");
 const initialMigrationSource = readFileSync(
   "prisma/migrations/00000000000000_init/migration.sql",
@@ -88,6 +97,337 @@ describe("P3 content engine contract", () => {
     expect(output.h2).toHaveLength(4);
     expect(output.faq.length).toBeGreaterThanOrEqual(3);
     expect(output.comparison_table).toContain("| 기준 |");
+  });
+
+  it("keeps the DB-backed packages index out of static prerender", () => {
+    expect(contentPackagesPageSource).toContain('export const dynamic = "force-dynamic"');
+    expect(contentPackagesPageSource).toContain("listContentPackages(null)");
+  });
+});
+
+describe("G005 generation context contract", () => {
+  it("passes prompt template and category playbook context into content generation", () => {
+    expect(aiAdapterSource).toContain("ContentGenerationContext");
+    expect(aiAdapterSource).toContain("categoryPlaybooks");
+    expect(aiAdapterSource).toContain("promptTemplate");
+    expect(generationContextSource).toContain("prisma.categoryPlaybook.findMany");
+    expect(generationContextSource).toContain("prisma.promptTemplate.findMany");
+    expect(generationContextSource).toContain("MAX_PLAYBOOK_CONTEXT_ROWS");
+    expect(generationContextSource).toContain("blog_draft_generation");
+    expect(generationContextSource).toContain("search_structure_generation");
+
+    for (const source of [contentServiceSource, searchStructureSource]) {
+      expect(source).toContain("loadContentGenerationContext");
+      expect(source).toContain("generationContext");
+      expect(source).toContain("shoppingConnectLinks: contentPackage.shoppingConnectLinks");
+    }
+    expect(contentServiceSource).toContain('task: "generateBlogDraft"');
+    expect(searchStructureSource).toContain('task: "generateSearchStructure"');
+    expect(generationContextSource).toContain("MAX_PROMPT_TEMPLATE_QUERY_ROWS");
+  });
+
+  it("lets the mock adapter reflect supplied playbook and template context", async () => {
+    const { MockAIAdapter } = await import("@/lib/ai/mockAdapter");
+    const generationContext = {
+      categoryPlaybooks: [
+        {
+          category: "장마",
+          homefeedToneGuidance: "공감형 첫 화면",
+          searchGuidance: "비교표 중심 검색 구조",
+          productRecommendations: ["제습제"],
+          commonMistakes: ["과장된 건조 효과"],
+          winningPatterns: ["문제-해결-비교"],
+        },
+      ],
+      promptTemplate: {
+        id: "prompt_1",
+        name: "blog_draft_generation",
+        engine: "content",
+        version: 3,
+        template: "Nunjucks template body",
+        variables: { topic: "string" },
+      },
+    };
+
+    const adapter = new MockAIAdapter();
+    const draft = await adapter.generateBlogDraft({
+      topic: "장마철 습기",
+      products: [],
+      companyProfile: {},
+      generationContext,
+    });
+    const search = await adapter.generateSearchStructure({
+      topic: "장마철 습기",
+      products: [],
+      companyProfile: {},
+      generationContext,
+    });
+
+    expect(draft.first_screen).toContain("공감형 첫 화면");
+    expect(draft.body_markdown).toContain("문제-해결-비교");
+    expect(draft.body_markdown).toContain("blog_draft_generation v3");
+    expect(search.search_title).toContain("비교표 중심 검색 구조");
+    expect(search.h2[0]).toBe("비교표 중심 검색 구조");
+  });
+
+  it("prefers exact playbook and prompt template matches over broad partial matches", async () => {
+    vi.resetModules();
+    const exactPlaybook = {
+      id: "playbook_exact",
+      category: "장마",
+      homefeedToneGuidance: "정확한 장마 홈피드",
+      searchGuidance: "정확한 장마 검색",
+      productRecommendations: ["제습제"],
+      commonMistakes: ["과장된 건조 효과"],
+      winningPatterns: ["문제-해결-비교"],
+    };
+    const partialPlaybooks = Array.from({ length: 24 }, (_, index) => ({
+      ...exactPlaybook,
+      id: `playbook_partial_${index}`,
+      category: `장마철 주변 키워드 ${index}`,
+      homefeedToneGuidance: `부분 홈피드 ${index}`,
+      searchGuidance: `부분 검색 ${index}`,
+    }));
+    const exactTemplate = {
+      id: "exact_template",
+      name: "blog_draft_generation",
+      engine: "content",
+      version: 2,
+      template: "exact template",
+      variables: { topic: "string" },
+      updatedAt: new Date("2026-07-06T01:00:00.000Z"),
+    };
+    const promptTemplateFindMany = vi.fn(
+      async (query: { readonly where?: Record<string, unknown> }) =>
+        Object.hasOwn(query.where ?? {}, "name")
+          ? [exactTemplate]
+          : [
+              {
+                ...exactTemplate,
+                id: "partial_high_version",
+                name: "experimental_blog_draft_generation_shadow",
+                version: 99,
+                template: "wrong template",
+                updatedAt: new Date("2026-07-06T02:00:00.000Z"),
+              },
+            ],
+    );
+    const categoryPlaybookFindMany = vi.fn(
+      async (query: { readonly where?: Record<string, unknown> }) =>
+        Object.hasOwn(query.where ?? {}, "category") ? [exactPlaybook] : partialPlaybooks,
+    );
+    vi.doMock("@/lib/db", () => ({
+      prisma: {
+        categoryPlaybook: { findMany: categoryPlaybookFindMany },
+        promptTemplate: { findMany: promptTemplateFindMany },
+      },
+    }));
+
+    try {
+      const { loadContentGenerationContext } = await import("@/lib/content/generationContext");
+      const context = await loadContentGenerationContext({
+        task: "generateBlogDraft",
+        topic: "장마철 습기",
+        shoppingConnectLinks: [{ isActive: true, product: { category: "장마" } }],
+        companyProfile: { primaryCategories: ["장마"] },
+      });
+
+      expect(categoryPlaybookFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: expect.any(Object) }),
+          take: expect.any(Number),
+        }),
+      );
+      expect(promptTemplateFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ name: expect.any(Object) }),
+          take: expect.any(Number),
+        }),
+      );
+      expect(context.categoryPlaybooks[0]).toMatchObject({
+        category: "장마",
+        homefeedToneGuidance: "정확한 장마 홈피드",
+      });
+      expect(context.promptTemplate).toMatchObject({
+        id: "exact_template",
+        name: "blog_draft_generation",
+        version: 2,
+      });
+    } finally {
+      vi.doUnmock("@/lib/db");
+      vi.resetModules();
+    }
+  });
+
+  it("passes loaded generation context through runtime blog and search generation", async () => {
+    vi.resetModules();
+    const companyProfile = { primaryCategories: ["장마"] };
+    const shoppingConnectLinks = [{ isActive: true, product: { category: "장마" } }];
+    const contentPackage = {
+      id: "pkg_1",
+      status: PackageStatus.selected,
+      progress: 0.1,
+      topic: { title: "장마철 습기" },
+      shoppingConnectLinks,
+      drafts: [],
+    };
+    const generationContext = {
+      categoryPlaybooks: [
+        {
+          category: "장마",
+          homefeedToneGuidance: "공감형 첫 화면",
+          searchGuidance: "비교표 중심 검색 구조",
+          productRecommendations: ["제습제"],
+          commonMistakes: ["과장된 건조 효과"],
+          winningPatterns: ["문제-해결-비교"],
+        },
+      ],
+      promptTemplate: {
+        id: "prompt_1",
+        name: "blog_draft_generation",
+        engine: "content",
+        version: 3,
+        template: "Nunjucks template body",
+        variables: { topic: "string" },
+      },
+    };
+    const loadContentGenerationContext = vi.fn(async () => generationContext);
+    const generateBlogDraft = vi.fn(async (input) => ({
+      homefeed_title: ["제목1", "제목2", "제목3"],
+      search_title: "검색 제목",
+      thumbnail_text: ["썸네일"],
+      first_screen: "공감형 첫 화면 기준을 제시합니다.",
+      body_markdown: `장마철 습기 본문입니다. ${"검증된 문장 ".repeat(20)}`,
+      comparison_table: "| 기준 | 확인 |\n| --- | --- |",
+      faq: [
+        { question: "질문1", answer: "답변1" },
+        { question: "질문2", answer: "답변2" },
+        { question: "질문3", answer: "답변3" },
+      ],
+      disclosure_text: "쇼핑커넥트 활동을 포함할 수 있습니다.",
+      price_notice: "가격은 변동될 수 있습니다.",
+      input,
+    }));
+    const generateSearchStructureMock = vi.fn(async (input) => ({
+      search_title: "검색 제목",
+      h2: ["비교표 중심 검색 구조", "상품 비교", "가격 기준"],
+      faq: [
+        { question: "질문1", answer: "답변1" },
+        { question: "질문2", answer: "답변2" },
+        { question: "질문3", answer: "답변3" },
+      ],
+      comparison_table: "| 기준 | 확인 |\n| --- | --- |",
+      input,
+    }));
+    const draftCreate = vi.fn(async ({ data }) => ({ id: "draft_1", ...data }));
+    const titleCandidateCreateMany = vi.fn(async () => ({ count: 0 }));
+    const transitionContentPackageStatus = vi.fn(async () => undefined);
+    const mockedModules = [
+      "@/lib/ai/runtime",
+      "@/lib/company-profile/service",
+      "@/lib/content/generationContext",
+      "@/lib/content/placement",
+      "@/lib/content/repository",
+      "@/lib/content/serializers",
+      "@/lib/db",
+      "@/lib/logging/costBudget",
+      "@/lib/logging/costLogger",
+    ];
+
+    vi.doMock("@/lib/ai/runtime", () => ({
+      createRuntimeAIAdapter: () => ({
+        generateBlogDraft,
+        generateSearchStructure: generateSearchStructureMock,
+      }),
+    }));
+    vi.doMock("@/lib/company-profile/service", () => ({
+      getOrCreateCompanyProfile: vi.fn(async () => companyProfile),
+    }));
+    vi.doMock("@/lib/content/generationContext", () => ({
+      loadContentGenerationContext,
+    }));
+    vi.doMock("@/lib/content/placement", () => ({
+      serializeActivePlacementProducts: vi.fn(() => ["serialized-product"]),
+    }));
+    vi.doMock("@/lib/content/repository", () => ({
+      listContentPackageRecords: vi.fn(async () => []),
+      loadContentPackageRecord: vi.fn(async () => contentPackage),
+      transitionContentPackageStatus,
+      updateContentPackageProgress: vi.fn(async () => undefined),
+    }));
+    vi.doMock("@/lib/content/serializers", () => ({
+      serializeContentPackage: vi.fn((value) => value),
+      serializeDraft: vi.fn((value) => value),
+    }));
+    vi.doMock("@/lib/db", () => ({
+      prisma: {
+        draft: {
+          create: draftCreate,
+          update: vi.fn(async ({ data }) => ({ id: "draft_1", ...data })),
+        },
+        titleCandidate: {
+          deleteMany: vi.fn(async () => ({ count: 0 })),
+          createMany: titleCandidateCreateMany,
+        },
+      },
+    }));
+    vi.doMock("@/lib/logging/costBudget", () => ({
+      AI_GENERATION_COST_USD: { contentBlogDraft: 0.02, searchStructure: 0.01 },
+      assertAiBudgetAllows: vi.fn(async () => ({
+        kind: "allowed",
+        budget: { kind: "within_budget", capUsd: 1, totalCostUsd: 0, projectedCostUsd: 0.02 },
+      })),
+    }));
+    vi.doMock("@/lib/logging/costLogger", () => ({
+      recordCostLog: vi.fn(async () => undefined),
+    }));
+
+    try {
+      const { generateContentPackage } = await import("@/lib/content/service");
+      const { generateSearchStructure } = await import("@/lib/content/searchStructure");
+
+      await generateContentPackage("pkg_1");
+      await generateSearchStructure({ content_package_id: "pkg_1" });
+
+      expect(loadContentGenerationContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          task: "generateBlogDraft",
+          topic: "장마철 습기",
+          shoppingConnectLinks,
+          companyProfile,
+        }),
+      );
+      expect(loadContentGenerationContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          task: "generateSearchStructure",
+          topic: "장마철 습기",
+          shoppingConnectLinks,
+          companyProfile,
+        }),
+      );
+      expect(generateBlogDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationContext,
+          products: ["serialized-product"],
+          companyProfile,
+        }),
+      );
+      expect(generateSearchStructureMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationContext,
+          products: ["serialized-product"],
+          companyProfile,
+        }),
+      );
+      expect(draftCreate).toHaveBeenCalled();
+      expect(titleCandidateCreateMany).toHaveBeenCalled();
+      expect(transitionContentPackageStatus).toHaveBeenCalled();
+    } finally {
+      for (const moduleName of mockedModules) {
+        vi.doUnmock(moduleName);
+      }
+      vi.resetModules();
+    }
   });
 });
 describe("P3 G007 staged content package contract", () => {
@@ -203,6 +543,46 @@ describe("P3 content detail failure contract", () => {
     expect(failedDetail.products).toEqual([]);
     expect(failedDetail.topic.title).not.toBe(demoContentPackage.topic.title);
     expect(failedDetail.id).not.toBe(demoContentPackage.id);
+  });
+
+  it("stores draft recovery records by package and draft identity", () => {
+    const record = createDraftRecoveryRecord({
+      packageId: "package_1",
+      draftId: "draft_1",
+      bodyMarkdown: "복구할 본문",
+      now: new Date("2026-07-06T00:00:00.000Z"),
+    });
+
+    expect(draftRecoveryStorageKey("package_1", "draft_1")).toBe(
+      "paperclip:draft-recovery:package_1:draft_1",
+    );
+    expect(parseDraftRecoveryRecord(JSON.stringify(record), "package_1", "draft_1")).toEqual(
+      record,
+    );
+    expect(parseDraftRecoveryRecord(JSON.stringify(record), "package_2", "draft_1")).toBeNull();
+    expect(parseDraftRecoveryRecord(JSON.stringify(record), "package_1", "draft_2")).toBeNull();
+    expect(parseDraftRecoveryRecord("not-json", "package_1", "draft_1")).toBeNull();
+  });
+
+  it("preserves failed autosave bodies locally and clears them after successful persistence", () => {
+    for (const requiredSource of [
+      "window.localStorage.setItem",
+      "window.localStorage.removeItem",
+      "createDraftRecoveryRecord({",
+      'setStatus("로컬 임시 저장본 복구됨 · 자동 재전송 대기")',
+      'setStatus("자동 저장 실패 · 로컬 보존됨")',
+      'setStatus("자동 저장 실패 · 로컬 보존 실패")',
+      "clearDraftRecovery(packageId, draft.id)",
+      "window.location.assign(`/login?from=/packages/",
+    ]) {
+      expect(contentDetailSource).toContain(requiredSource);
+    }
+
+    expect(contentDetailSource).toContain("body_markdown: draftBody");
+    expect(contentDetailSource).toContain("blockDraftReplacementWhileRecovering()");
+    expect(contentDetailSource).toContain("canRunPackageActions && !recoveryAvailable");
+    expect(contentDetailSource).not.toContain("clearDraftRecovery(packageData.id");
+    expect(contentDetailSource).not.toContain("clearDraftRecovery(packageData.id, fixedDraft.id)");
   });
 
   it("gates demo-only action bypasses by explicit package mode", () => {
@@ -377,6 +757,204 @@ describe("P3 compliance contract", () => {
     );
     expect(contentDetailSource).toContain("payload.compliance_check.export_allowed");
     expect(contentDetailSource).toContain("payload.compliance_check.id");
+  });
+
+  it("accepts active policy rule context in compliance AI input", () => {
+    const input: ComplianceInput = {
+      bodyMarkdown: "출처: 제조사\n\n본문",
+      hasShoppingConnectLinks: false,
+      hasPriceMentions: false,
+      policyRules: [
+        {
+          rule_type: "compliance",
+          rule_code: "shopping_connect_disclosure_required",
+          description: "쇼핑커넥트 링크가 있으면 대가성 문구가 필요하다.",
+        },
+      ],
+    };
+
+    expect(input.policyRules?.[0]).toMatchObject({
+      rule_type: "compliance",
+      rule_code: "shopping_connect_disclosure_required",
+    });
+  });
+
+  it("loads active policy rules and invokes runtime AI semantic review with them", () => {
+    for (const source of [
+      "prisma.policyRule.findMany",
+      "where: { isActive: true }",
+      "rule_type: rule.ruleType",
+      "rule_code: rule.ruleCode",
+      "description: rule.description",
+      "createRuntimeAIAdapter()",
+      "adapter.checkCompliance({",
+      "policyRules: input.policyRules",
+    ]) {
+      expect(complianceServiceSource).toContain(source);
+    }
+  });
+
+  it("uses active seeded policy rules in deterministic governance", () => {
+    const activeRules = [
+      {
+        rule_type: "compliance",
+        rule_code: "shopping_connect_disclosure_required",
+        description: "정책 설명: 쇼핑커넥트 대가성 표시 필수",
+      },
+      {
+        rule_type: "content",
+        rule_code: "unused_product_review_forbidden",
+        description: "정책 설명: 미사용 상품 후기체 금지",
+      },
+    ];
+    const result = evaluateCompliance({
+      body_markdown: "출처: 제조사\n\n직접 사용해 보니 좋았습니다.",
+      has_shopping_connect_links: true,
+      has_price_mentions: true,
+      policy_rules: activeRules,
+    });
+
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          issue_type: "shopping_connect_disclosure_missing",
+          message: "정책 설명: 쇼핑커넥트 대가성 표시 필수",
+        }),
+        expect.objectContaining({
+          issue_type: "unverified_direct_use_claim",
+          message: "정책 설명: 미사용 상품 후기체 금지",
+        }),
+      ]),
+    );
+    expect(result.issues.map((issue) => issue.issue_type)).toContain("price_notice_missing");
+  });
+
+  it("keeps baseline compliance rules active when active policy rules are missing", () => {
+    const result = evaluateCompliance({
+      body_markdown: "직접 사용해 보니 10,000원에 좋았습니다.",
+      has_shopping_connect_links: true,
+      has_price_mentions: true,
+      policy_rules: [],
+    });
+
+    expect(result.risk_level).toBe("high");
+    expect(result.export_allowed).toBe(false);
+    expect(result.issues.map((issue) => issue.issue_type)).toEqual(
+      expect.arrayContaining([
+        "shopping_connect_disclosure_missing",
+        "price_notice_missing",
+        "source_attribution_missing",
+        "unverified_direct_use_claim",
+      ]),
+    );
+  });
+
+  it("does not let disabled policy rule descriptions influence active governance", () => {
+    const result = evaluateCompliance({
+      body_markdown: "출처: 제조사\n\n10,000원입니다.",
+      has_shopping_connect_links: false,
+      has_price_mentions: true,
+      policy_rules: [
+        {
+          rule_type: "compliance",
+          rule_code: "price_checked_at_required",
+          description: "활성 정책: 가격 기준일 필수",
+        },
+      ],
+    });
+
+    expect(complianceServiceSource).toContain("where: { isActive: true }");
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          issue_type: "price_notice_missing",
+          message: "활성 정책: 가격 기준일 필수",
+        }),
+      ]),
+    );
+    expect(result.issues.map((issue) => issue.message)).not.toContain(
+      "비활성 정책: 가격 기준일 생략 허용",
+    );
+  });
+
+  it("merges semantic AI issues additively without removing rule-engine issues", () => {
+    const merged = mergeComplianceIssues({
+      ruleIssues: [
+        {
+          issue_type: "shopping_connect_disclosure_missing",
+          severity: "high",
+          message: "Rule-engine issue",
+        },
+      ],
+      semanticOutput: {
+        pass: false,
+        risk_level: "medium",
+        export_allowed: false,
+        issues: [
+          {
+            type: "claim_context",
+            field: "body_markdown",
+            severity: "medium",
+            message: "Semantic issue",
+          },
+        ],
+      },
+    });
+
+    expect(merged.risk_level).toBe("high");
+    expect(merged.export_allowed).toBe(false);
+    expect(merged.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ issue_type: "shopping_connect_disclosure_missing" }),
+        expect.objectContaining({ issue_type: "semantic_claim_context", severity: "medium" }),
+      ]),
+    );
+  });
+
+  it("ignores hostile semantic pass output when rule-engine issues block export", () => {
+    const merged = mergeComplianceIssues({
+      ruleIssues: [
+        {
+          issue_type: "shopping_connect_disclosure_missing",
+          severity: "high",
+          message: "Rule-engine issue",
+        },
+      ],
+      semanticOutput: {
+        pass: true,
+        risk_level: "low",
+        export_allowed: true,
+        issues: [],
+      },
+    });
+
+    expect(merged.pass).toBe(false);
+    expect(merged.risk_level).toBe("high");
+    expect(merged.export_allowed).toBe(false);
+    expect(merged.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ issue_type: "shopping_connect_disclosure_missing" }),
+      ]),
+    );
+  });
+
+  it("fails closed when semantic AI review is unavailable", () => {
+    const merged = mergeComplianceIssues({
+      ruleIssues: [],
+      semanticOutput: null,
+    });
+
+    expect(merged.pass).toBe(false);
+    expect(merged.risk_level).toBe("high");
+    expect(merged.export_allowed).toBe(false);
+    expect(merged.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          issue_type: "semantic_review_unavailable",
+          severity: "high",
+        }),
+      ]),
+    );
   });
 });
 

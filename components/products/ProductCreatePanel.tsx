@@ -50,7 +50,7 @@ export function ProductCreatePanel({
           <p className="form-error">자동 가져오기가 차단되었습니다. 수동 입력으로 등록하세요.</p>
         ) : null}
         <button className="button primary" onClick={onImportProduct} type="button">
-          자동 크롤링
+          URL 정보 가져오기
         </button>
       </section>
 
@@ -78,6 +78,33 @@ export function ProductCreatePanel({
           <input
             onChange={(event) => onManualProductChange({ ...manualProduct, category: event.target.value })}
             value={manualProduct.category}
+          />
+        </label>
+        <label>
+          상품 URL
+          <input
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, product_url: event.target.value })
+            }
+            placeholder="https://..."
+            value={manualProduct.product_url}
+          />
+        </label>
+        <label>
+          이미지 URL
+          <input
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, image_url: event.target.value })
+            }
+            placeholder="https://..."
+            value={manualProduct.image_url}
+          />
+        </label>
+        <label>
+          출처
+          <input
+            onChange={(event) => onManualProductChange({ ...manualProduct, source: event.target.value })}
+            value={manualProduct.source}
           />
         </label>
         <label>

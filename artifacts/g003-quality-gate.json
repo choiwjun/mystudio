@@ -1,0 +1,185 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "evidence": "Final architect review agent://105-G003ArchitectFinal approved G003 with CLEAR architecture/product/code and zero blockers. Cleanup reruns agent://103-G003CleanupCoreRerun and agent://104-G003CleanupServicesRerun both reported AI SLOP CLEANUP REPORT: CLEAR. Review confirmed additive adapter-backed semantic compliance, fail-active baseline policy rules with active policy descriptions/context, runtime-adapter HQ daily briefing, and provider cost logging with provider:model identity, required usage metering, and estimated costs.",
+    "commands": [
+      "architect review agent 105-G003ArchitectFinal",
+      "cleanup sweep agent 103-G003CleanupCoreRerun",
+      "cleanup sweep agent 104-G003CleanupServicesRerun",
+      "read artifacts/g003-governance-test-report.json"
+    ],
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "evidence": "Executor QA/red-team agent://106-G003ExecutorQaRerun passed all G003 adversarial cases with zero blockers. Leader verification passed focused Biome, focused G003 tests, typecheck, full npm test, and Prisma validate. QA covered hostile semantic pass attempting to downgrade rule issues, disabled/missing policy_rules, semantic review unavailable, old hardcoded HQ briefing generation, model-without-adapter cost log attempts, provider usage extraction, and no real credentials/network in tests.",
+    "e2eCommands": [
+      "npm test -- tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "npm test",
+      "npm run typecheck"
+    ],
+    "redTeamCommands": [
+      "executor QA/red-team agent 106-G003ExecutorQaRerun",
+      "npx biome check lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/ai/providerAdapters.ts lib/ai/runtime.ts lib/logging/costLogger.ts lib/compliance/rules.ts lib/compliance/service.ts lib/hq/service.ts tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate"
+    ],
+    "artifactRefs": [
+      {
+        "id": "g003-governance-report",
+        "kind": "api-package-test-report",
+        "path": "artifacts/g003-governance-test-report.json",
+        "description": "G003 focused/full verification receipts, implementation delegation refs, coverage, and adversarial governance notes."
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "coverage-semantic-compliance-additive",
+        "contractRef": "G003 objective: adapter-backed compliance semantic review while preserving rule-engine authority",
+        "obligation": "Run semantic compliance through AIAdapter.checkCompliance but merge semantic issues additively so rule-engine issues cannot be removed or downgraded.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-compliance-api"],
+        "adversarialCaseRefs": ["case-hostile-semantic-pass", "case-semantic-unavailable"]
+      },
+      {
+        "id": "coverage-policy-rules-active",
+        "contractRef": "G003 objective: connect active policy_rules into compliance governance",
+        "obligation": "Load active policy_rules, use active descriptions/context in deterministic and semantic review, and keep baseline mandatory rules fail-active when active rules are missing.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-policy-rules"],
+        "adversarialCaseRefs": ["case-missing-policy-rules", "case-disabled-policy-rules"]
+      },
+      {
+        "id": "coverage-hq-runtime-briefing",
+        "contractRef": "G003 objective: use runtime AI adapter for HQ daily briefing generation",
+        "obligation": "Generate new HQ briefings through createRuntimeAIAdapter().generateDailyBriefing using company profile and opportunity memo context instead of hardcoded values.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-hq-briefing-api"],
+        "adversarialCaseRefs": ["case-hardcoded-briefing"]
+      },
+      {
+        "id": "coverage-cost-log-identity",
+        "contractRef": "G003 objective: record real AI adapter/model identity in cost logs",
+        "obligation": "Provider calls must log provider:model identity, task, pipeline step, required usage tokens, estimated cost, and reject missing logging/metering outside test paths.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["surface-provider-cost-logging"],
+        "adversarialCaseRefs": ["case-model-without-adapter", "case-missing-usage"]
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "surface-compliance-api",
+        "contractRef": "lib/compliance/service.ts and lib/ai/providerAdapters.ts",
+        "surface": "api",
+        "invocation": "Focused P3 contract tests and source inspection verify active policy rules are loaded, semantic adapter review is invoked with policyRules, semantic failures fail closed, and hostile semantic pass output cannot override high rule-engine issues.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "surface-policy-rules",
+        "contractRef": "lib/compliance/rules.ts and prisma.policyRule governance",
+        "surface": "api",
+        "invocation": "Focused contract tests cover active policy descriptions, disabled description exclusion, and missing active rules preserving baseline disclosure/price/direct-use checks.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "surface-hq-briefing-api",
+        "contractRef": "lib/hq/service.ts daily briefing API service",
+        "surface": "api",
+        "invocation": "HQ/P4 contract tests assert createDailyBriefing uses createRuntimeAIAdapter().generateDailyBriefing with serialized company profile and recent opportunity memo context, and old hardcoded briefing values are absent.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "surface-provider-cost-logging",
+        "contractRef": "lib/ai/providerAdapters.ts and lib/logging/costLogger.ts",
+        "surface": "package",
+        "invocation": "Provider adapter unit tests use mocked OpenAI/Claude responses with usage fields and injected cost loggers to verify provider:model identity, hq pipeline step, token extraction, and no real network/credentials.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "case-hostile-semantic-pass",
+        "contractRef": "G003 semantic review authority",
+        "scenario": "Semantic adapter returns pass=true, risk_level=low, export_allowed=true, and no issues while rule engine found a high issue.",
+        "expectedBehavior": "Merged compliance result remains pass=false, risk_level=high, export_allowed=false, and keeps the rule-engine issue.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-semantic-unavailable",
+        "contractRef": "G003 semantic review fail-closed",
+        "scenario": "Runtime adapter creation or semantic compliance review fails.",
+        "expectedBehavior": "A high semantic_review_unavailable issue is produced and export is blocked.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-missing-policy-rules",
+        "contractRef": "G003 policy_rules governance",
+        "scenario": "No active policy_rules are returned for mandatory baseline compliance rules.",
+        "expectedBehavior": "Baseline disclosure, price, source, and unverified direct-use checks remain active and block unsafe content.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-disabled-policy-rules",
+        "contractRef": "G003 policy_rules active filter",
+        "scenario": "Disabled policy rule descriptions attempt to alter governance output.",
+        "expectedBehavior": "Only active policy rule context influences messages; disabled descriptions are absent from governance output.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-hardcoded-briefing",
+        "contractRef": "G003 HQ daily briefing generation",
+        "scenario": "HQ daily briefing service still creates static goals/priority/strategy values instead of calling the runtime adapter.",
+        "expectedBehavior": "Contract tests reject old hardcoded values and require runtime adapter context plumbing.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-model-without-adapter",
+        "contractRef": "G003 cost log identity",
+        "scenario": "Cost logger receives a bare model such as gpt-4o-mini without provider identity.",
+        "expectedBehavior": "Provider tests require openai:gpt-4o-mini and claude:claude-3-5-haiku-latest identities.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      },
+      {
+        "id": "case-missing-usage",
+        "contractRef": "G003 usage/cost metering",
+        "scenario": "Provider response omits usage metering while runtime provider cost logging is required.",
+        "expectedBehavior": "Provider adapter code rejects missing usage outside test/no-logger paths; tests cover usage extraction from provider-specific fields.",
+        "verdict": "passed",
+        "artifactRefs": ["g003-governance-report"]
+      }
+    ],
+    "blockers": []
+  },
+  "iteration": {
+    "status": "passed",
+    "evidence": "AI SLOP CLEANUP REPORT: initial G003 cleanup/QA found blockers in cost logging fail-open behavior, missing policy-rule fail-active behavior, and adversarial coverage. Fixes made runtime provider cost logging mandatory outside test, made COST_LOG_ENABLED=false test-only, required provider usage metering, estimated known model costs, moved cost logging before generated JSON parsing, strengthened compliance prompt/mock policy evaluation, kept mandatory baseline compliance checks active when policy_rules are absent, and added hostile semantic pass / missing policy / disabled policy tests. Full loop reran cleanly: focused Biome OK, focused G003 tests passed, typecheck passed, full npm test passed, Prisma validate passed, cleanup reruns CLEAR, architect final CLEAR/CLEAR/CLEAR APPROVE, and executor QA passed with zero blockers.",
+    "fullRerun": true,
+    "rerunCommands": [
+      "npx biome check --write lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/ai/providerAdapters.ts lib/ai/runtime.ts lib/logging/costLogger.ts lib/compliance/rules.ts lib/compliance/service.ts lib/hq/service.ts tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "npx biome check lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/ai/providerAdapters.ts lib/ai/runtime.ts lib/logging/costLogger.ts lib/compliance/rules.ts lib/compliance/service.ts lib/hq/service.ts tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "npm test -- tests/p3-contract.test.ts tests/hq-screen-contract.test.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "npm run typecheck",
+      "npm test",
+      "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "cleanup sweep agent 103-G003CleanupCoreRerun",
+      "cleanup sweep agent 104-G003CleanupServicesRerun",
+      "architect review agent 105-G003ArchitectFinal",
+      "executor QA/red-team agent 106-G003ExecutorQaRerun"
+    ],
+    "blockers": []
+  }
+}

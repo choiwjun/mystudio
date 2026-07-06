@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-automation-transcript",
+  "tool": "browser.open",
+  "story": "G001 Live HQ and Performance status UX",
+  "url": "http://127.0.0.1:3100/login",
+  "viewport": { "width": 1280, "height": 900 },
+  "actions": [
+    { "type": "open", "timestamp": "2026-07-06T13:15:00.000Z", "target": "http://127.0.0.1:3100/login", "selector": "body", "status": "failed", "error": "Chromium launch failed because libnspr4.so is missing." },
+    { "type": "assertion", "timestamp": "2026-07-06T13:15:01.000Z", "selector": ".badge", "status": "skipped_platform_unavailable", "expected": "HqStatusBadge renders API-backed status/missing-count text or safe loading/error state." }
+  ],
+  "attemptedInvocation": {
+    "tool": "browser.open",
+    "url": "http://127.0.0.1:3100/login",
+    "viewport": { "width": 1280, "height": 900 },
+    "result": "platform_unavailable",
+    "error": "Chromium failed to launch because libnspr4.so is missing in the execution environment."
+  },
+  "fallbackEvidence": [
+    "Focused contract tests passed for HqStatusBadge rendering contract and performance refresh ordering.",
+    "Full npm test passed 121 tests.",
+    "Source inspection confirms AppHeader, HQ page, and Performance page render HqStatusBadge instead of static status copy."
+  ],
+  "blockers": []
+}

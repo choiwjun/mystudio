@@ -2,6 +2,7 @@ import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import { getOrCreateCompanyProfile } from "@/lib/company-profile/service";
+import { loadContentGenerationContext } from "@/lib/content/generationContext";
 import { serializeActivePlacementProducts } from "@/lib/content/placement";
 import { loadContentPackageRecord, transitionContentPackageStatus } from "@/lib/content/repository";
 import { serializeDraft } from "@/lib/content/serializers";
@@ -49,10 +50,17 @@ export async function generateSearchStructure(input: z.infer<typeof searchStruct
 
   const adapter = createRuntimeAIAdapter();
   const companyProfile = await getOrCreateCompanyProfile();
+  const generationContext = await loadContentGenerationContext({
+    task: "generateSearchStructure",
+    topic: contentPackage.topic.title,
+    shoppingConnectLinks: contentPackage.shoppingConnectLinks,
+    companyProfile,
+  });
   const output = await adapter.generateSearchStructure({
     topic: contentPackage.topic.title,
     products: serializeActivePlacementProducts(contentPackage.shoppingConnectLinks),
     companyProfile,
+    generationContext,
   });
   const faq: Prisma.InputJsonValue = output.faq.map((item) => ({
     question: item.question,

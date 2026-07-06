@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import type { Product } from "@prisma/client";
 import { describe, expect, it } from "vitest";
+import {
+  formatHqStatusText,
+  hqStatusRefreshEvent,
+  hqStatusResponseSchema,
+} from "@/components/hq/HqStatusBadge";
 import { MockAIAdapter } from "@/lib/ai/mockAdapter";
 import { ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
 import { AIAdapterConfigurationError, createRuntimeAIAdapter } from "@/lib/ai/runtime";
@@ -19,13 +24,15 @@ import {
   summarizeRevenue,
 } from "@/lib/performance/metrics";
 import { directRevenueCategoryEntries } from "@/lib/performance/service";
-import { parseNaverProductFromUrl } from "@/lib/products/service";
+import { parseNaverProductFromUrl, productCreateSchema } from "@/lib/products/service";
+import { isPrivateAddress } from "@/lib/security/productImport";
 
 const performanceServiceSource = readFileSync("lib/performance/service.ts", "utf8");
 const hermesServiceSource = readFileSync("lib/hermes/service.ts", "utf8");
 const memoryServiceSource = readFileSync("lib/memory/service.ts", "utf8");
 const productServiceSource = readFileSync("lib/products/service.ts", "utf8");
 const contentServiceSource = readFileSync("lib/content/service.ts", "utf8");
+const hqServiceSource = readFileSync("lib/hq/service.ts", "utf8");
 
 const fixtureDate = new Date("2026-07-06T00:00:00.000Z");
 
@@ -98,6 +105,36 @@ describe("P4 AI runtime adapter contract", () => {
       }),
     ).toBeInstanceOf(ClaudeAIAdapter);
   });
+
+  it("keeps HQ daily briefing generation on the runtime AI adapter contract", async () => {
+    const briefing = await new MockAIAdapter().generateDailyBriefing({
+      companyProfile: {
+        companyName: "Paperclip",
+        primaryCategories: ["자취", "생활", "테크"],
+        blockedCategories: ["의료"],
+        toneRules: "신뢰감 있게",
+        contentPrinciples: "출처 명시",
+        revenueGoalMonthly: 500000,
+      },
+      opportunityMemoContext: {
+        latestMemo: {
+          topic: "여름 자취 냉방 준비",
+          whyNow: "장마와 폭염이 겹치며 냉방 소모품 수요가 늘고 있습니다.",
+          homefeedAngle: "폭염 전 체크리스트",
+          searchAngle: "냉방 소모품 비교 검색",
+          interestTags: ["자취", "냉방"],
+        },
+      },
+    });
+
+    expect(briefing.focus_categories).toEqual(["자취", "생활", "테크"]);
+    expect(hqServiceSource).toContain("createRuntimeAIAdapter().generateDailyBriefing");
+    expect(hqServiceSource).toContain(
+      "companyProfile: serializeDailyBriefingCompanyProfile(profile)",
+    );
+    expect(hqServiceSource).toContain("opportunityMemoContext");
+    expect(hqServiceSource).not.toContain("priorityAngle: latestMemo?.homefeedAngle");
+  });
 });
 
 describe("P4 HQ status contract", () => {
@@ -147,8 +184,31 @@ describe("P4 HQ status contract", () => {
       }),
     ).toMatchObject({ status: "Good" });
   });
-});
+  it("formats live HQ status API payloads for compact and full badges", () => {
+    const status = hqStatusResponseSchema.parse({
+      success: true,
+      data: {
+        status: "Revenue",
+        reason: "성과 기록이 필요합니다.",
+        needs_performance_log: 2,
+        ai_budget: {
+          kind: "within_budget",
+          capUsd: 5,
+          totalCostUsd: 2.1,
+          projectedCostUsd: 2.1,
+          usageRate: 42,
+          remainingUsd: 2.9,
+        },
+      },
+    }).data;
 
+    expect(formatHqStatusText(status, true)).toBe("Status Revenue · 미기록 2건");
+    expect(formatHqStatusText(status, false)).toBe(
+      "Status Revenue · 성과 미기록 2건 · AI 42% · $2.10/$5.00",
+    );
+    expect(hqStatusRefreshEvent).toBe("paperclip:hq-status-refresh");
+  });
+});
 describe("P4 AI budget contract", () => {
   it("returns soft warning at 70 percent of the daily cap while allowing generation", () => {
     const budget = evaluateDailyAiBudget({
@@ -322,6 +382,12 @@ describe("G008 product commerce contract", () => {
       category: "홈오피스",
       memo: expect.stringContaining("URL import"),
     });
+    expect(productServiceSource).toContain("parseOptionalPrice(url)");
+    expect(productServiceSource).toContain("parseOptionalImageUrl(url)");
+    expect(productServiceSource).not.toMatch(/\bfetch\s*\(/);
+    expect(productServiceSource).not.toContain("axios");
+    expect(productServiceSource).not.toContain("cheerio");
+    expect(productServiceSource).not.toContain("jsdom");
   });
 
   it("keeps valid percent signs in deterministic import metadata", () => {
@@ -335,6 +401,95 @@ describe("G008 product commerce contract", () => {
       product_name: "100% cotton",
       category: "패브릭",
     });
+  });
+
+  it("bounds deterministic imports to explicit URL fields and path metadata", () => {
+    const product = parseNaverProductFromUrl(
+      new URL(
+        "https://shopping.naver.com/products/%EC%BB%B4%ED%8C%A9%ED%8A%B8-%EC%84%A0%EB%B0%98?thumbnail=not-a-url&lowPrice=45000&catName=%EC%88%98%EB%82%A9",
+      ),
+    );
+
+    expect(product).toEqual({
+      product_name: "컴팩트 선반",
+      product_url:
+        "https://shopping.naver.com/products/%EC%BB%B4%ED%8C%A9%ED%8A%B8-%EC%84%A0%EB%B0%98?thumbnail=not-a-url&lowPrice=45000&catName=%EC%88%98%EB%82%A9",
+      source: "naver_shopping",
+      price: 45000,
+      image_url: undefined,
+      category: "수납",
+      memo: expect.stringContaining("shopping.naver.com"),
+    });
+
+    const boundedProduct = parseNaverProductFromUrl(
+      new URL(`https://shopping.naver.com/products/1?query=${"x".repeat(220)}`),
+    );
+    expect(boundedProduct.product_name).toHaveLength(160);
+    expect(productServiceSource).toContain("cleaned.slice(0, maxLength).trim()");
+    expect(productServiceSource).toContain('source: "naver_shopping"');
+    expect(productServiceSource).toContain("product_url: url.toString()");
+    expect(productServiceSource).toContain("productUrlMaxLength");
+    expect(productServiceSource).toContain("new URL(imageUrl)");
+    expect(productServiceSource).toContain('["http:", "https:"].includes(parsedImageUrl.protocol)');
+  });
+
+  it("restricts manual product and image URL protocols", () => {
+    expect(
+      productCreateSchema.safeParse({
+        product_name: "Manual product",
+        product_url: "manual://product",
+        image_url: "https://example.com/product.png",
+      }).success,
+    ).toBe(true);
+    expect(
+      productCreateSchema.safeParse({
+        product_name: "Manual product",
+        product_url: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+    expect(
+      productCreateSchema.safeParse({
+        product_name: "Manual product",
+        image_url: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("blocks private, reserved, and mapped-private import addresses", () => {
+    for (const address of [
+      "0.0.0.0",
+      "10.0.0.1",
+      "100.64.0.1",
+      "127.0.0.1",
+      "169.254.1.1",
+      "172.31.255.255",
+      "192.0.0.1",
+      "192.168.1.1",
+      "198.18.0.1",
+      "224.0.0.1",
+      "::",
+      "::1",
+      "fc00::1",
+      "fd00::1",
+      "fe80::1",
+      "fe90::1",
+      "febf::1",
+      "ff02::1",
+      "2001:db8::1",
+      "64:ff9b::1",
+      "64:ff9b:1::1",
+      "100::1",
+      "2001::1",
+      "2001:2::1",
+      "2002::1",
+      "3fff::1",
+      "::ffff:127.0.0.1",
+    ]) {
+      expect(isPrivateAddress(address)).toBe(true);
+    }
+
+    expect(isPrivateAddress("8.8.8.8")).toBe(false);
+    expect(isPrivateAddress("2001:4860:4860::8888")).toBe(false);
   });
 
   it("excludes inactive ShoppingConnect products from content placement inputs", () => {
@@ -362,6 +517,9 @@ describe("G008 product commerce contract", () => {
       parseNaverProductFromUrl(new URL("https://search.shopping.naver.com/search/all")),
     ).toThrow(/PRODUCT_IMPORT_BLOCKED:missing_product_metadata/);
     expect(productServiceSource).not.toContain('"Naver Shopping Product"');
+    expect(productServiceSource).not.toContain("example.com");
+    expect(productServiceSource).not.toContain("placeholder");
+    expect(productServiceSource).not.toContain("fallback");
   });
 
   it("does not mask persistence failures as not-found shopping link results", () => {

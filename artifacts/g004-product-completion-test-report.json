@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G004",
+  "summary": "Product manual create/edit carries product_url, image_url, and source; deterministic Naver URL import is bounded and remains SSRF-gated by the allowlisted HTTPS/DNS/private-IP validator. Cleanup blockers for URL schemes, private-address classification, UI copy, IPv6 link-local/reserved/special-use gaps, and 2001::/23 plus 2001:db8::/32 handling were resolved and covered by tests.",
+  "implementationEvidence": {
+    "delegation": [
+      "agent://107-G004ProductUi",
+      "agent://108-G004ContractTests"
+    ],
+    "reviewBlockerEvidence": [
+      "agent://109-G004CleanupReview reported BLOCKING findings for URL scheme validation and private-address classification; both were fixed.",
+      "agent://112-G004CleanupRerun reported an advisory that ProductCreatePanel still said 자동 크롤링; the UI/status copy was renamed and covered by tests.",
+      "agent://115-G004CleanupFinal reported a BLOCKING IPv6 link-local/reserved classification gap; fe80::/10, multicast, documentation, translation, discard-only, 2001::/23, 2002::/16, 3fff::/20, and IPv4-mapped private handling are now covered.",
+      "agent://118-G004CleanupClean reported a remaining IPv6 special-use/range classifier gap; compressed 2001::/23 and 2001:db8::/32 documentation handling are now covered."
+    ],
+    "files": [
+      "components/products/types.ts",
+      "components/products/productForm.ts",
+      "components/products/ProductCreatePanel.tsx",
+      "components/products/ProductEditPanel.tsx",
+      "components/products/ProductManager.tsx",
+      "lib/products/service.ts",
+      "lib/security/productImport.ts",
+      "tests/products-screen-contract.test.ts",
+      "tests/p4-contract.test.ts"
+    ],
+    "behavior": [
+      "ProductFormValues includes product_url, image_url, and source.",
+      "Manual create/edit form state includes visible 상품 URL, 이미지 URL, and 출처 controls.",
+      "toProductPatchInput trims optional URL/source fields and omits blank optional fields while defaulting manual source to manual.",
+      "Product edit seeds product_url, image_url, and source from the existing product record.",
+      "Product schemas bound product metadata lengths, restrict product_url to http/https/manual schemes, restrict image_url to http/https, and bound import URL length to 2048.",
+      "Naver import parser uses only deterministic URL/path/query metadata, trims and bounds parsed text, normalizes path slugs, validates image URLs syntactically, and creates no generic fallback product.",
+      "validateProductImportUrl trims input, bounds import URL length, requires HTTPS, allowlists Naver Shopping hosts, performs DNS lookup, and blocks private/reserved IPv4, private/reserved IPv6, link-local, loopback, multicast, documentation, translation, discard-only, 6to4, and IPv4-mapped private ranges.",
+      "Product import UI/status copy says URL information import instead of crawling."
+    ]
+  },
+  "commands": [
+    {"command":"npx biome check --write lib/security/productImport.ts tests/products-screen-contract.test.ts tests/p4-contract.test.ts","status":"passed_final","artifactRef":"artifact://959"},
+    {"command":"npm test -- tests/products-screen-contract.test.ts tests/p4-contract.test.ts","status":"passed_final","artifactRef":"artifact://961","result":"2 files passed, 36 tests passed"},
+    {"command":"npx biome check components/products/types.ts components/products/productForm.ts components/products/ProductCreatePanel.tsx components/products/ProductEditPanel.tsx components/products/ProductManager.tsx lib/products/service.ts lib/security/productImport.ts tests/products-screen-contract.test.ts tests/p4-contract.test.ts","status":"passed_final","artifactRef":"artifact://963"},
+    {"command":"npm run typecheck","status":"passed_final","artifactRef":"artifact://965"},
+    {"command":"npm test","status":"passed_final","artifactRef":"artifact://967","result":"10 files passed, 139 tests passed"},
+    {"command":"DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate","status":"passed_final"}
+  ]
+}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listContentPackages } from "@/lib/content/service";
 
+export const dynamic = "force-dynamic";
+
 function normalizeProgress(value: number | null): number | null {
   if (value === null || !Number.isFinite(value)) {
     return null;

@@ -23,7 +23,7 @@
 | **ORM** | Prisma | TypeScript 안전성, 마이그레이션 자동화 |
 | **배포** | Vercel + Supabase | Serverless 자동 스케일링 |
 | **Job Runner** | Vercel Cron | 매일 06:00 Hermes 스캔 |
-| **인증** | NextAuth.js | 단일 사용자 로그인 |
+| **인증** | jose signed-cookie session | 단일 Owner 로그인, httpOnly `paperclip_session` + CSRF |
 | **AI Adapter** | 교체 가능 인터페이스 | Claude/OpenAI 선택 가능, cost_logs 기록 |
 
 ---
@@ -150,13 +150,13 @@ graph TD
     - Analytics: performance_logs, revenue_logs, cost_logs, error_logs / Memory: company_memory, prompt_templates / Admin: agent_runs, category_playbooks
   - Supabase 데이터베이스 연결
   - 초기 마이그레이션 실행
-  - .env.example 작성 (DATABASE_URL, NEXTAUTH_SECRET 등)
+  - .env.example 작성 (DATABASE_URL, NEXTAUTH_SECRET 등; NEXTAUTH_SECRET은 legacy-compatible 세션 서명 secret 이름)
 - **acceptance_criteria**:
   - Given Next.js 프로젝트 생성 / When `npm run dev` 실행 / Then http://localhost:3000 접속 가능
   - Given Prisma 스키마 정의(04 정본, 28개 모델) / When `npx prisma migrate dev --name init` 실행 / Then 28개 테이블 + PackageStatus enum 생성, SQL 파일 migrations/ 폴더에 저장됨
   - Given 초기 마이그레이션 완료 / When 시드 실행 / Then workspaces에 default 워크스페이스 1행 존재, company_profile 생성 시 해당 workspace_id 연결
   - Given Supabase 환경 설정 / When `npx prisma db push` 실행 / Then Supabase PostgreSQL에 전체 스키마 적용, prisma.io 대시보드에서 확인 가능
-  - Given .env.example 작성 / When 개발자가 .env.local 생성 / Then DATABASE_URL과 NEXTAUTH_SECRET 등 주요 변수 명시됨
+  - Given .env.example 작성 / When 개발자가 .env.local 생성 / Then DATABASE_URL과 legacy-compatible 세션 서명 secret인 NEXTAUTH_SECRET 등 주요 변수 명시됨
 
 ### [ ] P0-T2: 공통 인프라 구축
 
@@ -195,16 +195,17 @@ graph TD
 - **의존**: P0-T2
 - **브랜치**: `phase-1-auth`
 - **TDD**: RED → GREEN → REFACTOR
-- **구현 대상**: NextAuth.js 단일 사용자 인증 (로그인/세션) + 전 API 보호
+- **구현 대상**: jose signed-cookie 단일 Owner 인증 (로그인/세션) + 전 API 보호
 - **엔드포인트**:
   - POST /api/auth/login (이메일, 비밀번호)
   - POST /api/auth/logout
   - GET /api/auth/session (현재 세션 조회)
 - **acceptance_criteria**:
-  - Given NextAuth.js 설정 / When POST /api/auth/login (유효한 자격증명) / Then JWT 토큰 발급, 세션 저장됨
+  - Given Owner 자격증명 설정 / When POST /api/auth/login (유효한 이메일/비밀번호) / Then httpOnly signed `paperclip_session` 쿠키와 CSRF 토큰이 발급되고 세션이 생성됨
   - Given 인증 없음 / When API 호출 / Then 401 Unauthorized 반환, error_logs 기록
-  - Given 세션 만료 / When GET /api/auth/session / Then 401 반환, 사용자는 /login으로 리다이렉트
-  - Given 전 API / When 인증 미들웨어 적용 / Then 토큰 검증 후 통과 또는 401 반환
+  - Given 세션 만료 / When GET /api/auth/session / Then 쿠키 검증 실패로 401 반환, 사용자는 /login으로 리다이렉트
+  - Given 전 API / When middleware/proxy 적용 / Then jose 쿠키 검증 후 통과 또는 401 반환하며 Bearer token 또는 `next-auth` 패키지는 사용하지 않음
+  - Given 상태 변경 API / When `x-csrf-token` 헤더가 세션 CSRF 토큰과 불일치하거나 누락됨 / Then 403 CSRF_TOKEN_INVALID 반환
 
 ### [ ] P1-R2-T1: company_profile Resource
 
@@ -539,7 +540,7 @@ graph TD
 - **의존**: P4-R2, P1-S0
 - **브랜치**: `phase-4-performance-screen`
 - **TDD**: 컴포넌트 스토리북 + 통합 테스트
-- **구현 대상**: /performance 화면 (게시 URL + 필수 2 + 선택 2 입력, 지난주 요약)
+- **구현 대상**: /performance 화면 (최근 게시 콘텐츠 선택 + 게시 URL·조회수·클릭 필수 입력 + 직접 수익·hook_type 선택 입력, 지난주 요약)
 - **specifications**: specs/screens/performance.yaml 참조
 - **acceptance_criteria**:
   - Given /performance 접속 / When 로드 / Then 최근 게시된 콘텐츠 기본 선택, 필수 입력 3개(post_url, views, clicks) + 선택 입력 2개(direct_revenue, hook_type) 표시
@@ -555,7 +556,7 @@ graph TD
 - **TDD**: 테스트 관점
 - **검증 대상**: performance.yaml tests 섹션 (4개 시나리오)
 - **acceptance_criteria**:
-  - Given performance.yaml / When "성과 입력 폼 로드" 시나리오 / Then 최근 콘텐츠 선택 + 필수 2개 + 선택 2개 필드 표시 검증
+  - Given performance.yaml / When "성과 입력 폼 로드" 시나리오 / Then 최근 콘텐츠 선택 + 필수 3개(post_url, views, clicks) + 선택 2개(direct_revenue, hook_type) metric 필드 표시 검증
   - Given "필수 필드 검증" 시나리오 / When 조회수/클릭 수 미입력 + [기록] / Then 유효성 검사 실패, 메시지 표시 검증
   - Given "성과 기록 저장" 시나리오 / When 모든 필드 입력 + [기록] / Then POST /api/performance-logs, platform 자동 감지, company_memory 학습 데이터 추가 검증
   - Given "지난주 요약 통계" 시나리오 / When 성과 기록 저장 / Then 지난 7일 평균 계산, best_hook_type 업데이트 검증
@@ -657,7 +658,7 @@ graph TD
   - Vercel Cron의 신뢰성 (매일 06:00 정시 실행)
   - Naver API의 안정성 (< 10% 에러율)
   - PostgreSQL의 확장성 (초기 단일 사용자, 향후 멀티유저)
-  - NextAuth.js 단일 사용자 로그인의 충분성 (Phase 3까지)
+  - jose signed-cookie 단일 Owner 로그인의 충분성 (Phase 3까지)
 
 - **Critical Path**:
   1. P0-T1 → P0-T2 (3~4일)

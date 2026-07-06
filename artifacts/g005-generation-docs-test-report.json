@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G005",
+  "summary": "Generation context now loads bounded CategoryPlaybook and PromptTemplate context into blog draft/search structure generation, exact playbook/template matches are fetched and prioritized before broad partial matches, runtime service tests prove the loaded context reaches adapter calls, and planning docs describe jose signed-cookie auth instead of NextAuth.js.",
+  "commands": [
+    {
+      "command": "npx biome check --write lib/content/generationContext.ts tests/p3-contract.test.ts",
+      "status": "passed",
+      "artifact": "artifact://1041"
+    },
+    {
+      "command": "npm test -- tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts",
+      "status": "passed",
+      "artifact": "artifact://1045",
+      "summary": "2 test files passed; 57 tests passed."
+    },
+    {
+      "command": "npx biome check lib/ai/adapter.ts lib/ai/mockAdapter.ts lib/content/generationContext.ts lib/content/service.ts lib/content/searchStructure.ts tests/p3-contract.test.ts tests/p1-auth-company-profile.test.ts docs/planning/02-trd.md docs/planning/06-tasks.md docs/planning/07-coding-convention.md",
+      "status": "passed",
+      "artifact": "artifact://1049"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "artifact": "artifact://1055"
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "artifact": "artifact://1061",
+      "summary": "10 test files passed; 144 tests passed."
+    },
+    {
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed",
+      "summary": "Prisma schema is valid."
+    }
+  ],
+  "files": [
+    "lib/content/generationContext.ts",
+    "lib/ai/adapter.ts",
+    "lib/ai/mockAdapter.ts",
+    "lib/content/service.ts",
+    "lib/content/searchStructure.ts",
+    "docs/planning/02-trd.md",
+    "docs/planning/06-tasks.md",
+    "docs/planning/07-coding-convention.md",
+    "tests/p3-contract.test.ts",
+    "tests/p1-auth-company-profile.test.ts"
+  ],
+  "blockerResolution": {
+    "promptTemplateSelection": "PromptTemplate loading queries exact aliases first and only falls back to partial contains matches when no exact alias exists; tests prove exact blog_draft_generation beats a higher-version partial shadow.",
+    "categoryPlaybookSelection": "CategoryPlaybook loading queries exact product/company categories separately from token contains matches before merged ranking/slicing; tests prove exact category context survives 24 broad partial matches.",
+    "runtimeWiring": "P3 tests execute generateContentPackage plus generateSearchStructure with mocked module boundaries and assert generationContext reaches both adapter calls."
+  }
+}

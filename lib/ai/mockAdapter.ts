@@ -4,6 +4,8 @@ import type {
   ComplianceInput,
   ComplianceOutput,
   ContentInput,
+  DailyBriefingInput,
+  DailyBriefingOutput,
   HermesInput,
   OpportunityMemoOutput,
   SearchStructureOutput,
@@ -13,12 +15,43 @@ import type {
 import {
   parseBlogDraftOutput,
   parseComplianceOutput,
+  parseDailyBriefingOutput,
   parseOpportunityMemoOutput,
   parseSearchStructureOutput,
   parseSnsVariantOutput,
 } from "@/lib/ai/adapter";
 
+function firstPlaybook(input: ContentInput) {
+  return input.generationContext?.categoryPlaybooks[0];
+}
+
+function templateLabel(input: ContentInput): string {
+  const template = input.generationContext?.promptTemplate;
+  return template === undefined ? "기본 프롬프트" : `${template.name} v${template.version}`;
+}
+
+function homefeedGuidance(input: ContentInput): string {
+  return firstPlaybook(input)?.homefeedToneGuidance ?? "문제를 먼저 짚고 바로 실행 가능한 기준";
+}
+
+function searchGuidance(input: ContentInput): string {
+  return firstPlaybook(input)?.searchGuidance ?? "체크리스트형 검색 구조";
+}
+
+function playbookBodyLine(input: ContentInput): string {
+  const playbook = firstPlaybook(input);
+  if (playbook === undefined) {
+    return "저장 정본은 Markdown이며, 상품 가격과 대가성 문구는 Compliance Gate를 통과해야 Export할 수 있습니다.";
+  }
+
+  const winningPattern = playbook.winningPatterns[0] ?? "검증된 구매 기준";
+  const commonMistake = playbook.commonMistakes[0] ?? "과장 표현";
+  const recommendation = playbook.productRecommendations[0] ?? playbook.category;
+  return `${playbook.category} 플레이북을 반영해 ${winningPattern} 흐름을 우선하고, ${commonMistake}를 피하며, ${recommendation} 추천 맥락을 함께 제시합니다.`;
+}
+
 export class MockAIAdapter implements AIAdapter {
+  readonly metadata = { provider: "mock" as const, model: "deterministic-v1" };
   async generateOpportunityMemo(input: HermesInput): Promise<OpportunityMemoOutput> {
     const firstCategory = input.categories[0] ?? "자취";
     const firstMemoryPattern = input.memoryContext?.patterns[0];
@@ -53,9 +86,8 @@ export class MockAIAdapter implements AIAdapter {
       ],
       search_title: `${input.topic} 선택 기준과 체크리스트`,
       thumbnail_text: ["오늘 바로 점검", "실패 줄이는 기준", "가격 확인 필수"],
-      first_screen: "문제를 먼저 짚고 바로 실행 가능한 기준을 제시합니다.",
-      body_markdown:
-        "이 본문은 MockAIAdapter가 생성한 초안입니다. 실제 모델은 AIAdapter 뒤에서 교체되며, 저장 정본은 Markdown입니다. 상품 가격과 대가성 문구는 Compliance Gate를 통과해야 Export할 수 있습니다.",
+      first_screen: `${homefeedGuidance(input)}를 제시합니다. (${templateLabel(input)})`,
+      body_markdown: `이 본문은 MockAIAdapter가 생성한 초안입니다. ${playbookBodyLine(input)} 사용 프롬프트: ${templateLabel(input)}.`,
       comparison_table: "| 기준 | 확인 |\n| --- | --- |\n| 가격 | 기준일 필요 |",
       faq: [
         { question: "언제 갱신하나요?", answer: "가격 확인일이 7일을 넘으면 갱신합니다." },
@@ -69,8 +101,8 @@ export class MockAIAdapter implements AIAdapter {
 
   async generateSearchStructure(input: ContentInput): Promise<SearchStructureOutput> {
     return parseSearchStructureOutput({
-      search_title: `${input.topic} 검색형 체크리스트`,
-      h2: ["문제 확인", "상품 비교", "가격 기준", "자주 묻는 질문"],
+      search_title: `${input.topic} ${searchGuidance(input)}`,
+      h2: [searchGuidance(input), "상품 비교", "가격 기준", "자주 묻는 질문"],
       faq: [
         { question: "언제 가격을 갱신하나요?", answer: "7일이 지나면 다시 확인합니다." },
         { question: "자동 게시되나요?", answer: "아니요. v0.7은 수동 게시만 허용합니다." },
@@ -98,7 +130,14 @@ export class MockAIAdapter implements AIAdapter {
 
   async checkCompliance(input: ComplianceInput): Promise<ComplianceOutput> {
     const issues = [];
-    if (input.hasShoppingConnectLinks && !input.bodyMarkdown.includes("쇼핑커넥트")) {
+    const activePolicyCodes = new Set(input.policyRules?.map((rule) => rule.rule_code) ?? []);
+
+    if (
+      input.hasShoppingConnectLinks &&
+      !input.bodyMarkdown.includes("쇼핑커넥트") &&
+      (activePolicyCodes.size === 0 ||
+        activePolicyCodes.has("shopping_connect_disclosure_required"))
+    ) {
       issues.push({
         type: "disclosure_missing",
         field: "body_markdown",
@@ -108,11 +147,37 @@ export class MockAIAdapter implements AIAdapter {
       });
     }
 
+    if (
+      input.hasPriceMentions &&
+      !/확인일 기준|변동될 수|변동 가능|가격 변동/.test(input.bodyMarkdown) &&
+      (activePolicyCodes.size === 0 || activePolicyCodes.has("price_checked_at_required"))
+    ) {
+      issues.push({
+        type: "price_notice_missing",
+        field: "body_markdown",
+        severity: "high" as const,
+        message: "가격 언급이 있지만 가격 기준일 문구가 없습니다.",
+        suggested_fix: "가격 기준일과 변동 가능 문구를 추가하세요.",
+      });
+    }
+
     return parseComplianceOutput({
       pass: issues.length === 0,
       risk_level: issues.length === 0 ? "low" : "high",
       export_allowed: issues.length === 0,
       issues,
+    });
+  }
+
+  async generateDailyBriefing(input: DailyBriefingInput): Promise<DailyBriefingOutput> {
+    const categories = input.companyProfile.primaryCategories.slice(0, 3);
+    const focusCategories = categories.length === 0 ? ["자취"] : categories;
+
+    return parseDailyBriefingOutput({
+      goals: "오늘 콘텐츠 1개를 승인 가능한 상태까지 진행합니다.",
+      focus_categories: focusCategories,
+      priority_angle: "홈피드 공감형 우선순위",
+      strategy_note: "회사 프로필과 최신 기회 메모를 기준으로 실행 가능한 콘텐츠를 우선합니다.",
     });
   }
 }

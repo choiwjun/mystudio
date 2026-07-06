@@ -9,6 +9,8 @@ data_requirements:
   - company_memory
 
 form:
+  selector:
+    - content_package_id
   required:
     - post_url
     - views
@@ -16,7 +18,9 @@ form:
   optional:
     - direct_revenue
     - hook_type
-  max_total_fields: 5
+  max_total_fields: 6
+  max_metric_fields: 5
+  note: content_package_id selects the recently published content and is not counted as a metric input field.
 
 actions:
   create_performance_log:
@@ -30,7 +34,8 @@ tests:
     when: GET /performance
     then:
       - recent_content_selected
-      - required_three_optional_two_fields_visible
+      - content_package_selector_visible
+      - required_three_optional_two_metric_fields_visible
   - id: required_field_validation
     given: missing_views_or_clicks
     when: submit

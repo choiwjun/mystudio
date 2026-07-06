@@ -8,7 +8,10 @@ import {
 import { scanHermes } from "@/lib/hermes/service";
 import { hasCronCredentialAttempt, verifyCronSecret } from "@/lib/security/cron";
 
-async function handleHermesScan(request: Request, authMode: "cron" | "session-or-cron"): Promise<Response> {
+async function handleHermesScan(
+  request: Request,
+  authMode: "cron" | "session-or-cron",
+): Promise<Response> {
   if (authMode === "cron" || hasCronCredentialAttempt(request.headers)) {
     const cronGuard = verifyCronSecret(request.headers, process.env["CRON_SECRET"]);
     if (!cronGuard.allowed) {

@@ -2,6 +2,7 @@
 
 import ky, { HTTPError } from "ky";
 import { useEffect, useState } from "react";
+import { requestHqStatusRefresh } from "@/components/hq/HqStatusBadge";
 import type { ApiResponse } from "@/lib/api/response";
 
 type SessionPayload = { readonly csrf_token: string };
@@ -118,8 +119,13 @@ export function PerformanceRecorder() {
         },
       });
       setMessage("성과 기록 저장됨");
-      const performance = await getApiData<SummaryPayload>("/api/performance-logs?period=week");
-      setSummary(performance.summary);
+      requestHqStatusRefresh();
+      try {
+        const performance = await getApiData<SummaryPayload>("/api/performance-logs?period=week");
+        setSummary(performance.summary);
+      } catch {
+        setMessage("성과 기록 저장됨 · 요약 새로고침 실패");
+      }
     } catch (error) {
       if (error instanceof HTTPError || error instanceof Error) {
         setMessage("성과 기록 저장 실패");
@@ -209,7 +215,7 @@ export function PerformanceRecorder() {
             </div>
           </div>
         )}
-        <p className="muted">성과 미기록 1건은 HQ 헤더와 이 화면에서 리마인드합니다.</p>
+        <p className="muted">HQ 상태 배지는 이 화면의 상단에서 최신 성과 미기록 수를 표시합니다.</p>
       </section>
     </section>
   );

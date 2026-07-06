@@ -55,8 +55,88 @@ const fallbackDraft: DetailDraft = {
   updated_at: "2026-07-05T00:00:00.000Z",
   status: "empty",
 };
+export const draftRecoveryStoragePrefix = "paperclip:draft-recovery:";
 
-function firstDraft(packageData: DetailContentPackage): DetailDraft { return packageData.drafts[0] ?? fallbackDraft; }
+type DraftRecoveryRecord = {
+  readonly schemaVersion: 1;
+  readonly packageId: string;
+  readonly draftId: string;
+  readonly bodyMarkdown: string;
+  readonly savedAt: string;
+};
+
+export function draftRecoveryStorageKey(packageId: string, draftId: string): string {
+  return `${draftRecoveryStoragePrefix}${packageId}:${draftId}`;
+}
+
+export function createDraftRecoveryRecord(input: {
+  readonly packageId: string;
+  readonly draftId: string;
+  readonly bodyMarkdown: string;
+  readonly now?: Date;
+}): DraftRecoveryRecord {
+  return {
+    schemaVersion: 1,
+    packageId: input.packageId,
+    draftId: input.draftId,
+    bodyMarkdown: input.bodyMarkdown,
+    savedAt: (input.now ?? new Date()).toISOString(),
+  };
+}
+
+export function parseDraftRecoveryRecord(
+  value: string | null,
+  packageId: string,
+  draftId: string,
+): DraftRecoveryRecord | null {
+  if (value === null) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      !("schemaVersion" in parsed) ||
+      !("packageId" in parsed) ||
+      !("draftId" in parsed) ||
+      !("bodyMarkdown" in parsed) ||
+      !("savedAt" in parsed)
+    ) {
+      return null;
+    }
+    const record = parsed as Record<string, unknown>;
+    if (
+      record["schemaVersion"] !== 1 ||
+      record["packageId"] !== packageId ||
+      record["draftId"] !== draftId ||
+      typeof record["bodyMarkdown"] !== "string" ||
+      typeof record["savedAt"] !== "string"
+    ) {
+      return null;
+    }
+    return record as DraftRecoveryRecord;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraftRecovery(record: DraftRecoveryRecord): void {
+  window.localStorage.setItem(
+    draftRecoveryStorageKey(record.packageId, record.draftId),
+    JSON.stringify(record),
+  );
+}
+
+function clearDraftRecovery(packageId: string, draftId: string): void {
+  window.localStorage.removeItem(draftRecoveryStorageKey(packageId, draftId));
+}
+
+function firstDraft(packageData: DetailContentPackage): DetailDraft {
+  return packageData.drafts[0] ?? fallbackDraft;
+}
+
 
 export function isExplicitDemoPackageId(packageId: string): boolean {
   return packageId === "demo";
@@ -135,7 +215,10 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   const [csrfToken, setCsrfToken] = useState("");
   const [status, setStatus] = useState("불러오는 중");
   const isDemoMode = isExplicitDemoPackageId(packageId);
-  const [draftBody, setDraftBody] = useState(firstDraft(initialPackageForId(packageId)).body_markdown ?? "");
+  const [draftBody, setDraftBody] = useState(
+    firstDraft(initialPackageForId(packageId)).body_markdown ?? "",
+  );
+  const [recoveryAvailable, setRecoveryAvailable] = useState(false);
 
   const draft = firstDraft(packageData);
   const check = packageData.compliance_checks[0] ?? null;
@@ -188,17 +271,27 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
     return complianceFailTransitionStatuses.has(currentStatus) ? "compliance_failed" : currentStatus;
   }
 
+  function blockDraftReplacementWhileRecovering(): boolean {
+    if (!recoveryAvailable) {
+      return false;
+    }
+    setStatus("로컬 임시본 자동 저장 후 다시 시도");
+    return true;
+  }
+
   useEffect(() => {
     async function load(): Promise<void> {
       if (isDemoMode) {
         setPackageData(demoContentPackage);
         setDraftBody(firstDraft(demoContentPackage).body_markdown ?? "");
+        setRecoveryAvailable(false);
         setStatus("데모 데이터");
         return;
       }
 
       setPackageData(emptyContentPackageDetail(packageId));
       setDraftBody("");
+      setRecoveryAvailable(false);
       setStatus("불러오는 중");
 
       try {
@@ -206,8 +299,24 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
         setCsrfToken(session.csrf_token);
         const detail = await loadApiData<DetailContentPackage>(`/api/content-packages/${packageId}`);
         setPackageData(detail);
-        setDraftBody(firstDraft(detail).body_markdown ?? "");
+        const loadedDraft = firstDraft(detail);
+        const recoveredDraft = parseDraftRecoveryRecord(
+          window.localStorage.getItem(draftRecoveryStorageKey(packageId, loadedDraft.id)),
+          packageId,
+          loadedDraft.id,
+        );
+        if (recoveredDraft !== null && recoveredDraft.bodyMarkdown !== (loadedDraft.body_markdown ?? "")) {
+          setDraftBody(recoveredDraft.bodyMarkdown);
+          setRecoveryAvailable(true);
+          setStatus("로컬 임시 저장본 복구됨 · 자동 재전송 대기");
+          return;
+        }
+        setDraftBody(loadedDraft.body_markdown ?? "");
+        setRecoveryAvailable(false);
         setStatus("저장됨");
+        if (recoveredDraft !== null) {
+          clearDraftRecovery(packageId, loadedDraft.id);
+        }
       } catch (error) {
         if (error instanceof HTTPError && error.response.status === 401) {
           window.location.assign(`/login?from=/packages/${packageId}`);
@@ -215,6 +324,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
         }
         setPackageData(emptyContentPackageDetail(packageId));
         setDraftBody("");
+        setRecoveryAvailable(false);
         setStatus("불러오기 실패");
       }
     }
@@ -234,10 +344,36 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
             headers: { "x-csrf-token": csrfToken },
             json: { body_markdown: draftBody },
           });
+          clearDraftRecovery(packageId, draft.id);
+          setRecoveryAvailable(false);
+          setPackageData((current) => ({
+            ...current,
+            drafts: current.drafts.map((item) =>
+              item.id === draft.id
+                ? { ...item, body_markdown: draftBody, updated_at: new Date().toISOString() }
+                : item,
+            ),
+          }));
           setStatus("자동 저장됨");
         } catch (error) {
           if (error instanceof HTTPError || error instanceof Error) {
-            setStatus("자동 저장 실패");
+            try {
+              saveDraftRecovery(
+                createDraftRecoveryRecord({
+                  packageId,
+                  draftId: draft.id,
+                  bodyMarkdown: draftBody,
+                }),
+              );
+              setRecoveryAvailable(true);
+              setStatus("자동 저장 실패 · 로컬 보존됨");
+            } catch {
+              setRecoveryAvailable(false);
+              setStatus("자동 저장 실패 · 로컬 보존 실패");
+            }
+            if (error instanceof HTTPError && error.response.status === 401) {
+              window.location.assign(`/login?from=/packages/${packageId}`);
+            }
             return;
           }
           throw error;
@@ -248,7 +384,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
     }, 2000);
 
     return () => window.clearTimeout(timer);
-  }, [csrfToken, draft.body_markdown, draft.id, draftBody, isDemoMode]);
+  }, [csrfToken, draft.body_markdown, draft.id, draftBody, isDemoMode, packageId]);
 
   const keywordText = useMemo(
     () =>
@@ -261,6 +397,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   async function generatePackage(): Promise<void> {
     if (!canRunPackageActions) {
       setStatus(isDemoMode ? "데모 패키지는 생성하지 않음" : "생성할 패키지 없음");
+      return;
+    }
+    if (blockDraftReplacementWhileRecovering()) {
       return;
     }
     try {
@@ -302,6 +441,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   async function generateSearchStructure(): Promise<void> {
     if (!canRunPackageActions) {
       setStatus(isDemoMode ? "데모 검색 구조 생성 생략" : "검색 구조 생성할 패키지 없음");
+      return;
+    }
+    if (blockDraftReplacementWhileRecovering()) {
       return;
     }
     try {
@@ -347,6 +489,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   async function applyFixes(checkId: string): Promise<void> {
     if (isDemoMode && checkId === "demo_check") {
       setStatus("데모 수정 적용");
+      return;
+    }
+    if (blockDraftReplacementWhileRecovering()) {
       return;
     }
     const fixedDraft = await postApiData<DetailDraft>(
@@ -441,7 +586,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   return (
     <ContentPackageLayout
       activeTab={activeTab}
-      canRunPackageActions={canRunPackageActions}
+      canRunPackageActions={canRunPackageActions && !recoveryAvailable}
       check={check}
       draft={draft}
       draftBody={draftBody}
@@ -460,13 +605,16 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       }}
       onExport={(format) => void exportPackage(format)}
       onRestoreOriginal={() => {
+        if (blockDraftReplacementWhileRecovering()) {
+          return;
+        }
         setDraftBody(draft.original_body ?? "");
         setStatus("원문 복원 대기");
       }}
       onRunCompliance={() => void runCompliance()}
       onTabChange={setActiveTab}
       packageData={packageData}
-      status={status}
+      status={recoveryAvailable && !status.includes("로컬") ? `${status} · 로컬 임시본 보존 중` : status}
     />
   );
 }

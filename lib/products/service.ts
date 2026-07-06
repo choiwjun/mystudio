@@ -3,20 +3,50 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { validateProductImportUrl } from "@/lib/security/productImport";
 
+const productNameMaxLength = 160;
+const productSourceMaxLength = 80;
+const productUrlMaxLength = 2048;
+const productCategoryMaxLength = 80;
+const productMemoMaxLength = 500;
+const importedProductNameMaxLength = productNameMaxLength;
+const importedCategoryMaxLength = productCategoryMaxLength;
+
+function hasAllowedUrlProtocol(value: string, protocols: readonly string[]): boolean {
+  try {
+    return protocols.includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+const optionalProductUrlSchema = z
+  .string()
+  .trim()
+  .max(productUrlMaxLength)
+  .refine((value) => hasAllowedUrlProtocol(value, ["http:", "https:", "manual:"]))
+  .optional();
+
+const optionalImageUrlSchema = z
+  .string()
+  .trim()
+  .max(productUrlMaxLength)
+  .refine((value) => hasAllowedUrlProtocol(value, ["http:", "https:"]))
+  .optional();
+
 export const productCreateSchema = z.object({
-  product_name: z.string().trim().min(1),
-  product_url: z.string().url().optional(),
-  source: z.string().trim().min(1).optional(),
+  product_name: z.string().trim().min(1).max(productNameMaxLength),
+  product_url: optionalProductUrlSchema,
+  source: z.string().trim().min(1).max(productSourceMaxLength).optional(),
   price: z.number().int().nonnegative().optional(),
-  image_url: z.string().url().optional(),
-  category: z.string().trim().optional(),
-  memo: z.string().trim().optional(),
+  image_url: optionalImageUrlSchema,
+  category: z.string().trim().max(productCategoryMaxLength).optional(),
+  memo: z.string().trim().max(productMemoMaxLength).optional(),
 });
 
 export const productPatchSchema = productCreateSchema.partial();
 
 export const productImportSchema = z.object({
-  url: z.string().min(1),
+  url: z.string().trim().min(1).max(productUrlMaxLength),
 });
 
 export const shoppingConnectLinkCreateSchema = z.object({
@@ -119,20 +149,26 @@ function decodePathSegment(value: string): string {
   }
 }
 
-function cleanImportedText(value: string): string {
-  return value
+function cleanImportedText(value: string, maxLength = importedProductNameMaxLength): string {
+  const cleaned = value
     .replace(/\+/g, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/[_|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+  return cleaned.length > maxLength ? cleaned.slice(0, maxLength).trim() : cleaned;
 }
 
-function firstCleanParam(url: URL, names: readonly string[]): string | undefined {
+function firstCleanParam(
+  url: URL,
+  names: readonly string[],
+  maxLength = importedProductNameMaxLength,
+): string | undefined {
   for (const name of names) {
     const value = url.searchParams.get(name);
     if (value !== null) {
-      const cleaned = cleanImportedText(value);
+      const cleaned = cleanImportedText(value, maxLength);
       if (cleaned.length > 0) {
         return cleaned;
       }
@@ -144,7 +180,7 @@ function firstCleanParam(url: URL, names: readonly string[]): string | undefined
 function cleanPathProductName(url: URL): string | undefined {
   const segments = url.pathname
     .split("/")
-    .map((segment) => cleanImportedText(decodePathSegment(segment)))
+    .map((segment) => cleanImportedText(decodePathSegment(segment).replace(/[-–—]+/g, " ")))
     .filter((segment) => segment.length > 0 && !/^\d+$/.test(segment));
 
   const ignoredSegments = new Set(["search", "all", "products", "product", "catalog", "ns"]);
@@ -163,11 +199,23 @@ function parseOptionalPrice(url: URL): number | undefined {
 }
 
 function parseOptionalImageUrl(url: URL): string | undefined {
-  const imageUrl = firstCleanParam(url, ["image", "imageUrl", "img", "thumbnail", "thumb"]);
-  if (imageUrl === undefined) {
+  const imageUrl = firstCleanParam(
+    url,
+    ["image", "imageUrl", "img", "thumbnail", "thumb"],
+    productUrlMaxLength,
+  );
+  if (imageUrl === undefined || imageUrl.length > productUrlMaxLength) {
     return undefined;
   }
-  return z.string().url().safeParse(imageUrl).success ? imageUrl : undefined;
+
+  try {
+    const parsedImageUrl = new URL(imageUrl);
+    return ["http:", "https:"].includes(parsedImageUrl.protocol)
+      ? parsedImageUrl.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function parseNaverProductFromUrl(url: URL): z.infer<typeof productCreateSchema> {
@@ -185,14 +233,11 @@ export function parseNaverProductFromUrl(url: URL): z.infer<typeof productCreate
   if (productName === undefined) {
     throw new Error("PRODUCT_IMPORT_BLOCKED:missing_product_metadata");
   }
-  const category = firstCleanParam(url, [
-    "catName",
-    "categoryName",
-    "category",
-    "cat",
-    "menu",
-    "displayCategoryName",
-  ]);
+  const category = firstCleanParam(
+    url,
+    ["catName", "categoryName", "category", "cat", "menu", "displayCategoryName"],
+    importedCategoryMaxLength,
+  );
 
   return {
     product_name: productName,

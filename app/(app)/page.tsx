@@ -5,6 +5,7 @@ import { HqOpportunityMemoList } from "@/components/hq/HqOpportunityMemoList";
 import { HqRefreshNeededPanel } from "@/components/hq/HqRefreshNeededPanel";
 import { HqRightRailSummary } from "@/components/hq/HqRightRailSummary";
 import { HqSetupCompletionNotice } from "@/components/hq/HqSetupCompletionNotice";
+import { HqStatusBadge } from "@/components/hq/HqStatusBadge";
 import { HqWinningPatternsPanel } from "@/components/hq/HqWinningPatternsPanel";
 
 export default function HomePage() {
@@ -13,7 +14,9 @@ export default function HomePage() {
       <header className="topbar">
         <div>
           <h1 className="brand">Paperclip HQ Command Center</h1>
-          <div className="muted">Status Focus · 성과 미기록 1건</div>
+          <div className="muted">
+            <HqStatusBadge />
+          </div>
         </div>
         <div className="topbar-actions">
           <HqCommandActions />

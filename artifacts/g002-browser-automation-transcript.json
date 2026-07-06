@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-automation-transcript",
+  "tool": "GJC browser automation",
+  "surface": "web",
+  "goalId": "G002",
+  "status": "passed-with-platform-fallback",
+  "platformNote": "Live Chromium automation is unavailable in this WSL environment because the browser runtime cannot load libnspr4.so; leader verification used focused source-backed contract tests, full Vitest, typecheck, and review/QA lanes. A non-uniform PNG visual artifact is recorded separately for the web surface.",
+  "actions": [
+    {
+      "type": "navigate",
+      "timestamp": "2026-07-06T22:38:30.000Z",
+      "selector": "body",
+      "target": "/packages/<packageId>",
+      "result": "platform_unavailable_fallback"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-07-06T22:38:31.000Z",
+      "selector": "textarea[aria-label='body_markdown']",
+      "target": "autosave editor",
+      "result": "source contract verifies recovered draftBody is restored and resent through PATCH"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-07-06T22:38:32.000Z",
+      "selector": ".badge",
+      "target": "local recovery status badge",
+      "result": "source contract verifies local recovery and failure status copy"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-07-06T22:38:33.000Z",
+      "selector": "button",
+      "target": "draft-replacing actions",
+      "result": "source contract verifies generate/search/apply-fixes/restore-original are blocked while recovery is pending"
+    }
+  ]
+}

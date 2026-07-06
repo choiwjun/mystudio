@@ -29,6 +29,9 @@ export type ProductFormValues = {
   readonly price: string;
   readonly category: string;
   readonly memo: string;
+  readonly product_url: string;
+  readonly image_url: string;
+  readonly source: string;
 };
 export type ShoppingConnectLinkFormValues = {
   readonly product_id: string;

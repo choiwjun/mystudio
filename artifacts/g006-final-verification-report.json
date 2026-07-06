@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goalId": "G006",
+  "summary": "Final verification and durable reconciliation audit for G001-G006. G001-G005 have durable per-goal receipts. G006 final verification reran product-scope lint/format checks, typecheck, tests, Prisma validate, and production build. A raw `npm run lint` attempt failed because committed runtime `.gjc` team worktrees contain nested biome root configs, so final lint evidence uses explicit product-scope paths that exclude `.gjc` runtime state.",
+  "durableStatus": {
+    "completedGoalsBeforeG006Checkpoint": ["G001", "G002", "G003", "G004", "G005"],
+    "activeGoal": "G006",
+    "pendingGoals": 0,
+    "failedGoals": 0,
+    "blockedGoals": 0
+  },
+  "commands": [
+    {
+      "command": "npm run lint",
+      "status": "blocked_by_runtime_state",
+      "artifact": "artifact://1070",
+      "summary": "Biome traversed .gjc team worktrees and failed on nested root configurations; this is runtime-state interference, not product-source lint failure."
+    },
+    {
+      "command": "npx biome check --write app components docs lib prisma proxy.ts scripts specs tests next.config.mjs package.json tsconfig.json vercel.json vitest.config.ts",
+      "status": "passed",
+      "artifact": "artifact://1076",
+      "summary": "Product-scope formatting applied outside .gjc runtime state."
+    },
+    {
+      "command": "npx biome check app components docs lib prisma proxy.ts scripts specs tests next.config.mjs package.json tsconfig.json vercel.json vitest.config.ts",
+      "status": "passed",
+      "artifact": "artifact://1106",
+      "summary": "Product-scope lint/check passed outside .gjc runtime state."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "artifact": "artifact://1108"
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "artifact": "artifact://1110",
+      "summary": "10 test files passed; 145 tests passed."
+    },
+    {
+      "command": "DATABASE_URL=postgresql://user:pass@localhost:5432/db DIRECT_URL=postgresql://user:pass@localhost:5432/db npx prisma validate",
+      "status": "passed",
+      "summary": "Prisma schema is valid."
+    },
+    {
+      "command": "npm run build",
+      "status": "passed",
+      "artifact": "artifact://1113",
+      "summary": "Next.js production build compiled, typechecked, generated static pages, and left /packages dynamic after the build-time DB prerender fix."
+    }
+  ],
+  "finalFixes": [
+    "app/(app)/packages/page.tsx exports dynamic = force-dynamic so the DB-backed packages index is not prerendered without a live database during production build.",
+    "tests/p3-contract.test.ts asserts the DB-backed packages index remains dynamic and continues to call listContentPackages(null)."
+  ],
+  "artifacts": [
+    "artifacts/g001-quality-gate.json",
+    "artifacts/g002-quality-gate.json",
+    "artifacts/g003-quality-gate.json",
+    "artifacts/g004-quality-gate.json",
+    "artifacts/g005-quality-gate.json"
+  ]
+}

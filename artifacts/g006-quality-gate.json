@@ -4,106 +4,138 @@
     "productStatus": "CLEAR",
     "codeStatus": "CLEAR",
     "recommendation": "APPROVE",
-    "evidence": "agent://32-G006ArchitectReviewExact: runtime adapter selection is explicit and fail-closed; OpenAI/Claude adapters implement the full AIAdapter surface; provider outputs are parsed through existing zod schemas; non-OK, malformed JSON, and schema-invalid responses fail closed; blockers empty.",
-    "commands": ["architect review agent://31-G006ArchitectReview", "architect strict verdict agent://32-G006ArchitectReviewExact"],
+    "evidence": "G006 final aggregate review is clean. AI slop cleanup agent://155-G006CleanupFinal returned CLEAR/CLEAR/CLEAR with no blockers for final code/test changes. Architect aggregate review agent://156-G006ArchitectAggregate returned CLEAR/CLEAR/CLEAR APPROVE with no blockers, confirming G001-G005 durable receipts, G006 pre-checkpoint active state, product-scope final verification, and clean G004/G005 quality gates. The raw npm run lint failure is limited to .gjc runtime team worktree nested Biome configs; product-scope Biome check passed and build/test/typecheck/prisma passed.",
+    "commands": [
+      "agent://155-G006CleanupFinal",
+      "agent://156-G006ArchitectAggregate"
+    ],
     "blockers": []
   },
   "executorQa": {
     "status": "passed",
     "e2eStatus": "passed",
     "redTeamStatus": "passed",
-    "evidence": "Focused API/package QA passed: npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts passed 2 files / 22 tests; npm run typecheck passed; focused Biome check passed. Team rerun lane-a-g006-cleanup-rerun-read-55f1e5c0 completed with zero blocking cleanup findings and provider QA coverage confirmed.",
-    "e2eCommands": ["npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts"],
-    "redTeamCommands": ["npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts"],
+    "evidence": "Executor QA readiness agent://158-G006ExecutorQaReadiness passed with no blockers. It verified G001-G005 are complete with per-goal receipts, G006 is correctly active pre-checkpoint, no failed/blocked/pending required goals remain, final verification report records product-scope Biome check, typecheck, npm test, Prisma validate, and build success, and /packages force-dynamic build-time DB prerender fix is present and tested.",
+    "e2eCommands": [
+      "npx biome check app components docs lib prisma proxy.ts scripts specs tests next.config.mjs package.json tsconfig.json vercel.json vitest.config.ts",
+      "npm run typecheck",
+      "npm test",
+      "npx prisma validate",
+      "npm run build"
+    ],
+    "redTeamCommands": [
+      "agent://158-G006ExecutorQaReadiness"
+    ],
     "artifactRefs": [
       {
-        "id": "g006-api-package-test-report",
+        "id": "g006-final-verification-report",
         "kind": "api-package-test-report",
-        "path": "artifacts/g006-ai-provider-test-report.json",
-        "description": "Focused live API/package verification report for OpenAI/Claude provider adapter runtime paths."
+        "path": "artifacts/g006-final-verification-report.json",
+        "description": "Final verification report with product-scope Biome, typecheck, test, Prisma validate, build, and durable-status evidence."
       }
     ],
     "contractCoverage": [
       {
-        "id": "g006-runtime-selection",
-        "contractRef": "Ultragoal G006 runtime adapter contract",
-        "obligation": "AI_ADAPTER=openai|claude with credentials returns real provider adapters while missing credentials and production mock fail closed.",
+        "id": "g006-durable-receipts",
+        "contractRef": "G006 durable goal reconciliation",
+        "obligation": "G001-G005 are complete with per-goal receipts and no failed/blocked/pending required goals remain before G006 checkpoint.",
         "status": "covered",
-        "surfaceEvidenceRefs": ["g006-api-tests"],
-        "adversarialCaseRefs": ["g006-missing-credentials", "g006-production-mock-rejected"]
+        "surfaceEvidenceRefs": ["g006-durable-state-surface"],
+        "adversarialCaseRefs": ["g006-missing-receipts", "g006-stale-goals"]
       },
       {
-        "id": "g006-provider-methods",
-        "contractRef": "AIAdapter interface in lib/ai/adapter.ts",
-        "obligation": "OpenAI and Claude adapters implement every AIAdapter method and parse outputs through the existing schemas.",
+        "id": "g006-final-verification",
+        "contractRef": "G006 final verification evidence",
+        "obligation": "Product-scope lint/check, typecheck, tests, Prisma validate, and production build pass with current source.",
         "status": "covered",
-        "surfaceEvidenceRefs": ["g006-api-tests"],
-        "adversarialCaseRefs": ["g006-malformed-json", "g006-schema-invalid", "g006-non-ok-http"]
+        "surfaceEvidenceRefs": ["g006-package-verification-surface"],
+        "adversarialCaseRefs": ["g006-lint-masking", "g006-build-db-prerender"]
+      },
+      {
+        "id": "g006-inline-sequencing",
+        "contractRef": "G006 inline goal completion sequencing",
+        "obligation": "Inline goal completion remains pending until after the G006 checkpoint creates the final aggregate receipt.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["g006-durable-state-surface"],
+        "adversarialCaseRefs": ["g006-premature-inline-completion"]
       }
     ],
     "surfaceEvidence": [
       {
-        "id": "g006-api-tests",
-        "contractRef": "API/package provider adapter surface",
-        "surface": "api",
-        "invocation": "npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts; npm run typecheck; npx biome check lib/ai/adapter.ts lib/ai/runtime.ts lib/ai/providerAdapters.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+        "id": "g006-package-verification-surface",
+        "contractRef": "G006 product/package verification",
+        "surface": "package",
+        "invocation": "product-scope Biome check; npm run typecheck; npm test; npx prisma validate; npm run build",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
+      },
+      {
+        "id": "g006-durable-state-surface",
+        "contractRef": "G006 durable ultragoal state",
+        "surface": "api",
+        "invocation": "gjc ultragoal status --json plus goals.json/ledger.jsonl read-only audit before checkpoint",
+        "verdict": "passed",
+        "artifactRefs": ["g006-final-verification-report"]
       }
     ],
     "adversarialCases": [
       {
-        "id": "g006-missing-credentials",
-        "contractRef": "Ultragoal G006 fail-closed runtime contract",
-        "scenario": "Provider mode selected without OPENAI_API_KEY or CLAUDE_API_KEY.",
-        "expectedBehavior": "createRuntimeAIAdapter throws AIAdapterConfigurationError and does not fall back to mock.",
+        "id": "g006-missing-receipts",
+        "contractRef": "G006 durable goal reconciliation",
+        "scenario": "A prior required goal lacks a durable per-goal receipt.",
+        "expectedBehavior": "Final QA fails unless G001-G005 are complete with completionVerification receipt evidence.",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
       },
       {
-        "id": "g006-production-mock-rejected",
-        "contractRef": "Ultragoal G006 mock restriction contract",
-        "scenario": "AI_ADAPTER=mock with NODE_ENV=production.",
-        "expectedBehavior": "createRuntimeAIAdapter throws AIAdapterConfigurationError.",
+        "id": "g006-stale-goals",
+        "contractRef": "G006 durable goal reconciliation",
+        "scenario": "A required goal remains failed, blocked, review_blocked, pending, or supersession-incomplete.",
+        "expectedBehavior": "Final QA fails unless pending/failed/blocked counts are zero except active G006 awaiting checkpoint.",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
       },
       {
-        "id": "g006-malformed-json",
-        "contractRef": "Provider response validation contract",
-        "scenario": "Provider returns syntactically invalid JSON content.",
-        "expectedBehavior": "Adapter throws AIProviderResponseError without using mock fallback.",
+        "id": "g006-lint-masking",
+        "contractRef": "G006 final verification evidence",
+        "scenario": "Root lint failure is incorrectly hidden as a pass.",
+        "expectedBehavior": "Report distinguishes .gjc runtime-state interference from product-source verification and requires product-scope Biome check to pass.",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
       },
       {
-        "id": "g006-schema-invalid",
-        "contractRef": "AI output schema contract",
-        "scenario": "Provider returns valid JSON that violates the expected zod schema.",
-        "expectedBehavior": "Adapter throws AIOutputValidationError.",
+        "id": "g006-build-db-prerender",
+        "contractRef": "G006 final verification evidence",
+        "scenario": "The DB-backed /packages page is statically prerendered and fails without a live database.",
+        "expectedBehavior": "/packages exports force-dynamic, its contract test preserves the directive, and production build passes.",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
       },
       {
-        "id": "g006-non-ok-http",
-        "contractRef": "Provider HTTP failure contract",
-        "scenario": "OpenAI or Claude endpoint returns non-OK HTTP status.",
-        "expectedBehavior": "Adapter throws AIProviderResponseError before parsing body as successful output.",
+        "id": "g006-premature-inline-completion",
+        "contractRef": "G006 inline goal completion sequencing",
+        "scenario": "Inline goal is completed before final durable checkpoint receipt exists.",
+        "expectedBehavior": "Pre-checkpoint QA treats G006 active state as expected and requires leader to checkpoint before inline completion.",
         "verdict": "passed",
-        "artifactRefs": ["g006-api-package-test-report"]
+        "artifactRefs": ["g006-final-verification-report"]
       }
     ],
     "blockers": []
   },
   "iteration": {
     "status": "passed",
-    "evidence": "AI SLOP CLEANUP REPORT: Team lane-a-g006-cleanup-rerun-read-55f1e5c0 Lane A inspected changed G006 files and found zero blocking findings for fallback masking, schema bypass, dead code, unsafe provider handling, or missing focused tests. Earlier Team blocker for missing non-OK HTTP response coverage was fixed by adding focused OpenAI/Claude non-OK assertions, then the cleanup and QA loop was fully rerun cleanly. Architect review and executor QA are clean with empty blockers.",
+    "evidence": "AI SLOP CLEANUP REPORT: agent://155-G006CleanupFinal was CLEAR with no blockers. Final aggregate architect review agent://156-G006ArchitectAggregate was CLEAR/CLEAR/CLEAR APPROVE with no blockers. Executor QA readiness agent://158-G006ExecutorQaReadiness passed with no blockers. Full rerun evidence includes product-scope Biome check, typecheck, full npm test with 145 tests, Prisma validate, and production build. Root npm run lint failure is recorded as .gjc runtime-state nested Biome config interference and not treated as product-source failure because explicit product-scope Biome check passed.",
     "fullRerun": true,
     "rerunCommands": [
-      "npm test -- tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
+      "npx biome check --write app components docs lib prisma proxy.ts scripts specs tests next.config.mjs package.json tsconfig.json vercel.json vitest.config.ts",
+      "npx biome check app components docs lib prisma proxy.ts scripts specs tests next.config.mjs package.json tsconfig.json vercel.json vitest.config.ts",
       "npm run typecheck",
-      "npx biome check lib/ai/adapter.ts lib/ai/runtime.ts lib/ai/providerAdapters.ts tests/ai-provider-adapters.test.ts tests/p4-contract.test.ts",
-      "gjc team status lane-a-g006-cleanup-rerun-read-55f1e5c0"
+      "npm test",
+      "npx prisma validate",
+      "npm run build",
+      "agent://155-G006CleanupFinal",
+      "agent://156-G006ArchitectAggregate",
+      "agent://158-G006ExecutorQaReadiness"
     ],
     "blockers": []
   }

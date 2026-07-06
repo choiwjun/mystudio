@@ -1,5 +1,6 @@
 import { PackageStatus } from "@prisma/client";
 import { z } from "zod";
+import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import {
   assertCompanyProfileReady,
   getOrCreateCompanyProfile,
@@ -42,6 +43,42 @@ export function serializeHqBriefing(briefing: {
   };
 }
 
+type DailyBriefingProfileRecord = {
+  companyName: string;
+  primaryCategories: string[];
+  blockedCategories: string[];
+  toneRules: string;
+  contentPrinciples: string;
+  revenueGoalMonthly: number;
+};
+
+function serializeDailyBriefingCompanyProfile(profile: DailyBriefingProfileRecord) {
+  return {
+    companyName: profile.companyName,
+    primaryCategories: profile.primaryCategories,
+    blockedCategories: profile.blockedCategories,
+    toneRules: profile.toneRules,
+    contentPrinciples: profile.contentPrinciples,
+    revenueGoalMonthly: profile.revenueGoalMonthly,
+  };
+}
+
+function serializeDailyBriefingOpportunityMemo(memo: {
+  topic: string;
+  whyNow: string;
+  homefeedAngle: string;
+  searchAngle: string;
+  interestTags: string[];
+}) {
+  return {
+    topic: memo.topic,
+    whyNow: memo.whyNow,
+    homefeedAngle: memo.homefeedAngle,
+    searchAngle: memo.searchAngle,
+    interestTags: memo.interestTags,
+  };
+}
+
 export async function createDailyBriefing(input: z.infer<typeof dailyBriefingSchema>) {
   await assertCompanyProfileReady();
 
@@ -55,13 +92,24 @@ export async function createDailyBriefing(input: z.infer<typeof dailyBriefingSch
   }
 
   const profile = await getOrCreateCompanyProfile();
-  const latestMemo = await prisma.opportunityMemo.findFirst({ orderBy: { createdAt: "desc" } });
+  const recentMemos = await prisma.opportunityMemo.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+  const aiBriefing = await createRuntimeAIAdapter().generateDailyBriefing({
+    companyProfile: serializeDailyBriefingCompanyProfile(profile),
+    opportunityMemoContext: {
+      latestMemo:
+        recentMemos[0] === undefined ? null : serializeDailyBriefingOpportunityMemo(recentMemos[0]),
+      recentMemos: recentMemos.map(serializeDailyBriefingOpportunityMemo),
+    },
+  });
   const briefing = await prisma.hqBriefing.create({
     data: {
-      goals: "오늘 콘텐츠 1개를 승인 가능한 상태까지 진행합니다.",
-      focusCategories: profile.primaryCategories.slice(0, 3),
-      priorityAngle: latestMemo?.homefeedAngle ?? "홈피드 공감형",
-      strategyNote: latestMemo?.whyNow ?? "회사 프로필 기준으로 기회를 재탐색합니다.",
+      goals: aiBriefing.goals,
+      focusCategories: aiBriefing.focus_categories,
+      priorityAngle: aiBriefing.priority_angle,
+      strategyNote: aiBriefing.strategy_note,
       status: "active",
     },
   });

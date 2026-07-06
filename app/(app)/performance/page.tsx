@@ -1,3 +1,4 @@
+import { HqStatusBadge } from "@/components/hq/HqStatusBadge";
 import { PerformanceRecorder } from "@/components/performance/PerformanceRecorder";
 
 export default function PerformancePage() {
@@ -8,7 +9,7 @@ export default function PerformancePage() {
           <h1 className="brand">Performance Desk</h1>
           <div className="muted">게시 URL, 조회수, 클릭, 수익, Hook Type 기록</div>
         </div>
-        <span className="badge">성과 미기록 1건</span>
+        <HqStatusBadge />
       </header>
       <PerformanceRecorder />
     </>

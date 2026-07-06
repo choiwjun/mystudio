@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const ScoreSchema = z.number().int().min(0).max(100);
 
+export type AIAdapterProvider = "mock" | "openai" | "claude";
+
+export type AIAdapterMetadata = {
+  readonly provider: AIAdapterProvider;
+  readonly model: string;
+};
+
 export const OpportunityMemoOutputSchema = z.object({
   topic: z.string().min(1),
   why_now: z.string().min(10),
@@ -62,11 +69,19 @@ export const SnsVariantOutputSchema = z.object({
   score: ScoreSchema.optional(),
 });
 
+export const DailyBriefingOutputSchema = z.object({
+  goals: z.string().min(10),
+  focus_categories: z.array(z.string().min(1)).min(1).max(5),
+  priority_angle: z.string().min(5),
+  strategy_note: z.string().min(10),
+});
+
 export type OpportunityMemoOutput = z.infer<typeof OpportunityMemoOutputSchema>;
 export type BlogDraftOutput = z.infer<typeof BlogDraftOutputSchema>;
 export type SearchStructureOutput = z.infer<typeof SearchStructureOutputSchema>;
 export type ComplianceOutput = z.infer<typeof ComplianceOutputSchema>;
 export type SnsVariantOutput = z.infer<typeof SnsVariantOutputSchema>;
+export type DailyBriefingOutput = z.infer<typeof DailyBriefingOutputSchema>;
 
 export class AIOutputValidationError extends Error {
   readonly code = "AI_OUTPUT_SCHEMA_INVALID";
@@ -119,6 +134,10 @@ export function parseSnsVariantOutput(value: unknown): SnsVariantOutput {
   return parseAiOutput(SnsVariantOutputSchema, value, "generateSNSVariant");
 }
 
+export function parseDailyBriefingOutput(value: unknown): DailyBriefingOutput {
+  return parseAiOutput(DailyBriefingOutputSchema, value, "generateDailyBriefing");
+}
+
 export function parseScoreOutput(value: unknown): number {
   return parseAiOutput(ScoreSchema, value, "scoreHomefeed");
 }
@@ -152,16 +171,47 @@ export type HermesMemoryContext = {
   readonly patterns: readonly HermesMemoryPattern[];
 };
 
+export type CategoryPlaybookGenerationContext = {
+  readonly category: string;
+  readonly homefeedToneGuidance: string | null;
+  readonly searchGuidance: string | null;
+  readonly productRecommendations: readonly string[];
+  readonly commonMistakes: readonly string[];
+  readonly winningPatterns: readonly string[];
+};
+
+export type PromptTemplateGenerationContext = {
+  readonly id: string;
+  readonly name: string;
+  readonly engine: string;
+  readonly version: number;
+  readonly template: string;
+  readonly variables: unknown;
+};
+
+export type ContentGenerationContext = {
+  readonly categoryPlaybooks: readonly CategoryPlaybookGenerationContext[];
+  readonly promptTemplate?: PromptTemplateGenerationContext;
+};
+
 export type ContentInput = {
   readonly topic: string;
   readonly products: readonly unknown[];
   readonly companyProfile: unknown;
+  readonly generationContext?: ContentGenerationContext;
+};
+
+export type CompliancePolicyRuleContext = {
+  readonly rule_type: string;
+  readonly rule_code: string;
+  readonly description: string;
 };
 
 export type ComplianceInput = {
   readonly bodyMarkdown: string;
   readonly hasShoppingConnectLinks: boolean;
   readonly hasPriceMentions: boolean;
+  readonly policyRules?: readonly CompliancePolicyRuleContext[];
 };
 
 export type SnsProfile = {
@@ -169,11 +219,38 @@ export type SnsProfile = {
   readonly format: string;
 };
 
+export type DailyBriefingCompanyProfileContext = {
+  readonly companyName?: string;
+  readonly primaryCategories: readonly string[];
+  readonly blockedCategories?: readonly string[];
+  readonly toneRules?: string;
+  readonly contentPrinciples?: string;
+  readonly revenueGoalMonthly?: number | null;
+};
+
+export type DailyBriefingOpportunityMemoContext = {
+  readonly topic?: string;
+  readonly whyNow?: string;
+  readonly homefeedAngle?: string;
+  readonly searchAngle?: string;
+  readonly interestTags?: readonly string[];
+};
+
+export type DailyBriefingInput = {
+  readonly companyProfile: DailyBriefingCompanyProfileContext;
+  readonly opportunityMemoContext?: {
+    readonly latestMemo?: DailyBriefingOpportunityMemoContext | null;
+    readonly recentMemos?: readonly DailyBriefingOpportunityMemoContext[];
+  };
+};
+
 export interface AIAdapter {
+  readonly metadata: AIAdapterMetadata;
   generateOpportunityMemo(input: HermesInput): Promise<OpportunityMemoOutput>;
   generateBlogDraft(input: ContentInput): Promise<BlogDraftOutput>;
   generateSearchStructure(input: ContentInput): Promise<SearchStructureOutput>;
   generateSNSVariant(input: ContentInput, profile: SnsProfile): Promise<SnsVariantOutput>;
   scoreHomefeed(draft: BlogDraftOutput): Promise<number>;
   checkCompliance(input: ComplianceInput): Promise<ComplianceOutput>;
+  generateDailyBriefing(input: DailyBriefingInput): Promise<DailyBriefingOutput>;
 }
