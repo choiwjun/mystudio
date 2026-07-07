@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-web-test-report",
+  "goalId": "G001",
+  "worktree": "/mnt/c/Users/wj941/OneDrive/바탕 화면/jproject/codex/mystudio-ultragoal-gap",
+  "branch": "ultragoal-gap-implementation",
+  "base": "origin/main",
+  "commands": [
+    {
+      "command": "npm run format",
+      "status": "passed",
+      "summary": "Biome check --write completed with no pending formatter changes before final verification."
+    },
+    {
+      "command": "npm run lint",
+      "status": "passed",
+      "summary": "Biome checked 116 files with no fixes required."
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "summary": "tsc --noEmit completed successfully."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "summary": "Vitest passed 13 test files, 170 tests; 1 optional live Naver smoke test skipped because RUN_NAVER_LIVE/credentials are not enabled."
+    },
+    {
+      "command": "npm run test:e2e",
+      "status": "passed",
+      "summary": "Next production build plus Playwright passed 3 real-app live-surface tests."
+    },
+    {
+      "command": "npm run build",
+      "status": "passed",
+      "summary": "Next.js production build compiled and generated 31 static pages successfully."
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "summary": "No whitespace errors in current diff."
+    }
+  ],
+  "artifactRefs": [
+    {
+      "id": "g001-live-products",
+      "kind": "web-gui-screenshot",
+      "path": "artifacts/g001-live-products.jpg",
+      "description": "Real Next app Revenue Desk product import fail-closed manual fallback screenshot."
+    },
+    {
+      "id": "g001-live-compliance",
+      "kind": "web-gui-screenshot",
+      "path": "artifacts/g001-live-compliance.jpg",
+      "description": "Real Next app Content Factory medium compliance dismissal reason/audit screenshot."
+    },
+    {
+      "id": "g001-live-kanban",
+      "kind": "web-gui-screenshot",
+      "path": "artifacts/g001-live-kanban.jpg",
+      "description": "Real Next app HQ Kanban compliance side-effect returned-status screenshot."
+    }
+  ],
+  "coverage": [
+    "Naver official API mocked integration and executable optional live-smoke gate",
+    "fivetaku/insane-search pinned worker contract and fail-closed product import",
+    "PackageStatus transition graph and route error mapping",
+    "raw_items and agent_runs retention cleanup predicates",
+    "Compliance medium dismissal reason UI and audit display",
+    "Kanban compliance side-effect and returned-status/error copy",
+    "Touched UI polish/accessibility labels/disabled explanations",
+    "Playwright live-surface verification with screenshots"
+  ]
+}

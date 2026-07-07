@@ -32,6 +32,11 @@ export type DetailComplianceIssue = {
   readonly dismissed_at?: string | null;
   readonly dismissed_by?: string | null;
   readonly dismiss_reason?: string | null;
+  readonly dismissal?: {
+    readonly dismissed_at: string;
+    readonly dismissed_by: string | null;
+    readonly reason: string | null;
+  } | null;
 };
 
 export type DetailTitleCandidate = {

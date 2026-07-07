@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   DetailComplianceCheck,
   DetailContentPackage,
@@ -17,13 +18,12 @@ type ContentPackageLayoutProps = {
   readonly draft: DetailDraft;
   readonly draftBody: string;
   readonly exportAllowed: boolean;
-  readonly highRisk: boolean;
   readonly keywordText: string;
   readonly packageData: DetailContentPackage;
   readonly status: string;
   readonly onApplyFixes: (checkId: string) => void;
   readonly onDecide: (action: "approve" | "reject") => void;
-  readonly onDismissIssue: (issueId: string) => void;
+  readonly onDismissIssue: (issueId: string, dismissReason: string) => void;
   readonly onDraftBodyChange: (body: string) => void;
   readonly onExport: (format: ExportFormatName) => void;
   readonly onRestoreOriginal: () => void;
@@ -41,6 +41,37 @@ function tabLabel(tab: DetailTab): string {
   return tab === "compliance" ? "검수" : "편집";
 }
 
+const lowRiskDismissReason = "owner accepted low-risk issue";
+
+function exportBlockedMessage(check: DetailComplianceCheck | null, exportAllowed: boolean): string | null {
+  if (exportAllowed) {
+    return null;
+  }
+  if (check === null) {
+    return "검수 전이라 Export가 대기 중입니다.";
+  }
+  if (check.risk_level === "high") {
+    return "고위험 이슈가 있어 Export가 차단되었습니다. 이슈 해결 후 재검수하세요.";
+  }
+  if (check.risk_level === "medium") {
+    return "중위험 이슈는 담당자 사유를 입력해 무시 처리해야 Export가 가능합니다.";
+  }
+  return "검수 결과 Export가 대기 중입니다.";
+}
+
+function formatDismissalAudit(issue: DetailComplianceCheck["issues"][number]): string {
+  const dismissedAt = issue.dismissal?.dismissed_at ?? issue.dismissed_at ?? null;
+  const dismissedBy = issue.dismissal?.dismissed_by ?? issue.dismissed_by ?? null;
+  const reason = issue.dismissal?.reason ?? issue.dismiss_reason ?? null;
+  return [
+    dismissedAt === null ? null : `무시 일시 ${dismissedAt}`,
+    dismissedBy === null ? null : `담당자 ${dismissedBy}`,
+    reason === null ? null : `사유: ${reason}`,
+  ]
+    .filter((item): item is string => item !== null)
+    .join(" · ");
+}
+
 export function ContentPackageLayout({
   activeTab,
   canRunPackageActions,
@@ -48,7 +79,6 @@ export function ContentPackageLayout({
   draft,
   draftBody,
   exportAllowed,
-  highRisk,
   keywordText,
   packageData,
   status,
@@ -69,6 +99,33 @@ export function ContentPackageLayout({
     draft.homefeed_title[0] ??
     draft.search_title ??
     packageData.topic.title;
+  const [dismissReasons, setDismissReasons] = useState<Record<string, string>>({});
+  const [dismissErrors, setDismissErrors] = useState<Record<string, string>>({});
+  const blockedExportMessage = exportBlockedMessage(check, exportAllowed);
+  const approvalBlockedMessage = exportAllowed
+    ? null
+    : "검수 통과/Export 가능 상태에서만 승인할 수 있습니다.";
+
+  function dismissLowIssue(issueId: string): void {
+    onDismissIssue(issueId, lowRiskDismissReason);
+  }
+
+  function dismissMediumIssue(issueId: string): void {
+    const reason = dismissReasons[issueId]?.trim() ?? "";
+    if (reason === "") {
+      setDismissErrors((current) => ({
+        ...current,
+        [issueId]: "중위험 이슈는 담당자 사유를 입력해야 무시할 수 있습니다.",
+      }));
+      return;
+    }
+    setDismissErrors((current) => {
+      const next = { ...current };
+      delete next[issueId];
+      return next;
+    });
+    onDismissIssue(issueId, reason);
+  }
   return (
     <section className="content-detail-grid">
       <aside className="detail-rail" aria-label="콘텐츠 입력 정보">
@@ -233,22 +290,62 @@ export function ContentPackageLayout({
                 ? "검수 전입니다."
                 : `Risk ${check.risk_level} · Export ${check.export_allowed ? "allowed" : "blocked"}`}
             </p>
-            {check?.issues.map((issue) => (
-              <div className="memo-row" key={issue.id}>
-                <p className="muted">
-                  {issue.severity}: {issue.message}
-                  {issue.dismissed_at === null || issue.dismissed_at === undefined
-                    ? ""
-                    : " · dismissed"}
-                </p>
-                {issue.suggested_fix === null ? null : <p>{issue.suggested_fix}</p>}
-                {issue.severity === "high" ? null : (
-                  <button className="button" onClick={() => onDismissIssue(issue.id)} type="button">
-                    무시
-                  </button>
-                )}
-              </div>
-            ))}
+            {check?.issues.map((issue) => {
+              const dismissed = issue.dismissed === true || (issue.dismissed_at ?? null) !== null;
+              const reasonInputId = `dismiss-reason-${issue.id}`;
+              const reasonError = dismissErrors[issue.id] ?? "";
+              return (
+                <div className="memo-row" key={issue.id}>
+                  <p className="muted">
+                    {issue.severity}: {issue.message}
+                    {dismissed ? " · dismissed" : ""}
+                  </p>
+                  {issue.suggested_fix === null ? null : <p>{issue.suggested_fix}</p>}
+                  {dismissed ? (
+                    <p className="muted">{formatDismissalAudit(issue)}</p>
+                  ) : null}
+                  {!dismissed && issue.severity === "high" ? (
+                    <p className="form-error">고위험 이슈는 무시할 수 없습니다. 수정 후 재검수하세요.</p>
+                  ) : null}
+                  {!dismissed && issue.severity === "low" ? (
+                    <button className="button" onClick={() => dismissLowIssue(issue.id)} type="button">
+                      낮은 위험 무시
+                    </button>
+                  ) : null}
+                  {!dismissed && issue.severity === "medium" ? (
+                    <>
+                      <label htmlFor={reasonInputId}>중위험 무시 사유</label>
+                      <textarea
+                        aria-describedby={reasonError === "" ? undefined : `${reasonInputId}-error`}
+                        id={reasonInputId}
+                        onChange={(event) => {
+                          setDismissReasons((current) => ({
+                            ...current,
+                            [issue.id]: event.target.value,
+                          }));
+                          if (event.target.value.trim() !== "") {
+                            setDismissErrors((current) => {
+                              const next = { ...current };
+                              delete next[issue.id];
+                              return next;
+                            });
+                          }
+                        }}
+                        value={dismissReasons[issue.id] ?? ""}
+                      />
+                      {reasonError === "" ? null : (
+                        <p className="form-error" id={`${reasonInputId}-error`}>
+                          {reasonError}
+                        </p>
+                      )}
+                      <button className="button" onClick={() => dismissMediumIssue(issue.id)} type="button">
+                        사유 입력 후 무시
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
             <div className="button-row">
               <button className="button primary" onClick={onRunCompliance} type="button">
                 재검수
@@ -283,7 +380,7 @@ export function ContentPackageLayout({
       <aside className="detail-rail" aria-label="승인 및 Export">
         <section className="section-block">
           <h2>Export</h2>
-          {highRisk || !exportAllowed ? <p className="form-error">고위험 이슈 해결 필요</p> : null}
+          {blockedExportMessage === null ? null : <p className="form-error">{blockedExportMessage}</p>}
           <div className="button-row">
             {exportFormats.map((format) => (
               <button
@@ -300,8 +397,16 @@ export function ContentPackageLayout({
         </section>
         <section className="section-block">
           <h2>Owner Approval</h2>
+          {approvalBlockedMessage === null ? null : (
+            <p className="form-error">{approvalBlockedMessage}</p>
+          )}
           <div className="button-row">
-            <button className="button primary" onClick={() => onDecide("approve")} type="button">
+            <button
+              className="button primary"
+              disabled={!exportAllowed}
+              onClick={() => onDecide("approve")}
+              type="button"
+            >
               승인
             </button>
             <button className="button" onClick={() => onDecide("reject")} type="button">

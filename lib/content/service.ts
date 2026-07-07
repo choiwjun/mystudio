@@ -139,6 +139,17 @@ export const contentPackageStatusPatchSchema = z.object({
   status: z.nativeEnum(PackageStatus),
   reason: z.string().trim().min(1).optional(),
 });
+export type ContentPackageStatusBlockedReason = "draft_required";
+
+export class ContentPackageStatusBlockedError extends Error {
+  readonly reason: ContentPackageStatusBlockedReason;
+
+  constructor(reason: ContentPackageStatusBlockedReason, message: string) {
+    super(message);
+    this.name = "ContentPackageStatusBlockedError";
+    this.reason = reason;
+  }
+}
 
 export async function createOrBriefContentPackage(
   input: z.infer<typeof contentPackageCreateSchema>,
@@ -180,13 +191,20 @@ export async function updateContentPackageStatus(
   if (contentPackage === null) {
     return null;
   }
+  if (contentPackage.status === input.status) {
+    return serializeContentPackage(contentPackage);
+  }
   if (input.status === PackageStatus.compliance_checked) {
+    if (contentPackage.drafts.length === 0) {
+      throw new ContentPackageStatusBlockedError(
+        "draft_required",
+        "A draft is required before compliance review.",
+      );
+    }
     const check = await runComplianceCheck({ content_package_id: id });
     if (check !== null) {
       return getContentPackage(id);
     }
-  }
-  if (contentPackage.status === input.status) {
     return serializeContentPackage(contentPackage);
   }
   await transitionContentPackageStatus({

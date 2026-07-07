@@ -88,6 +88,7 @@ export function buildRawItemInputs(input: BuildRawItemInputsInput): readonly Raw
     metadata: {
       query: input.query,
       source: "naver_api",
+      itemType: input.itemType,
     },
     collectedAt: input.collectedAt,
     expiresAt: expiresFrom(input.collectedAt),

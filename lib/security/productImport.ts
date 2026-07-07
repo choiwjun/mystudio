@@ -3,10 +3,11 @@ import { isIP } from "node:net";
 
 const allowedHosts = new Set(["search.shopping.naver.com", "shopping.naver.com"]);
 const maxProductImportUrlLength = 2048;
+export type ProductImportUrlFailureReason = "invalid_url" | "blocked_domain" | "private_ip";
 
 export type ProductImportUrlResult =
   | { readonly ok: true; readonly url: URL }
-  | { readonly ok: false; readonly reason: "invalid_url" | "blocked_domain" | "private_ip" };
+  | { readonly ok: false; readonly reason: ProductImportUrlFailureReason };
 
 export async function validateProductImportUrl(input: string): Promise<ProductImportUrlResult> {
   const trimmedInput = input.trim();

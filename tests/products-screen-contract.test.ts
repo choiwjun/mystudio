@@ -76,6 +76,8 @@ describe("products screen contract", () => {
   it("keeps automatic product import behind the SSRF gate", () => {
     expect(productImportRouteSource).toContain('code: "PRODUCT_IMPORT_BLOCKED"');
     expect(productImportRouteSource).toContain("Use manual input");
+    expect(productImportRouteSource).not.toContain("message.startsWith");
+    expect(productImportRouteSource).not.toContain('replace("PRODUCT_IMPORT_BLOCKED:"');
     expect(productServiceSource).toContain(
       'import { validateProductImportUrl } from "@/lib/security/productImport"',
     );
@@ -83,7 +85,9 @@ describe("products screen contract", () => {
       "const validatedUrl = await validateProductImportUrl(input.url)",
     );
     expect(productServiceSource).toContain("if (!validatedUrl.ok)");
-    expect(productServiceSource).toContain("parseNaverProductFromUrl(validatedUrl.url)");
+    expect(productServiceSource).toContain(
+      "const crawlerResult = await importProductWithInsaneSearch(validatedUrl.url)",
+    );
 
     expect(productCreatePanelSource).toContain("URL 정보 가져오기");
     expect(productCreatePanelSource).not.toContain("자동 크롤링");

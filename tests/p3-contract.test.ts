@@ -507,8 +507,9 @@ describe("P3 G007 staged content package contract", () => {
     expect(complianceServiceSource).toContain("compliancePassTransitionStatuses");
     expect(complianceServiceSource).toContain("complianceFailTransitionStatuses");
     expect(complianceServiceSource).toContain("Math.max(input.currentProgress ?? 0, 0.75)");
-    expect(exportServiceSource).toContain("exportTransitionStatuses");
+    expect(exportServiceSource).toContain("exportableStatuses");
     expect(exportServiceSource).toContain("Math.max(input.currentProgress ?? 0, 0.9)");
+    expect(exportServiceSource).toContain("Owner approval is required before export.");
     expect(contentDetailSource).toContain(
       "nextComplianceStatus(current.status, check.export_allowed)",
     );
@@ -1089,7 +1090,23 @@ describe("P3 export contract", () => {
     expect(plan.cutoffs.exports.toISOString()).toBe("2026-04-07T00:00:00.000Z");
     expect(plan.cutoffs.resolved_errors.toISOString()).toBe("2026-06-06T00:00:00.000Z");
     expect(plan.cutoffs.cost_logs.toISOString()).toBe("2026-01-07T00:00:00.000Z");
-    expect(plan.deleted).toEqual({ exports: 0, resolved_errors: 0, cost_logs: 0 });
+    expect(plan.cutoffs.raw_items.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+    expect(plan.cutoffs.agent_runs.toISOString()).toBe("2026-06-06T00:00:00.000Z");
+    expect(plan.cutoffs.triggered_agent_runs.toISOString()).toBe("2026-04-07T00:00:00.000Z");
+    expect(plan.deleted).toEqual({
+      exports: 0,
+      resolved_errors: 0,
+      cost_logs: 0,
+      raw_items: 0,
+      agent_runs: 0,
+    });
+    expect(plan.skipped).toEqual({
+      exports: 0,
+      resolved_errors: 0,
+      cost_logs: 0,
+      raw_items: 0,
+      agent_runs: 0,
+    });
     expect(retentionServiceSource).toContain('if (input.mode === "dry-run")');
     expect(retentionServiceSource).toContain("resolvedAt: { not: null }");
     expect(retentionServiceSource).toContain('if (input.mode !== "execute")');

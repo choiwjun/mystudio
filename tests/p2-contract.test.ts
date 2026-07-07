@@ -12,8 +12,14 @@ import {
   filterBlockedCategories,
 } from "@/lib/hermes/service";
 import {
+  NaverApiResponseError,
+  NaverClient,
+  NaverClientConfigurationError,
+  type NaverRequesterOptions,
+  shouldRunNaverLiveSmoke,
+} from "@/lib/naver/client";
+import {
   isOlderThanSevenDays,
-  parseNaverProductFromUrl,
   productCreateSchema,
   shoppingConnectLinkCreateSchema,
   shoppingConnectLinkPatchSchema,
@@ -38,6 +44,7 @@ const hermesServiceSource = readFileSync("lib/hermes/service.ts", "utf8");
 const hermesRawItemsSource = readFileSync("lib/hermes/rawItems.ts", "utf8");
 const productManagerSource = readFileSync("components/products/ProductManager.tsx", "utf8");
 const productTablesSource = readFileSync("components/products/ProductTables.tsx", "utf8");
+const productServiceSource = readFileSync("lib/products/service.ts", "utf8");
 
 async function withCronSecret<T>(secret: string, action: () => Promise<T>): Promise<T> {
   const previousSecret = process.env["CRON_SECRET"];
@@ -221,11 +228,171 @@ describe("P2 Hermes contract", () => {
         metadata: {
           query: "장마철 자취방 습기",
           source: "naver_api",
+          itemType: "naver_blog",
         },
         collectedAt,
         expiresAt: new Date("2026-07-12T00:00:00.000Z"),
       },
     ]);
+  });
+
+  it("maps official Naver blog and shopping API responses through separated endpoints", async () => {
+    const calls: Array<{
+      readonly endpoint: string;
+      readonly options: NaverRequesterOptions;
+    }> = [];
+    const client = new NaverClient(
+      {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        blogSearchUrl: "https://openapi.naver.test/v1/search/blog.json",
+        shoppingSearchUrl: "https://openapi.naver.test/v1/search/shop.json",
+        timeoutMs: 1234,
+      },
+      async (endpoint, options) => {
+        calls.push({ endpoint, options });
+        return {
+          items: [
+            {
+              title: endpoint.includes("blog") ? "블로그 결과" : "쇼핑 결과",
+              link: endpoint.includes("blog")
+                ? "https://blog.naver.com/paperclip/1"
+                : "https://shopping.naver.com/products/1",
+              description: endpoint.includes("blog") ? "공식 블로그 매핑" : "공식 쇼핑 매핑",
+            },
+          ],
+        };
+      },
+    );
+
+    await expect(client.searchBlog("장마철 자취방 습기")).resolves.toEqual([
+      {
+        title: "블로그 결과",
+        link: "https://blog.naver.com/paperclip/1",
+        description: "공식 블로그 매핑",
+      },
+    ]);
+    await expect(client.searchShopping("장마철 자취방 습기")).resolves.toEqual([
+      {
+        title: "쇼핑 결과",
+        link: "https://shopping.naver.com/products/1",
+        description: "공식 쇼핑 매핑",
+      },
+    ]);
+
+    expect(calls.map((call) => call.endpoint)).toEqual([
+      "https://openapi.naver.test/v1/search/blog.json",
+      "https://openapi.naver.test/v1/search/shop.json",
+    ]);
+    expect(calls.map((call) => call.options.searchParams)).toEqual([
+      { query: "장마철 자취방 습기", display: "10" },
+      { query: "장마철 자취방 습기", display: "10" },
+    ]);
+    expect(calls.every((call) => call.options.timeout === 1234)).toBe(true);
+    expect(calls.every((call) => call.options.retry.limit === 1)).toBe(true);
+    expect(calls.every((call) => call.options.headers["X-Naver-Client-Id"] === "client-id")).toBe(
+      true,
+    );
+    expect(
+      calls.every((call) => call.options.headers["X-Naver-Client-Secret"] === "client-secret"),
+    ).toBe(true);
+  });
+
+  it("fails closed on malformed official Naver API responses with sanitized errors", async () => {
+    const client = new NaverClient(
+      {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        blogSearchUrl: "https://openapi.naver.test/v1/search/blog.json",
+        shoppingSearchUrl: "https://openapi.naver.test/v1/search/shop.json",
+        timeoutMs: 1234,
+      },
+      async () => ({ items: [{ title: "bad", link: "not-a-url" }] }),
+    );
+
+    await expect(client.searchBlog("장마철 자취방 습기")).rejects.toBeInstanceOf(
+      NaverApiResponseError,
+    );
+    await expect(client.searchBlog("장마철 자취방 습기")).rejects.not.toThrow("client-secret");
+    await expect(client.searchBlog("장마철 자취방 습기")).rejects.not.toThrow("not-a-url");
+  });
+
+  it("fails fast when NaverClient receives blank credentials", () => {
+    expect(
+      () =>
+        new NaverClient({
+          clientId: "",
+          clientSecret: "client-secret",
+          blogSearchUrl: "https://openapi.naver.test/v1/search/blog.json",
+          shoppingSearchUrl: "https://openapi.naver.test/v1/search/shop.json",
+          timeoutMs: 1234,
+        }),
+    ).toThrow(NaverClientConfigurationError);
+    expect(
+      () =>
+        new NaverClient({
+          clientId: "client-id",
+          clientSecret: " ",
+          blogSearchUrl: "https://openapi.naver.test/v1/search/blog.json",
+          shoppingSearchUrl: "https://openapi.naver.test/v1/search/shop.json",
+          timeoutMs: 1234,
+        }),
+    ).toThrow(NaverClientConfigurationError);
+  });
+
+  it("keeps live Naver smoke optional behind explicit credentials and RUN_NAVER_LIVE", () => {
+    expect(shouldRunNaverLiveSmoke({})).toEqual({
+      run: false,
+      reason: "RUN_NAVER_LIVE is not 1.",
+    });
+    expect(shouldRunNaverLiveSmoke({ RUN_NAVER_LIVE: "1" })).toEqual({
+      run: false,
+      reason: "NAVER_CLIENT_ID is missing.",
+    });
+    expect(
+      shouldRunNaverLiveSmoke({
+        RUN_NAVER_LIVE: "1",
+        NAVER_CLIENT_ID: "client-id",
+      }),
+    ).toEqual({
+      run: false,
+      reason: "NAVER_CLIENT_SECRET is missing.",
+    });
+    expect(
+      shouldRunNaverLiveSmoke({
+        RUN_NAVER_LIVE: "1",
+        NAVER_CLIENT_ID: "client-id",
+        NAVER_CLIENT_SECRET: "client-secret",
+      }),
+    ).toEqual({ run: true });
+  });
+
+  const liveSmokeGate = shouldRunNaverLiveSmoke();
+  const runLiveSmoke = liveSmokeGate.run ? it : it.skip;
+  runLiveSmoke("runs optional live Naver official API smoke when explicitly enabled", async () => {
+    const client = new NaverClient({
+      clientId: process.env["NAVER_CLIENT_ID"] ?? "",
+      clientSecret: process.env["NAVER_CLIENT_SECRET"] ?? "",
+      blogSearchUrl:
+        process.env["NAVER_BLOG_SEARCH_URL"] ?? "https://openapi.naver.com/v1/search/blog.json",
+      shoppingSearchUrl:
+        process.env["NAVER_SHOPPING_SEARCH_URL"] ?? "https://openapi.naver.com/v1/search/shop.json",
+      timeoutMs: 10_000,
+    });
+
+    const [blogItems, shoppingItems] = await Promise.all([
+      client.searchBlog("자취방"),
+      client.searchShopping("제습기"),
+    ]);
+
+    for (const items of [blogItems, shoppingItems]) {
+      expect(items.length).toBeLessThanOrEqual(10);
+      expect(items.length).toBeGreaterThan(0);
+      for (const item of items) {
+        expect(item.title.trim().length).toBeGreaterThan(0);
+        expect(new URL(item.link).protocol).toMatch(/^https?:$/);
+      }
+    }
   });
 
   it("fails fast instead of falling back when Naver credentials are missing", async () => {
@@ -276,16 +443,11 @@ describe("P2 products contract", () => {
     expect(isOlderThanSevenDays(null, now)).toBe(true);
   });
 
-  it("parses a Naver Shopping URL into importable product fields", () => {
-    const parsed = parseNaverProductFromUrl(
-      new URL("https://search.shopping.naver.com/search/all?query=%EC%A0%9C%EC%8A%B5%EA%B8%B0"),
-    );
-
-    expect(parsed).toMatchObject({
-      product_name: "제습기",
-      source: "naver_shopping",
-      product_url: "https://search.shopping.naver.com/search/all?query=%EC%A0%9C%EC%8A%B5%EA%B8%B0",
-    });
+  it("delegates Naver Shopping URL import to the pinned insane-search worker path", () => {
+    expect(productServiceSource).toContain("importProductWithInsaneSearch(validatedUrl.url)");
+    expect(productServiceSource).toContain("new ProductImportBlockedError(crawlerResult.reason");
+    expect(productServiceSource).not.toContain("parseNaverProductFromUrl");
+    expect(productServiceSource).not.toContain("missing_product_metadata");
   });
 
   it("validates manual products and shopping connect links", () => {

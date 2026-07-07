@@ -1,6 +1,10 @@
 import { fail, ok } from "@/lib/api/response";
 import { withAuthenticatedApi } from "@/lib/auth/guards";
-import { importProduct, productImportSchema } from "@/lib/products/service";
+import {
+  importProduct,
+  ProductImportBlockedError,
+  productImportSchema,
+} from "@/lib/products/service";
 
 export const POST = withAuthenticatedApi("products.import", async (request) => {
   const parsed = productImportSchema.safeParse(await request.json().catch(() => null));
@@ -18,13 +22,13 @@ export const POST = withAuthenticatedApi("products.import", async (request) => {
   try {
     return ok(await importProduct(parsed.data), { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Product import failed.";
-    if (message.startsWith("PRODUCT_IMPORT_BLOCKED:")) {
+    if (error instanceof ProductImportBlockedError) {
+      const { reason, traceId } = error;
       return fail(
         {
           code: "PRODUCT_IMPORT_BLOCKED",
           message: "This URL cannot be imported automatically. Use manual input.",
-          details: { reason: message.replace("PRODUCT_IMPORT_BLOCKED:", "") },
+          details: { reason, ...(traceId === undefined ? {} : { trace_id: traceId }) },
         },
         422,
       );

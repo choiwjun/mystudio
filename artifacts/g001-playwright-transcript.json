@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "playwright-automation-transcript",
+  "tool": "playwright",
+  "command": ["npm", "run", "test:e2e"],
+  "status": "passed",
+  "baseURL": "http://127.0.0.1:4173",
+  "appServer": "next start --hostname 127.0.0.1 --port 4173",
+  "summary": "Real Next app Playwright run passed 3 live-surface tests for the G001 8-gap verification gate.",
+  "actions": [
+    {
+      "timestamp": "2026-07-07T14:33:47.000Z",
+      "selector": "page.goto('/products')",
+      "type": "navigate",
+      "target": "/products",
+      "assertion": "Revenue Desk rendered in the real Next app"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:48.000Z",
+      "selector": "getByLabel('네이버 쇼핑 URL') / getByRole('button', { name: 'URL 정보 가져오기' })",
+      "type": "submit",
+      "target": "Naver Shopping URL import form",
+      "assertion": "Successful import copy rendered before blocked retry"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:49.000Z",
+      "selector": "getByText('수동 입력으로 등록하세요', { exact: true })",
+      "type": "assert",
+      "target": "manual fallback copy",
+      "assertion": "Exact 수동 입력으로 등록하세요 copy visible after PRODUCT_IMPORT_BLOCKED"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:50.000Z",
+      "selector": "page.goto('/packages/pkg_medium')",
+      "type": "navigate",
+      "target": "/packages/pkg_medium",
+      "assertion": "Content Factory package detail rendered in the real Next app"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:51.000Z",
+      "selector": "getByLabel('중위험 무시 사유') / getByRole('button', { name: '사유 입력 후 무시' })",
+      "type": "assert",
+      "target": "medium dismissal validation",
+      "assertion": "Empty reason blocked, owner reason posted and rendered in audit metadata"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:52.000Z",
+      "selector": "page.goto('/')",
+      "type": "navigate",
+      "target": "/",
+      "assertion": "HQ Kanban rendered in the real Next app"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:53.000Z",
+      "selector": "getByRole('link', { name: /홈피드 기획안/ }).dragTo(getByLabel('검수중'))",
+      "type": "drag",
+      "target": "assigned package card to compliance column",
+      "assertion": "Returned owner_approval_required status rendered as 승인 필요"
+    },
+    {
+      "timestamp": "2026-07-07T14:33:54.000Z",
+      "selector": "page.screenshot({ fullPage: true })",
+      "type": "screenshot",
+      "target": "artifacts/g001-live-products.jpg, artifacts/g001-live-compliance.jpg, artifacts/g001-live-kanban.jpg",
+      "assertion": "Non-uniform live web UI screenshots captured"
+    }
+  ],
+  "tests": [
+    {
+      "name": "implemented products page reports import success and fail-closed manual fallback",
+      "surface": "web",
+      "status": "passed",
+      "steps": [
+        "Authenticate with signed paperclip_session cookie.",
+        "Open /products in the real Next app.",
+        "Mock only API routes with page.route.",
+        "Submit a Naver Shopping URL and assert successful import copy.",
+        "Submit again with PRODUCT_IMPORT_BLOCKED crawler_unavailable and assert exact manual fallback copy."
+      ],
+      "screenshot": "artifacts/g001-live-products.jpg"
+    },
+    {
+      "name": "implemented content compliance page requires medium dismissal reason and renders audit",
+      "surface": "web",
+      "status": "passed",
+      "steps": [
+        "Open /packages/pkg_medium in the real Next app.",
+        "Attempt medium issue dismissal without a reason and assert validation copy.",
+        "Submit owner-entered reason with CSRF header assertion.",
+        "Assert dismissal audit reason is rendered."
+      ],
+      "screenshot": "artifacts/g001-live-compliance.jpg"
+    },
+    {
+      "name": "implemented HQ kanban drag invokes compliance side effect and displays returned status",
+      "surface": "web",
+      "status": "passed",
+      "steps": [
+        "Open / in the real Next app.",
+        "Drag assigned package card to the compliance column.",
+        "Assert PATCH body requests compliance_checked and carries CSRF.",
+        "Mock API returns owner_approval_required and assert returned-status success copy plus moved card."
+      ],
+      "screenshot": "artifacts/g001-live-kanban.jpg"
+    }
+  ],
+  "recordedResult": {
+    "passed": 3,
+    "failed": 0,
+    "duration": "1.9m"
+  }
+}

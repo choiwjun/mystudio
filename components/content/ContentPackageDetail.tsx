@@ -223,7 +223,6 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   const draft = firstDraft(packageData);
   const check = packageData.compliance_checks[0] ?? null;
   const exportAllowed = check?.export_allowed === true;
-  const highRisk = check?.risk_level === "high";
   const canRunPackageActions =
     !isDemoMode && packageData.status !== "load_failed" && packageData.paperclip_decision_id !== "";
 
@@ -506,7 +505,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
     setStatus("수정 적용됨");
   }
 
-  async function dismissIssue(issueId: string): Promise<void> {
+  async function dismissIssue(issueId: string, dismissReason: string): Promise<void> {
     if (isDemoMode && issueId.startsWith("demo")) {
       setStatus("데모 이슈 무시");
       return;
@@ -515,7 +514,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       `/api/compliance/issues/${issueId}/dismiss`,
       csrfToken,
       {
-        dismiss_reason: "owner accepted medium or low risk",
+        dismiss_reason: dismissReason,
       },
     );
     setPackageData((current) => ({
@@ -591,11 +590,10 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       draft={draft}
       draftBody={draftBody}
       exportAllowed={exportAllowed}
-      highRisk={highRisk}
       keywordText={keywordText}
       onApplyFixes={(checkId) => void applyFixes(checkId)}
       onDecide={(action) => void decide(action)}
-      onDismissIssue={(issueId) => void dismissIssue(issueId)}
+      onDismissIssue={(issueId, dismissReason) => void dismissIssue(issueId, dismissReason)}
       onGeneratePackage={() => void generatePackage()}
       onGenerateSearchStructure={() => void generateSearchStructure()}
       onGenerateTitleCandidates={() => void generateTitles()}

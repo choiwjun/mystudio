@@ -1,4 +1,8 @@
 import type { ContentPackage, PackageStatus, Prisma } from "@prisma/client";
+import {
+  assertPackageStatusTransitionAllowed,
+  type PackageStatusTransitionBypass,
+} from "@/lib/content/statusTransitions";
 import { prisma } from "@/lib/db";
 
 export const contentPackageInclude = {
@@ -42,12 +46,20 @@ export type ContentPackageStatusTransitionInput = {
   readonly actor?: string;
   readonly reason?: string;
   readonly progress?: number;
+  readonly bypass?: PackageStatusTransitionBypass;
 };
 
 export async function transitionContentPackageStatusInTransaction(
   tx: Prisma.TransactionClient,
   input: ContentPackageStatusTransitionInput,
 ): Promise<ContentPackage> {
+  assertPackageStatusTransitionAllowed(input.fromStatus, input.toStatus, input.bypass);
+  if (input.fromStatus === input.toStatus) {
+    return tx.contentPackage.findUniqueOrThrow({
+      where: { id: input.id },
+    });
+  }
+
   const updated = await tx.contentPackage.update({
     where: { id: input.id },
     data: {
