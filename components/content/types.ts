@@ -20,7 +20,6 @@ export type DetailFaqItem = {
   readonly answer: string;
 };
 
-
 export type DetailComplianceIssue = {
   readonly id: string;
   readonly issue_type: string;
@@ -48,7 +47,6 @@ export type DetailTitleCandidate = {
   readonly selected: boolean;
 };
 
-
 export type DetailComplianceCheck = {
   readonly id: string;
   readonly risk_level: string;
@@ -69,7 +67,6 @@ export type DetailShoppingConnectLink = {
   readonly notes: string | null;
   readonly stale: boolean;
 };
-
 
 export type DetailContentPackage = {
   readonly id: string;

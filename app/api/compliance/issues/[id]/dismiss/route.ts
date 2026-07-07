@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
     if (!parsed.success) {
       return fail(
         {
-          code: "BAD_REQUEST",
+          code: "VALIDATION_ERROR",
           message: "Invalid issue dismissal payload.",
           details: { issues: parsed.error.flatten().fieldErrors },
         },

@@ -11,7 +11,9 @@ const publicPathPrefixes = [
 ] as const;
 
 function isPublicPath(pathname: string): boolean {
-  return publicPathPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return publicPathPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 function hasHermesScanCronCredentialAttempt(request: NextRequest): boolean {

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { NextResponse } from "next/server";
 
 export type ApiErrorBody = {
@@ -16,6 +17,20 @@ export type ApiResponse<T> = {
 
 export function createRequestId(): string {
   return `req_${crypto.randomUUID()}`;
+}
+
+const requestIdStorage = new AsyncLocalStorage<string>();
+
+export function runWithRequestId<T>(requestId: string, callback: () => T): T {
+  return requestIdStorage.run(requestId, callback);
+}
+
+export function getCurrentRequestId(): string | null {
+  return requestIdStorage.getStore() ?? null;
+}
+
+function resolveResponseRequestId(): string {
+  return getCurrentRequestId() ?? createRequestId();
 }
 
 export function apiSuccess<T>(data: T, requestId: string): ApiResponse<T> {
@@ -39,11 +54,9 @@ export function apiFailure(error: ApiErrorBody, requestId: string): ApiResponse<
 }
 
 export function ok<T>(data: T, init?: ResponseInit): NextResponse<ApiResponse<T>> {
-  const requestId = createRequestId();
-  return NextResponse.json(apiSuccess(data, requestId), init);
+  return NextResponse.json(apiSuccess(data, resolveResponseRequestId()), init);
 }
 
 export function fail(error: ApiErrorBody, status: number): NextResponse<ApiResponse<never>> {
-  const requestId = createRequestId();
-  return NextResponse.json(apiFailure(error, requestId), { status });
+  return NextResponse.json(apiFailure(error, resolveResponseRequestId()), { status });
 }

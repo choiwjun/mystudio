@@ -59,7 +59,6 @@ export function requestHqStatusRefresh(): void {
   window.dispatchEvent(new Event(hqStatusRefreshEvent));
 }
 
-
 export function HqStatusBadge({ compact = false }: HqStatusBadgeProps) {
   const [status, setStatus] = useState<HqStatusData | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");

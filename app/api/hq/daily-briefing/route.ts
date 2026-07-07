@@ -10,7 +10,7 @@ import { createDailyBriefing, dailyBriefingSchema } from "@/lib/hq/service";
 export const POST = withAuthenticatedApi("hq.daily-briefing", async (request) => {
   const parsed = dailyBriefingSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
-    return fail({ code: "BAD_REQUEST", message: "Invalid daily briefing payload." }, 400);
+    return fail({ code: "VALIDATION_ERROR", message: "Invalid daily briefing payload." }, 400);
   }
   try {
     return ok(await createDailyBriefing(parsed.data), { status: 201 });

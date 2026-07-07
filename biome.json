@@ -7,8 +7,11 @@
       "scripts/**/*",
       "tests/**/*",
       "prisma/**/*",
+      "components/**/*",
       "next.config.mjs",
       "vitest.config.ts",
+      "playwright.config.ts",
+      "proxy.ts",
       "tsconfig.json",
       "package.json"
     ]

@@ -88,8 +88,8 @@ export function HqWinningPatternsPanel() {
             ) : null}
             {patterns.hook_type_stats.slice(0, 3).map((hookStat) => (
               <p className="muted" key={hookStat.hook_type}>
-                {hookStat.hook_type}: 평균 {hookStat.average_views.toLocaleString("ko-KR")} 조회 · 표본{" "}
-                {hookStat.sample_count.toLocaleString("ko-KR")}
+                {hookStat.hook_type}: 평균 {hookStat.average_views.toLocaleString("ko-KR")} 조회 ·
+                표본 {hookStat.sample_count.toLocaleString("ko-KR")}
               </p>
             ))}
           </div>
@@ -99,16 +99,20 @@ export function HqWinningPatternsPanel() {
               <p className="muted">아직 수익 상품군이 없습니다.</p>
             ) : null}
             {patterns.top_product_categories.slice(0, 3).map((product) => (
-              <p className="muted" key={`${product.category ?? "uncategorized"}-${product.product_name}`}>
-                {product.category ?? "미분류"} · {product.product_name} · {formatPrice(product.price)}
+              <p
+                className="muted"
+                key={`${product.category ?? "uncategorized"}-${product.product_name}`}
+              >
+                {product.category ?? "미분류"} · {product.product_name} ·{" "}
+                {formatPrice(product.price)}
               </p>
             ))}
           </div>
           <div>
             <h3>갱신 필요</h3>
             <p className="muted">
-              가격 {patterns.refresh_candidates.stale_products_count.toLocaleString("ko-KR")}건 · 링크{" "}
-              {patterns.refresh_candidates.stale_links_count.toLocaleString("ko-KR")}건 · 총{" "}
+              가격 {patterns.refresh_candidates.stale_products_count.toLocaleString("ko-KR")}건 ·
+              링크 {patterns.refresh_candidates.stale_links_count.toLocaleString("ko-KR")}건 · 총{" "}
               {refreshTotal.toLocaleString("ko-KR")}건
             </p>
           </div>

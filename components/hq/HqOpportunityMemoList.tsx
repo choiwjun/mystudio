@@ -111,10 +111,7 @@ export function HqOpportunityMemoList() {
       }
       const sessionPayload = await parseJsonResponse(sessionResponse, sessionResponseSchema);
       const memosPayload = await parseJsonResponse(memosResponse, opportunityMemosResponseSchema);
-      const profilePayload = await parseJsonResponse(
-        profileResponse,
-        companyProfileResponseSchema,
-      );
+      const profilePayload = await parseJsonResponse(profileResponse, companyProfileResponseSchema);
       if (!active) {
         return;
       }
@@ -221,9 +218,7 @@ export function HqOpportunityMemoList() {
           </div>
         ) : null}
       </section>
-      {profileGuardOpen ? (
-        <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} />
-      ) : null}
+      {profileGuardOpen ? <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} /> : null}
     </>
   );
 }

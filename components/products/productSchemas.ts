@@ -22,7 +22,6 @@ export const contentPackageSummarySchema = z.object({
   status: z.string().min(1),
 });
 
-
 export const shoppingConnectLinkSchema = z.object({
   id: z.string().min(1),
   product_id: z.string().min(1),

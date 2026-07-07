@@ -34,7 +34,6 @@ type WinningPatternsPayload = {
   };
 };
 
-
 const hookTypes = ["problem_empathy", "comparison_choice", "checklist", "seasonal_timing"] as const;
 
 async function getApiData<T>(url: string): Promise<T> {
@@ -60,7 +59,9 @@ export function PerformanceRecorder() {
     average_revenue: 0,
     best_hook_type: null,
   });
-  const [contentPackages, setContentPackages] = useState<ContentPackagePayload["content_packages"]>([]);
+  const [contentPackages, setContentPackages] = useState<ContentPackagePayload["content_packages"]>(
+    [],
+  );
   const [winningPatterns, setWinningPatterns] = useState<WinningPatternsPayload | null>(null);
 
   useEffect(() => {
@@ -145,7 +146,10 @@ export function PerformanceRecorder() {
         </label>
         <label>
           콘텐츠 패키지
-          <select onChange={(event) => setContentPackageId(event.target.value)} value={contentPackageId}>
+          <select
+            onChange={(event) => setContentPackageId(event.target.value)}
+            value={contentPackageId}
+          >
             <option value="">패키지 선택</option>
             {contentPackages.slice(0, 20).map((contentPackage) => (
               <option key={contentPackage.id} value={contentPackage.id}>
@@ -161,7 +165,11 @@ export function PerformanceRecorder() {
           </label>
           <label>
             클릭 수
-            <input onChange={(event) => setClicks(event.target.value)} type="number" value={clicks} />
+            <input
+              onChange={(event) => setClicks(event.target.value)}
+              type="number"
+              value={clicks}
+            />
           </label>
         </div>
         <div className="form-row">
@@ -195,7 +203,9 @@ export function PerformanceRecorder() {
         <div className="metric-grid">
           <span className="badge">평균 조회 {summary.average_views.toLocaleString("ko-KR")}</span>
           <span className="badge">평균 클릭 {summary.average_clicks.toLocaleString("ko-KR")}</span>
-          <span className="badge">평균 수익 {summary.average_revenue.toLocaleString("ko-KR")}원</span>
+          <span className="badge">
+            평균 수익 {summary.average_revenue.toLocaleString("ko-KR")}원
+          </span>
           <span className="badge">Best {summary.best_hook_type ?? "없음"}</span>
         </div>
         {winningPatterns === null ? null : (

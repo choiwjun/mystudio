@@ -18,7 +18,7 @@ export const POST = withAuthenticatedApi("content-packages.create", async (reque
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid content package payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

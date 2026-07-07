@@ -16,7 +16,7 @@ export const POST = withAuthenticatedApi("shopping-connect-links.create", async 
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid shopping connect link payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

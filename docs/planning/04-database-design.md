@@ -512,7 +512,7 @@ model ErrorLog {
   errorCode             String   @map("error_code")
   message               String
   stackTrace            String?  @map("stack_trace")
-  // @TASK B5: context에 request_body 원문 저장 금지. 민감 필드 거부목록(password, token, secret, authorization) 마스킹 후 저장
+  // @TASK B5: context에 request_body 원문 저장 금지. 민감 필드 거부목록(password, token, secret, authorization, apiKey) 마스킹 후 저장
   context               Json?    // { user_id, api_path, request_id, request_body_masked: {...} }
   severity              String   @default("low") // "low" / "medium" / "high"
   createdAt             DateTime @default(now()) @map("created_at")

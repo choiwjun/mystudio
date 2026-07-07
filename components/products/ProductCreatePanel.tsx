@@ -68,7 +68,9 @@ export function ProductCreatePanel({
         <label>
           가격
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, price: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, price: event.target.value })
+            }
             type="number"
             value={manualProduct.price}
           />
@@ -76,7 +78,9 @@ export function ProductCreatePanel({
         <label>
           카테고리
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, category: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, category: event.target.value })
+            }
             value={manualProduct.category}
           />
         </label>
@@ -103,14 +107,18 @@ export function ProductCreatePanel({
         <label>
           출처
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, source: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, source: event.target.value })
+            }
             value={manualProduct.source}
           />
         </label>
         <label>
           메모
           <textarea
-            onChange={(event) => onManualProductChange({ ...manualProduct, memo: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, memo: event.target.value })
+            }
             rows={3}
             value={manualProduct.memo}
           />
@@ -165,7 +173,9 @@ export function ProductCreatePanel({
         <label>
           수수료율(%)
           <input
-            onChange={(event) => onLinkFormChange({ ...linkForm, commission_rate: event.target.value })}
+            onChange={(event) =>
+              onLinkFormChange({ ...linkForm, commission_rate: event.target.value })
+            }
             step="0.1"
             type="number"
             value={linkForm.commission_rate}

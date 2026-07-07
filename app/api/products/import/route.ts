@@ -11,7 +11,7 @@ export const POST = withAuthenticatedApi("products.import", async (request) => {
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "A product URL is required.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

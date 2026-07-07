@@ -17,7 +17,7 @@ export const POST = withAuthenticatedApi("performance-logs.create", async (reque
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid performance log payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

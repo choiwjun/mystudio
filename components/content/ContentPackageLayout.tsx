@@ -43,7 +43,10 @@ function tabLabel(tab: DetailTab): string {
 
 const lowRiskDismissReason = "owner accepted low-risk issue";
 
-function exportBlockedMessage(check: DetailComplianceCheck | null, exportAllowed: boolean): string | null {
+function exportBlockedMessage(
+  check: DetailComplianceCheck | null,
+  exportAllowed: boolean,
+): string | null {
   if (exportAllowed) {
     return null;
   }
@@ -166,7 +169,9 @@ export function ContentPackageLayout({
               Search Structure
             </button>
           </div>
-          <p className="muted">생성은 실제 패키지에서만 실행되며 데모와 불러오기 실패 상태는 차단됩니다.</p>
+          <p className="muted">
+            생성은 실제 패키지에서만 실행되며 데모와 불러오기 실패 상태는 차단됩니다.
+          </p>
         </section>
         <section className="section-block">
           <h2>Product Candidates</h2>
@@ -185,6 +190,7 @@ export function ContentPackageLayout({
         <div className="tabs" role="tablist" aria-label="콘텐츠 상세 탭">
           {detailTabs.map((tab) => (
             <button
+              role="tab"
               aria-selected={activeTab === tab}
               className="tab-button"
               key={tab}
@@ -223,7 +229,8 @@ export function ContentPackageLayout({
               <h3>First Screen / Thumbnail</h3>
               <p>{draft.first_screen ?? "첫 화면 문구 없음"}</p>
               <p className="muted">
-                썸네일: {draft.thumbnail_text.length === 0 ? "후보 없음" : draft.thumbnail_text.join(" · ")}
+                썸네일:{" "}
+                {draft.thumbnail_text.length === 0 ? "후보 없음" : draft.thumbnail_text.join(" · ")}
               </p>
             </section>
             <section className="memo-row">
@@ -274,8 +281,8 @@ export function ContentPackageLayout({
             <section className="memo-row">
               <h3>Export Readiness</h3>
               <p>
-                Compliance {check === null ? "미검수" : check.export_allowed ? "통과" : "차단"} · Export{" "}
-                {exportAllowed ? "가능" : "대기"} · 생성 기록 {packageData.exports.length}개
+                Compliance {check === null ? "미검수" : check.export_allowed ? "통과" : "차단"} ·
+                Export {exportAllowed ? "가능" : "대기"} · 생성 기록 {packageData.exports.length}개
               </p>
             </section>
             <pre>{draftBody}</pre>
@@ -301,14 +308,18 @@ export function ContentPackageLayout({
                     {dismissed ? " · dismissed" : ""}
                   </p>
                   {issue.suggested_fix === null ? null : <p>{issue.suggested_fix}</p>}
-                  {dismissed ? (
-                    <p className="muted">{formatDismissalAudit(issue)}</p>
-                  ) : null}
+                  {dismissed ? <p className="muted">{formatDismissalAudit(issue)}</p> : null}
                   {!dismissed && issue.severity === "high" ? (
-                    <p className="form-error">고위험 이슈는 무시할 수 없습니다. 수정 후 재검수하세요.</p>
+                    <p className="form-error">
+                      고위험 이슈는 무시할 수 없습니다. 수정 후 재검수하세요.
+                    </p>
                   ) : null}
                   {!dismissed && issue.severity === "low" ? (
-                    <button className="button" onClick={() => dismissLowIssue(issue.id)} type="button">
+                    <button
+                      className="button"
+                      onClick={() => dismissLowIssue(issue.id)}
+                      type="button"
+                    >
                       낮은 위험 무시
                     </button>
                   ) : null}
@@ -338,7 +349,11 @@ export function ContentPackageLayout({
                           {reasonError}
                         </p>
                       )}
-                      <button className="button" onClick={() => dismissMediumIssue(issue.id)} type="button">
+                      <button
+                        className="button"
+                        onClick={() => dismissMediumIssue(issue.id)}
+                        type="button"
+                      >
                         사유 입력 후 무시
                       </button>
                     </>
@@ -380,7 +395,9 @@ export function ContentPackageLayout({
       <aside className="detail-rail" aria-label="승인 및 Export">
         <section className="section-block">
           <h2>Export</h2>
-          {blockedExportMessage === null ? null : <p className="form-error">{blockedExportMessage}</p>}
+          {blockedExportMessage === null ? null : (
+            <p className="form-error">{blockedExportMessage}</p>
+          )}
           <div className="button-row">
             {exportFormats.map((format) => (
               <button

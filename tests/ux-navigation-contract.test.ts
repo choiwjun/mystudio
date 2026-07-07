@@ -54,6 +54,10 @@ describe("G010 UX navigation and design contract", () => {
       expect(globalsCssSource).toContain(token);
     }
     expect(designSystemSource).toContain("color-scheme: dark");
+    expect(designSystemSource).toContain("Compact:       0px - 900px");
+    expect(designSystemSource).toContain("Compact:  최소 44px");
+    expect(globalsCssSource).toContain("@media (max-width: 900px)");
+    expect(globalsCssSource).toContain("min-height: 44px");
 
     expect(designSystemSource).not.toContain("#F7F8FA");
     expect(designSystemSource).not.toContain("#FFFFFF (흰색)");

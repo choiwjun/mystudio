@@ -49,10 +49,7 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
       }
 
       const sessionPayload = await parseJsonResponse(sessionResponse, sessionResponseSchema);
-      const profilePayload = await parseJsonResponse(
-        profileResponse,
-        companyProfileResponseSchema,
-      );
+      const profilePayload = await parseJsonResponse(profileResponse, companyProfileResponseSchema);
       if (!active) {
         return;
       }
@@ -127,9 +124,7 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
       >
         오늘 브리핑 생성
       </button>
-      {profileGuardOpen ? (
-        <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} />
-      ) : null}
+      {profileGuardOpen ? <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} /> : null}
     </>
   );
 }

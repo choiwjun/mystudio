@@ -32,7 +32,7 @@ export const POST = withApiErrorLogging("auth.login", async (request) => {
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Email and password are required.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

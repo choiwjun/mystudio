@@ -11,7 +11,7 @@ export const POST = withAuthenticatedApi("hq.decisions.create", async (request) 
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid decision payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

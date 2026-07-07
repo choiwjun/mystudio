@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { apiFailure, apiSuccess } from "@/lib/api/response";
+import { apiFailure, apiSuccess, fail, ok, runWithRequestId } from "@/lib/api/response";
 import { maskSensitiveContext } from "@/lib/security/mask";
 import { isPrivateAddress } from "@/lib/security/productImport";
 
@@ -8,6 +8,11 @@ const schema = readFileSync("prisma/schema.prisma", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   readonly dependencies?: Readonly<Record<string, string>>;
   readonly devDependencies?: Readonly<Record<string, string>>;
+};
+const biomeConfig = JSON.parse(readFileSync("biome.json", "utf8")) as {
+  readonly files?: {
+    readonly includes?: readonly string[];
+  };
 };
 
 function sourceFilesUnder(path: string): readonly string[] {
@@ -85,12 +90,28 @@ describe("P0 API and security infrastructure", () => {
     });
   });
 
+  it("reuses request-scoped ids for success and error responses", async () => {
+    const [success, failure] = await runWithRequestId("req_scoped", async () => {
+      const successPayload = await ok({ ready: true }).json();
+      const failurePayload = await fail(
+        { code: "VALIDATION_ERROR", message: "Invalid request." },
+        400,
+      ).json();
+      return [successPayload, failurePayload] as const;
+    });
+
+    expect(success.request_id).toBe("req_scoped");
+    expect(failure.request_id).toBe("req_scoped");
+  });
+
   it("masks sensitive logging context fields before persistence", () => {
     const masked = maskSensitiveContext({
       email: "owner@example.com",
       password: "plain",
+      apiKey: "provider-secret",
       nested: {
         authorization: "Bearer secret",
+        clientApiKey: "nested-secret",
         safe: "visible",
       },
     });
@@ -98,8 +119,10 @@ describe("P0 API and security infrastructure", () => {
     expect(masked).toEqual({
       email: "owner@example.com",
       password: "[MASKED]",
+      apiKey: "[MASKED]",
       nested: {
         authorization: "[MASKED]",
+        clientApiKey: "[MASKED]",
         safe: "visible",
       },
     });
@@ -125,5 +148,13 @@ describe("P0 dependency hygiene contract", () => {
     expect(dependencies).not.toHaveProperty("pino");
     expect(dependencies).not.toHaveProperty("next-auth");
     expect(dependencies["ky"]).toBe("1.14.0");
+  });
+
+  it("keeps lint and format coverage on UI and auth boundary files", () => {
+    const includes = biomeConfig.files?.includes ?? [];
+
+    expect(includes).toContain("components/**/*");
+    expect(includes).toContain("proxy.ts");
+    expect(includes).toContain("playwright.config.ts");
   });
 });

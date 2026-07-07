@@ -137,7 +137,6 @@ function firstDraft(packageData: DetailContentPackage): DetailDraft {
   return packageData.drafts[0] ?? fallbackDraft;
 }
 
-
 export function isExplicitDemoPackageId(packageId: string): boolean {
   return packageId === "demo";
 }
@@ -162,7 +161,9 @@ export function emptyContentPackageDetail(packageId: string): DetailContentPacka
 }
 
 function initialPackageForId(packageId: string): DetailContentPackage {
-  return isExplicitDemoPackageId(packageId) ? demoContentPackage : emptyContentPackageDetail(packageId);
+  return isExplicitDemoPackageId(packageId)
+    ? demoContentPackage
+    : emptyContentPackageDetail(packageId);
 }
 
 async function loadApiData<T>(url: string): Promise<T> {
@@ -205,7 +206,6 @@ function base64ToArrayBuffer(value: string): ArrayBuffer {
   }
   return buffer;
 }
-
 
 export function ContentPackageDetail({ packageId }: { readonly packageId: string }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("preview");
@@ -260,14 +260,20 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   ]);
 
   function nextSearchStructureStatus(currentStatus: string): string {
-    return searchStructureTransitionStatuses.has(currentStatus) ? "search_structured" : currentStatus;
+    return searchStructureTransitionStatuses.has(currentStatus)
+      ? "search_structured"
+      : currentStatus;
   }
 
   function nextComplianceStatus(currentStatus: string, allowed: boolean): string {
     if (allowed) {
-      return compliancePassTransitionStatuses.has(currentStatus) ? "owner_approval_required" : currentStatus;
+      return compliancePassTransitionStatuses.has(currentStatus)
+        ? "owner_approval_required"
+        : currentStatus;
     }
-    return complianceFailTransitionStatuses.has(currentStatus) ? "compliance_failed" : currentStatus;
+    return complianceFailTransitionStatuses.has(currentStatus)
+      ? "compliance_failed"
+      : currentStatus;
   }
 
   function blockDraftReplacementWhileRecovering(): boolean {
@@ -296,7 +302,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       try {
         const session = await loadApiData<{ readonly csrf_token: string }>("/api/auth/session");
         setCsrfToken(session.csrf_token);
-        const detail = await loadApiData<DetailContentPackage>(`/api/content-packages/${packageId}`);
+        const detail = await loadApiData<DetailContentPackage>(
+          `/api/content-packages/${packageId}`,
+        );
         setPackageData(detail);
         const loadedDraft = firstDraft(detail);
         const recoveredDraft = parseDraftRecoveryRecord(
@@ -304,7 +312,10 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
           packageId,
           loadedDraft.id,
         );
-        if (recoveredDraft !== null && recoveredDraft.bodyMarkdown !== (loadedDraft.body_markdown ?? "")) {
+        if (
+          recoveredDraft !== null &&
+          recoveredDraft.bodyMarkdown !== (loadedDraft.body_markdown ?? "")
+        ) {
           setDraftBody(recoveredDraft.bodyMarkdown);
           setRecoveryAvailable(true);
           setStatus("로컬 임시 저장본 복구됨 · 자동 재전송 대기");
@@ -558,7 +569,11 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       return;
     }
     if (format === "zip") {
-      createDownload(`${packageData.topic.title}.zip`, base64ToArrayBuffer(selectedExport.content), "application/zip");
+      createDownload(
+        `${packageData.topic.title}.zip`,
+        base64ToArrayBuffer(selectedExport.content),
+        "application/zip",
+      );
     } else {
       const extension = format === "markdown" ? "md" : format;
       const mimeType = format === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8";
@@ -612,7 +627,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       onRunCompliance={() => void runCompliance()}
       onTabChange={setActiveTab}
       packageData={packageData}
-      status={recoveryAvailable && !status.includes("로컬") ? `${status} · 로컬 임시본 보존 중` : status}
+      status={
+        recoveryAvailable && !status.includes("로컬") ? `${status} · 로컬 임시본 보존 중` : status
+      }
     />
   );
 }

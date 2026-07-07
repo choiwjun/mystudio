@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as loginPOST } from "@/app/api/auth/login/route";
 import { GET as sessionGET } from "@/app/api/auth/session/route";
 import { sanitizeLoginRedirectPath } from "@/components/auth/LoginForm";
+import { withApiErrorLogging } from "@/lib/api/handler";
 import { withAuthenticatedApi } from "@/lib/auth/guards";
 import { validateOwnerCredentials } from "@/lib/auth/owner";
 import { verifyPasswordHash } from "@/lib/auth/password";
@@ -111,6 +112,19 @@ describe("P1 owner authentication", () => {
     expect(payload.data).not.toHaveProperty("token");
   });
 
+  it("returns validation errors with the canonical error code", async () => {
+    const response = await loginPOST(
+      new NextRequest("http://localhost/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: "" }),
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
+  });
+
   it("sanitizes login redirect targets to same-origin relative paths", () => {
     expect(sanitizeLoginRedirectPath("/hq?tab=home#top")).toBe("/hq?tab=home#top");
     expect(sanitizeLoginRedirectPath(null)).toBe("/");
@@ -202,6 +216,28 @@ describe("P1 owner authentication", () => {
     expect(malformedSessionResponse.status).toBe(401);
     expect(malformedGuardResponse.status).toBe(401);
     expect(recordErrorLog).not.toHaveBeenCalled();
+  });
+
+  it("correlates API error logs with the response request id", async () => {
+    process.env["ERROR_LOG_ENABLED"] = "true";
+    const recordErrorLog = vi.spyOn(errorLogger, "recordErrorLog").mockResolvedValue(undefined);
+    const handler = withApiErrorLogging("test.throw", () => {
+      throw new Error("boom");
+    });
+
+    const response = await handler(new NextRequest("http://localhost/api/private.v1"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("x-request-id")).toBe(payload.request_id);
+    expect(recordErrorLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: expect.objectContaining({
+          request_id: payload.request_id,
+          routeName: "test.throw",
+        }),
+      }),
+    );
   });
 
   it("requires csrf for authenticated state-changing API handlers", async () => {

@@ -134,7 +134,9 @@ export function HqRightRailSummary() {
       <section className="section-block">
         <h3>Owner Approval Queue</h3>
         {status === "loading" ? <p className="muted">승인 대기 상태를 불러오는 중입니다.</p> : null}
-        {status === "error" ? <p className="form-error">승인 대기 상태를 불러오지 못했습니다.</p> : null}
+        {status === "error" ? (
+          <p className="form-error">승인 대기 상태를 불러오지 못했습니다.</p>
+        ) : null}
         {status === "ready" && summary !== null ? (
           <>
             <p>{summary.hq_status.pending_approvals.toLocaleString("ko-KR")}건 승인 대기</p>
@@ -154,18 +156,20 @@ export function HqRightRailSummary() {
             <p className={summary.hq_status.compliance_failures > 0 ? "form-error" : "muted"}>
               검수 실패 {summary.hq_status.compliance_failures.toLocaleString("ko-KR")}건
             </p>
-            <div className="severity-grid" aria-label="Compliance severity counts">
+            <section className="severity-grid" aria-label="Compliance severity counts">
               <span className="badge">High {severityCounts.high}</span>
               <span className="badge">Medium {severityCounts.medium}</span>
               <span className="badge">Low {severityCounts.low}</span>
-            </div>
+            </section>
           </>
         ) : null}
       </section>
       <section className="section-block">
         <h3>Revenue Snapshot</h3>
         {status === "loading" ? <p className="muted">수익 스냅샷을 불러오는 중입니다.</p> : null}
-        {status === "error" ? <p className="form-error">수익 스냅샷을 불러오지 못했습니다.</p> : null}
+        {status === "error" ? (
+          <p className="form-error">수익 스냅샷을 불러오지 못했습니다.</p>
+        ) : null}
         {status === "ready" && summary !== null ? (
           <>
             <p>

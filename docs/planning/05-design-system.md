@@ -98,67 +98,60 @@
 ### 폰트 스택
 
 ```css
-/* 제목 (한국어, 영문 혼합) */
-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+/* 앱 전역 산세리프 */
+font-family:
+  Inter Variable,
+  SF Pro Display,
+  -apple-system,
+  BlinkMacSystemFont,
+  Segoe UI,
+  system-ui,
+  sans-serif;
 
-/* 영문 모노스페이스 (코드, API) */
-font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+/* 영문 모노스페이스 (미리보기/에디터) */
+font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 ```
 
 ### 크기 및 가중치
 
 ```
-H1 (페이지 제목)
-  Size: 24px
-  Weight: Bold (700)
-  Line-height: 1.3
-  Letter-spacing: -0.5px
+Body (전역)
+  Size: 15px
+  Weight: Regular (브라우저 기본)
+  Line-height: 1.6
+  Color: var(--text-primary)
+
+Brand / Page Title
+  Size: 18px
+  Weight: 590
+  Line-height: 상위 레이아웃 기본
+  Letter-spacing: 0
   예: "Paperclip Company OS"
 
-H2 (섹션 제목)
-  Size: 20px
-  Weight: Semibold (600)
-  Line-height: 1.4
-  예: "Hermes Opportunity Memos"
-
-H3 (카드 제목)
-  Size: 16px
-  Weight: Semibold (600)
-  Line-height: 1.5
-  예: "장마철 자취방 습기"
-
-Body (본문)
-  Size: 14px
-  Weight: Regular (400)
-  Line-height: 1.6
-  Color: var(--text-secondary)
-  예: 카드 설명, 메모
-
-Label (라벨)
-  Size: 12px
-  Weight: Medium (500)
-  Line-height: 1.5
-  Color: var(--text-muted)
-  예: "상태: 검수 중"
-
-Small (보조 텍스트)
-  Size: 12px
-  Weight: Regular (400)
-  Line-height: 1.4
-  Color: var(--text-muted)
-  예: 날짜, 시간
-
-Score (점수)
-  Size: 24px (숫자만)
-  Weight: Bold (700)
-  Color: 상태별 token (var(--status-info/success/error))
-  예: "82" (하단에 "/100")
-
-CTA Button
-  Size: 14px
-  Weight: Semibold (600)
-  Padding: 12px 16px
+Section heading
+  Size: 상위 문맥 상속
+  Weight: 브라우저 기본 또는 컴포넌트 지정
+  Line-height: 1.3
   Letter-spacing: 0
+
+Card title
+  Size: 14px
+  Line-height: 1.35
+  Color: var(--text-primary)
+
+Form label
+  Size: 13px
+  Weight: 510
+  Color: var(--text-secondary)
+
+Badge / Table header / Rail metadata
+  Size: 12px
+  Weight: 510~590
+  Color: var(--text-muted) 또는 var(--text-secondary)
+
+Editor / Preview mono
+  Size: 13px
+  Line-height: 1.6
 ```
 
 ---
@@ -357,39 +350,32 @@ CTA Button
 ### Breakpoints
 
 ```css
-Mobile:        0px - 640px   (기본)
-Tablet:        641px - 1024px
-Desktop:       1025px+
+Compact:       0px - 900px    (단일 컬럼 + 모바일/태블릿 터치 타깃)
+Desktop:       901px+
 
 메인 컨텐츠 너비:
-Mobile:   100% (패딩 16px)
-Tablet:   90% (최대 900px)
-Desktop:  95% (최대 1400px)
+Compact:  100% (패딩은 app shell 기준)
+Desktop:  100% grid 영역 내 확장
 
 터치 타깃 크기 (D4):
-Mobile:   최소 44px (WCAG 2.5.8 AAA 준수)
-Desktop:  28px (WCAG 2.5.8 AA 준수)
+Compact:  최소 44px (button, tab, nav link, form input/select/textarea)
+Desktop:  최소 36px 버튼 / 24px badge 중심의 밀도 유지
 - 예외: [폐기] 등 파괴적 액션은 44px 유지 + 확인 다이얼로그 추가
 ```
 
-### 모바일 우선
+### 모바일/컴팩트 우선
 
 ```
-Mobile (아침에 공원에서 스마트폰으로 보기):
-- 사이드바: 축소 또는 드롭다운
+Compact (스마트폰·태블릿·좁은 창):
+- 사이드바: 상단 스택
 - 칸반: 가로 스크롤
-- 카드: 100% 너비
-- 입력: 터치하기 쉽게 최소 44px 높이
-
-Tablet:
-- 사이드바: 고정 표시 (축소)
-- 메인: 2단 레이아웃 가능
-- 우측 패널: 스택형 또는 축소
+- 카드/폼/상세: 1열
+- 입력/버튼/탭/내비게이션: 최소 44px 높이
 
 Desktop:
-- 3단 레이아웃 (사이드바 + 메인 + 우측)
+- 2~3단 레이아웃 (사이드바 + 메인 + 우측)
 - 모든 요소 가시화
-- 우측 패널 풀 크기
+- 밀도 높은 36px 컨트롤 유지
 ```
 
 ---

@@ -33,12 +33,7 @@ const packageStatusValues = [
 
 type PackageStatus = (typeof packageStatusValues)[number];
 export type KanbanPackageStatus = PackageStatus;
-export type KanbanColumnId =
-  | "opportunities"
-  | "production"
-  | "review"
-  | "approved"
-  | "published";
+export type KanbanColumnId = "opportunities" | "production" | "review" | "approved" | "published";
 
 type KanbanColumnDefinition = {
   readonly id: KanbanColumnId;
@@ -121,12 +116,23 @@ export const kanbanColumns = [
       "price_outdated",
     ],
   },
-  { id: "approved", title: "승인대기", targetStatus: "approved", statuses: ["approved", "exported"] },
+  {
+    id: "approved",
+    title: "승인대기",
+    targetStatus: "approved",
+    statuses: ["approved", "exported"],
+  },
   {
     id: "published",
     title: "게시완료",
     targetStatus: "published_manually",
-    statuses: ["published_manually", "performance_recorded", "memory_updated", "archived", "rejected"],
+    statuses: [
+      "published_manually",
+      "performance_recorded",
+      "memory_updated",
+      "archived",
+      "rejected",
+    ],
   },
 ] as const satisfies readonly KanbanColumnDefinition[];
 

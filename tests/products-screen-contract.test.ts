@@ -43,8 +43,8 @@ describe("products screen contract", () => {
     expect(productManagerSource).toContain("PRODUCT_IMPORT_BLOCKED");
     expect(productTablesSource).toContain("onEditProduct");
     expect(productTablesSource).toContain("onDeleteProduct");
-    expect(productTablesSource).toContain(">수정<");
-    expect(productTablesSource).toContain(">삭제<");
+    expect(productTablesSource).toMatch(/>\s*수정\s*</);
+    expect(productTablesSource).toMatch(/>\s*삭제\s*</);
   });
 
   it("keeps manual product create and edit fields wired through form values, panels, and manager", () => {

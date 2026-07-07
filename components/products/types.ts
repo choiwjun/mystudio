@@ -8,7 +8,6 @@ export type ContentPackageSummary = {
   readonly status: string;
 };
 
-
 export type Product = {
   readonly id: string;
   readonly product_name: string;

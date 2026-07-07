@@ -4,16 +4,16 @@ import type { DragEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import {
+  type ContentPackage,
   contentPackagePatchResponseSchema,
   groupPackages,
   hqTodayResponseSchema,
+  type KanbanColumnId,
+  type KanbanPackageStatus,
   kanbanColumns,
   normalizeProgress,
   statusLabels,
   updatedAtLabel,
-  type KanbanColumnId,
-  type KanbanPackageStatus,
-  type ContentPackage,
 } from "@/components/hq/kanban";
 
 const sessionResponseSchema = z.object({
@@ -45,7 +45,12 @@ function kanbanFailureMessage(responseStatus: number, payload: ApiErrorPayload |
   if (errorText.includes("draft") || errorText.includes("초안")) {
     return "검수를 실행하려면 먼저 초안이 필요합니다.";
   }
-  if (responseStatus === 400 || responseStatus === 409 || errorText.includes("transition") || errorText.includes("invalid")) {
+  if (
+    responseStatus === 400 ||
+    responseStatus === 409 ||
+    errorText.includes("transition") ||
+    errorText.includes("invalid")
+  ) {
     return "허용되지 않는 상태 전환입니다. 현재 단계에서 가능한 다음 상태를 선택하세요.";
   }
   return "상태 업데이트에 실패했습니다.";
@@ -170,10 +175,7 @@ export function HqKanbanBoard() {
     setDraggingOverColumnId(null);
   }
 
-  function dropOnColumn(
-    event: DragEvent<HTMLElement>,
-    targetStatus: KanbanPackageStatus,
-  ): void {
+  function dropOnColumn(event: DragEvent<HTMLElement>, targetStatus: KanbanPackageStatus): void {
     event.preventDefault();
     setDraggingOverColumnId(null);
     const contentPackageId = event.dataTransfer.getData("text/plain");
@@ -186,16 +188,22 @@ export function HqKanbanBoard() {
   return (
     <section className="section-block" aria-labelledby="pipeline-title">
       <h2 id="pipeline-title">Content Production Pipeline</h2>
-      {status === "loading" ? <p className="muted">콘텐츠 파이프라인을 불러오는 중입니다.</p> : null}
-      {status === "error" ? <p className="form-error">콘텐츠 파이프라인을 불러오지 못했습니다.</p> : null}
+      {status === "loading" ? (
+        <p className="muted">콘텐츠 파이프라인을 불러오는 중입니다.</p>
+      ) : null}
+      {status === "error" ? (
+        <p className="form-error">콘텐츠 파이프라인을 불러오지 못했습니다.</p>
+      ) : null}
       {message === "" ? null : <p className="muted">{message}</p>}
-      <div className="kanban-scroll" aria-label="Content package status kanban">
+      <section className="kanban-scroll" aria-label="Content package status kanban">
         <div className="kanban-grid">
           {kanbanColumns.map((column) => (
             <section
               aria-label={column.title}
               className={
-                draggingOverColumnId === column.id ? "kanban-column kanban-column-active" : "kanban-column"
+                draggingOverColumnId === column.id
+                  ? "kanban-column kanban-column-active"
+                  : "kanban-column"
               }
               key={column.id}
               onDragLeave={leaveColumn}
@@ -238,7 +246,9 @@ export function HqKanbanBoard() {
                       진행 {progress}% · {updatedAtLabel(contentPackage.updated_at)}
                     </span>
                     {updating ? (
-                      <span className="muted">상태 업데이트 중 · 이 카드 이동 및 열기 비활성화</span>
+                      <span className="muted">
+                        상태 업데이트 중 · 이 카드 이동 및 열기 비활성화
+                      </span>
                     ) : null}
                   </a>
                 );
@@ -246,7 +256,7 @@ export function HqKanbanBoard() {
             </section>
           ))}
         </div>
-      </div>
+      </section>
     </section>
   );
 }

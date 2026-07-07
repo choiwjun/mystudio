@@ -362,6 +362,7 @@ select {
 
 .auth-form input,
 .form-panel input,
+.form-panel select,
 .form-panel textarea {
   width: 100%;
   border: 1px solid var(--border-default);
@@ -652,5 +653,15 @@ select {
 
   .topbar-message {
     text-align: left;
+  }
+
+  .button,
+  .tab-button,
+  .nav-link,
+  .auth-form input,
+  .form-panel input,
+  .form-panel select,
+  .form-panel textarea {
+    min-height: 44px;
   }
 }

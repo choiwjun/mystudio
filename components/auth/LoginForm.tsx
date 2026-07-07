@@ -45,7 +45,11 @@ export function LoginForm() {
 
     if (!response.ok) {
       setState("error");
-      setMessage(response.status === 429 ? "잠시 후 다시 로그인하세요." : "이메일 또는 비밀번호를 확인하세요.");
+      setMessage(
+        response.status === 429
+          ? "잠시 후 다시 로그인하세요."
+          : "이메일 또는 비밀번호를 확인하세요.",
+      );
       return;
     }
 
