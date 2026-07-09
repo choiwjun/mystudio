@@ -148,14 +148,15 @@ graph TD
     - Paperclip: paperclip_decisions / Content: topics, keyword_clusters, content_packages, drafts, sns_variants, title_candidates, exports
     - ShoppingConnect: products, shopping_connect_links / Compliance: compliance_checks, compliance_issues, policy_rules, status_transitions
     - Analytics: performance_logs, revenue_logs, cost_logs, error_logs / Memory: company_memory, prompt_templates / Admin: agent_runs, category_playbooks
-  - 로컬 PostgreSQL 데이터베이스 연결
+  - Docker Compose 기반 로컬 PostgreSQL 데이터베이스 연결
   - 초기 마이그레이션 실행
   - .env.example 작성 (DATABASE_URL, OWNER_EMAIL 등; 로그인 secret은 필요 없음)
 - **acceptance_criteria**:
   - Given Next.js 프로젝트 생성 / When `npm run dev` 실행 / Then http://localhost:3000 접속 가능
   - Given Prisma 스키마 정의(04 정본, 28개 모델) / When `npx prisma migrate dev --name init` 실행 / Then 28개 테이블 + PackageStatus enum 생성, SQL 파일 migrations/ 폴더에 저장됨
   - Given 초기 마이그레이션 완료 / When 시드 실행 / Then workspaces에 default 워크스페이스 1행 존재, company_profile 생성 시 해당 workspace_id 연결
-  - Given 로컬 PostgreSQL 환경 설정 / When `npx prisma db push` 실행 / Then 로컬 PostgreSQL에 전체 스키마 적용, Prisma Studio에서 확인 가능
+  - Given Docker Desktop 실행 / When `npm run db:up` 실행 / Then `paperclip-postgres` 컨테이너가 `127.0.0.1:55432`에서 healthy 상태가 됨
+  - Given 로컬 PostgreSQL 환경 설정 / When `npx prisma db push` 실행 / Then Docker PostgreSQL에 전체 스키마 적용, Prisma Studio에서 확인 가능
   - Given .env.example 작성 / When 개발자가 .env.local 생성 / Then DATABASE_URL, OWNER_EMAIL, 외부 API 키 등 주요 변수 명시됨
 
 ### [ ] P0-T2: 공통 인프라 구축

@@ -104,6 +104,10 @@ function productFixture(overrides: Partial<Record<string, unknown>> = {}): Recor
     price_checked_at: nowIso,
     image_url: null,
     category: "생활",
+    popularity_score: null,
+    popularity_rank: null,
+    popularity_source: null,
+    popularity_checked_at: null,
     memo: "insane-search e2e metadata",
     stale: false,
     created_at: nowIso,
@@ -304,17 +308,17 @@ test.describe("8-gap implemented app live-surface harness", () => {
 
     await page.goto("/settings");
     await expect(page.getByLabel("초기 설정 필요")).toBeVisible();
-    await expect(page.getByRole("button", { name: "저장" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "저장", exact: true })).toBeDisabled();
 
     await page.getByLabel("회사명").fill("Paperclip Studio");
     await page.getByLabel("주요 카테고리").fill("생활, 청소");
-    await expect(page.getByRole("button", { name: "저장" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "저장", exact: true })).toBeEnabled();
     await page.getByLabel("차단 카테고리").fill("건강, 의료");
     await page.getByLabel("톤 규칙").fill("담백하게");
     await page.getByLabel("콘텐츠 원칙").fill("근거 중심");
     await page.getByLabel("월 매출 목표").fill("700000");
 
-    await page.getByRole("button", { name: "저장" }).click();
+    await page.getByRole("button", { name: "저장", exact: true }).click();
     await expect(page).toHaveURL(`${host}/?setup=complete`);
   });
 
@@ -360,11 +364,15 @@ test.describe("8-gap implemented app live-surface harness", () => {
       "쇼핑커넥트 링크",
       "제휴 계정",
       "성과 기록",
+      "일간 리포트",
+      "주간 리포트",
+      "월간 리포트",
       "컴플라이언스",
       "회사 메모리",
     ]) {
       await expect(departments.getByRole("link", { name: routeName })).toBeVisible();
     }
+    await expect(departments.locator('a[href="/reports"]')).toBeVisible();
 
     await expect(departments.getByRole("link", { name: "설정" })).toHaveCount(0);
     for (const hiddenName of ["Content Factory", "Revenue Desk", "Reports"]) {
@@ -375,9 +383,6 @@ test.describe("8-gap implemented app live-surface harness", () => {
       "/hermes/competitors",
       "/compliance/policies",
       "/memory/patterns",
-      "/reports/daily",
-      "/reports/weekly",
-      "/reports/monthly",
       "/packages/demo",
     ]) {
       await expect(departments.locator(`a[href="${hiddenPath}"]`)).toHaveCount(0);
@@ -385,7 +390,7 @@ test.describe("8-gap implemented app live-surface harness", () => {
 
     await page.getByRole("link", { name: "설정" }).click();
     await expect(page).toHaveURL(`${host}/settings`);
-    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   });
   test("implemented products page reports import success and fail-closed manual fallback", async ({
     page,

@@ -8,6 +8,7 @@ const schema = readFileSync("prisma/schema.prisma", "utf8");
 const apiHandlerSource = readFileSync("lib/api/handler.ts", "utf8");
 const apiRequestLoggerSource = readFileSync("lib/logging/apiRequestLogger.ts", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  readonly scripts?: Readonly<Record<string, string>>;
   readonly dependencies?: Readonly<Record<string, string>>;
   readonly devDependencies?: Readonly<Record<string, string>>;
 };
@@ -144,6 +145,13 @@ describe("P0 API and security infrastructure", () => {
     expect(isPrivateAddress("172.16.0.1")).toBe(true);
     expect(isPrivateAddress("192.168.1.20")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
+  });
+
+  it("binds local app servers to localhost by default", () => {
+    const scripts = packageJson.scripts ?? {};
+
+    expect(scripts["dev"]).toContain("--hostname 127.0.0.1");
+    expect(scripts["start"]).toContain("--hostname 127.0.0.1");
   });
 });
 

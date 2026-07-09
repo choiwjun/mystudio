@@ -10,7 +10,7 @@ export default defineConfig({
   retries: process.env["CI"] ? 2 : 0,
   reporter: process.env["CI"] ? "github" : "list",
   webServer: {
-    command: `npm run start -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run start -- --port ${port}`,
     url: `${host}/login`,
     reuseExistingServer: !process.env["CI"],
     timeout: 300_000,
