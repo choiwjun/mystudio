@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AIOutputValidationError, type BlogDraftOutput } from "@/lib/ai/adapter";
+import { OllamaAdapter } from "@/lib/ai/ollamaAdapter";
 import { AIProviderResponseError, ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
 import { AIAdapterConfigurationError, createRuntimeAIAdapter } from "@/lib/ai/runtime";
 
@@ -86,7 +87,7 @@ function claudeResponse(content: unknown, usage?: Record<string, unknown>): Resp
 }
 
 describe("runtime AI provider selection", () => {
-  it("returns OpenAI and Claude adapters when credentials are present", () => {
+  it("returns OpenAI, Claude, and Ollama adapters when configured", () => {
     expect(
       createRuntimeAIAdapter({
         AI_ADAPTER: "openai",
@@ -101,6 +102,14 @@ describe("runtime AI provider selection", () => {
         NODE_ENV: "production",
       }),
     ).toBeInstanceOf(ClaudeAIAdapter);
+    expect(
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "ollama",
+        OLLAMA_API_KEY: "test-key",
+        OLLAMA_HOST: "https://ollama.com",
+        NODE_ENV: "production",
+      }),
+    ).toBeInstanceOf(OllamaAdapter);
   });
 
   it("rejects missing provider credentials", () => {
@@ -109,6 +118,87 @@ describe("runtime AI provider selection", () => {
     );
     expect(() => createRuntimeAIAdapter({ AI_ADAPTER: "claude", NODE_ENV: "production" })).toThrow(
       AIAdapterConfigurationError,
+    );
+  });
+});
+
+describe("Ollama AI adapter", () => {
+  it("calls deepseek-v4-flash cloud chat and parses JSON output", async () => {
+    const chatMock = vi.fn().mockResolvedValue({
+      message: { content: JSON.stringify(opportunityMemo) },
+    });
+    const adapter = new OllamaAdapter({ client: { chat: chatMock } });
+
+    await expect(
+      adapter.generateOpportunityMemo({ categories: ["자취"], rawItems: [] }),
+    ).resolves.toEqual(opportunityMemo);
+
+    expect(chatMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "deepseek-v4-flash:cloud",
+        messages: expect.arrayContaining([
+          expect.objectContaining({ role: "system" }),
+          expect.objectContaining({ role: "user" }),
+        ]),
+      }),
+    );
+  });
+
+  it("fails closed on Ollama chat errors", async () => {
+    const chatMock = vi.fn().mockRejectedValue(new Error("subscription required"));
+    const adapter = new OllamaAdapter({ client: { chat: chatMock } });
+
+    await expect(
+      adapter.generateOpportunityMemo({ categories: ["자취"], rawItems: [] }),
+    ).rejects.toThrow(AIProviderResponseError);
+  });
+
+  it("uses direct API model names without the local cloud suffix", async () => {
+    const chatMock = vi.fn().mockResolvedValue({
+      message: { content: JSON.stringify(opportunityMemo) },
+    });
+    const adapter = new OllamaAdapter({
+      client: { chat: chatMock },
+      host: "https://ollama.com",
+      model: "deepseek-v4-flash:cloud",
+    });
+
+    await adapter.generateOpportunityMemo({ categories: ["자취"], rawItems: [] });
+
+    expect(chatMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "deepseek-v4-flash",
+      }),
+    );
+  });
+
+  it("sends the direct API authorization header through the Ollama client", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        model: "deepseek-v4-flash",
+        created_at: new Date(0).toISOString(),
+        message: { role: "assistant", content: JSON.stringify(opportunityMemo) },
+        done: true,
+      }),
+    );
+    const adapter = new OllamaAdapter({
+      apiKey: "test-ollama-key",
+      fetch: fetchMock,
+      host: "https://ollama.com",
+      model: "deepseek-v4-flash:cloud",
+    });
+
+    await expect(
+      adapter.generateOpportunityMemo({ categories: ["자취"], rawItems: [] }),
+    ).resolves.toEqual(opportunityMemo);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/ollama\.com(?::443)?\/api\/chat$/),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-ollama-key",
+        }),
+      }),
     );
   });
 });

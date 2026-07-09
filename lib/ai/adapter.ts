@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ScoreSchema = z.number().int().min(0).max(100);
 
-export type AIAdapterProvider = "mock" | "openai" | "claude";
+export type AIAdapterProvider = "mock" | "openai" | "claude" | "ollama";
 
 export type AIAdapterMetadata = {
   readonly provider: AIAdapterProvider;

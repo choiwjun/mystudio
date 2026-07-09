@@ -2,7 +2,7 @@ import { parseScoreOutput } from "@/lib/ai/adapter";
 import type { CostLogInput } from "@/lib/logging/costLogger";
 
 export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-export type ProviderName = "openai" | "claude";
+export type ProviderName = "openai" | "claude" | "ollama";
 export type ProviderCostLogger = (input: CostLogInput) => Promise<void> | void;
 
 export type ProviderAdapterOptions = {

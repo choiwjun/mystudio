@@ -152,7 +152,8 @@ export function ApiCredentialsPanel() {
       <h3>AI 모델/API 키 연결</h3>
       <p className="muted">
         OpenAI 또는 Claude 키를 저장하면 <code>AI_ADAPTER</code> 설정에 맞춰 Hermes와 콘텐츠 생성
-        엔진이 사용합니다. 키 원문은 다시 표시하지 않습니다.
+        엔진이 사용합니다. Ollama는 <code>OLLAMA_HOST</code>, <code>OLLAMA_MODEL</code>,
+        <code>OLLAMA_API_KEY</code> 환경변수로 연결합니다. 키 원문은 다시 표시하지 않습니다.
       </p>
       <div className="form-grid">
         <label>

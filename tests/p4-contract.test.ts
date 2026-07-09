@@ -7,6 +7,7 @@ import {
   hqStatusResponseSchema,
 } from "@/components/hq/HqStatusBadge";
 import { MockAIAdapter } from "@/lib/ai/mockAdapter";
+import { OllamaAdapter } from "@/lib/ai/ollamaAdapter";
 import { ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
 import { AIAdapterConfigurationError, createRuntimeAIAdapter } from "@/lib/ai/runtime";
 import { serializeActivePlacementProducts } from "@/lib/content/placement";
@@ -115,6 +116,14 @@ describe("P4 AI runtime adapter contract", () => {
         NODE_ENV: "production",
       }),
     ).toBeInstanceOf(ClaudeAIAdapter);
+    expect(
+      createRuntimeAIAdapter({
+        AI_ADAPTER: "ollama",
+        OLLAMA_API_KEY: "test-key",
+        OLLAMA_HOST: "https://ollama.com",
+        NODE_ENV: "production",
+      }),
+    ).toBeInstanceOf(OllamaAdapter);
   });
 
   it("keeps HQ daily briefing generation on the runtime AI adapter contract", async () => {
