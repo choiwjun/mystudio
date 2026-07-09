@@ -12,7 +12,7 @@
 | C3 | 스택 | Supabase+Vercel 올인 (TRD 확정) | BullMQ+Redis, NestJS/Drizzle 옵션 | v2 결정 사항 — v0.7 불변 |
 | C4 | AI 모델 | 미결+어댑터 격리 (council) | OpenAI Responses API 사실상 확정 | v0.7 어댑터 원칙 유지. v2에서 OpenAIAdapter 우선 구현 후보로 기록 |
 | C5 | "하루 30분" 원칙 | 05 디자인 1원칙 | 삭제 (일 15콘텐츠 승인 시나리오) | v2 재기획 시 시간 예산 재정의 필수 (B2 참조) |
-| C6 | 어휘/상태머신 | opportunity_memos/content_packages/29상태 | briefs/content_jobs/23상태 | [vocabulary-map.md](vocabulary-map.md)로 매핑 |
+| C6 | 어휘/상태머신 | opportunity_memos/content_packages/28상태 | briefs/content_jobs/23상태 | [vocabulary-map.md](vocabulary-map.md)로 매핑 |
 | C7 | 제휴 채널 | 네이버 쇼핑커넥트 | 쿠팡 파트너스 중심 | v2 확장. 쿠팡 파트너스 API는 실적 요건 충족 후 승인제 유의 |
 | C8 | stale/신선도 | 7일 (게이트 DG-007-1) | 3일 (§8.2 freshness 예시) | v0.7 7일 유지. v2에서 소스 타입별 차등 신선도로 일반화 권장 |
 

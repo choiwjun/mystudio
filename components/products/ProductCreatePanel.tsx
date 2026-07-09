@@ -47,7 +47,9 @@ export function ProductCreatePanel({
           />
         </label>
         {manualFallbackVisible ? (
-          <p className="form-error">자동 가져오기가 차단되었습니다. 수동 입력으로 등록하세요.</p>
+          <p className="form-error">
+            자동 가져오기가 차단되었습니다. 아래 수동 입력에 상품명과 가격을 입력해 바로 등록하세요.
+          </p>
         ) : null}
         <button className="button primary" onClick={onImportProduct} type="button">
           URL 정보 가져오기
@@ -68,7 +70,9 @@ export function ProductCreatePanel({
         <label>
           가격
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, price: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, price: event.target.value })
+            }
             type="number"
             value={manualProduct.price}
           />
@@ -76,7 +80,9 @@ export function ProductCreatePanel({
         <label>
           카테고리
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, category: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, category: event.target.value })
+            }
             value={manualProduct.category}
           />
         </label>
@@ -103,14 +109,18 @@ export function ProductCreatePanel({
         <label>
           출처
           <input
-            onChange={(event) => onManualProductChange({ ...manualProduct, source: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, source: event.target.value })
+            }
             value={manualProduct.source}
           />
         </label>
         <label>
           메모
           <textarea
-            onChange={(event) => onManualProductChange({ ...manualProduct, memo: event.target.value })}
+            onChange={(event) =>
+              onManualProductChange({ ...manualProduct, memo: event.target.value })
+            }
             rows={3}
             value={manualProduct.memo}
           />
@@ -165,7 +175,9 @@ export function ProductCreatePanel({
         <label>
           수수료율(%)
           <input
-            onChange={(event) => onLinkFormChange({ ...linkForm, commission_rate: event.target.value })}
+            onChange={(event) =>
+              onLinkFormChange({ ...linkForm, commission_rate: event.target.value })
+            }
             step="0.1"
             type="number"
             value={linkForm.commission_rate}

@@ -11,8 +11,8 @@
 |------|-----------|----------|
 | Hermes 데이터 소스 | 네이버 API 연동은 Phase 3 | **네이버 블로그·쇼핑 검색 API를 MVP(Phase 1)로 앞당김** — 첫날부터 실제 데이터 기반 Opportunity Memo |
 | 점수 모델 | 변수 11개 가중치 공식 | **홈피드/검색/수익/리스크 4축 단순화** + 각 점수에 근거 문장 필수. 성과 데이터가 쌓이면 정교화 |
-| 백엔드 | Next.js API Routes 또는 NestJS | **Next.js API Routes** (Vercel 올인, cron은 Vercel Cron) |
-| ORM/배포 | Prisma 또는 Drizzle / Vercel+Supabase 또는 Railway | **Prisma + Vercel + Supabase** |
+| 백엔드 | Next.js API Routes 또는 NestJS | **Next.js API Routes 로컬 실행** (개인 PC에서 `npm run dev/start`, 외부 배포 없음) |
+| ORM/운영 | Prisma 또는 Drizzle / 클라우드 DB 또는 로컬 DB | **Prisma + 로컬 PostgreSQL + 로컬 파일 저장소** — Vercel/Supabase는 사용하지 않음 |
 | AI 모델 | OpenAI API | **미결(Open Question)** — 모델 교체 가능한 인터페이스로 설계. 후보: Claude API / OpenAI API / 작업별 라우팅 |
 | 하루 운영 시간 | 미정 | **30분 이내** → 입력 최소화가 UI 설계 1순위. 상품 등록은 URL 붙여넣기 수준, 성과 기록은 숫자 3~4개만 |
 | Phase 2 조건 | 없음 | Phase 2(클립/SNS) 진입 시 채널별 수동 게시 시간을 실측하고, 30분 예산 초과 시 채널 수 조정 |
@@ -665,16 +665,16 @@ UI: 둥근 카드, 약한 그림자, 점수는 칩, 상태는 색상 라벨, 명
 | ---------- | ----------------------------------- |
 | Frontend | Next.js (App Router) |
 | Backend | **Next.js API Routes** (확정) |
-| DB | PostgreSQL (Supabase) |
+| DB | 로컬 PostgreSQL |
 | ORM | **Prisma** (확정) |
-| Auth | 단일 사용자 로그인 |
-| Job Runner | **Vercel Cron** → 추후 필요 시 BullMQ 등 검토 |
-| Storage | Supabase Storage |
+| Auth | single_owner_no_login |
+| Job Runner | **로컬 스케줄러** (Windows 작업 스케줄러/cron에서 `npm run scan:hermes`) |
+| Storage | 로컬 파일 저장소 (`LOCAL_STORAGE_DIR`) |
 | AI | **미결 (Open Question)** — 모델 교체 가능한 인터페이스로 설계. 후보: Claude API / OpenAI API / 작업별 라우팅 |
 | 외부 API | **네이버 블로그·쇼핑 검색 API (MVP부터)** |
 | Export | Markdown, HTML, Copy Block |
 | Monitoring | 기본 error_logs, cost_logs |
-| 배포 | **Vercel + Supabase** (확정) |
+| 운영 | **로컬 PC 실행** (Vercel/Supabase 사용 안 함) |
 
 ---
 

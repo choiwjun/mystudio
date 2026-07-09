@@ -38,6 +38,34 @@ export function serializeDraft(draft: ContentPackageRecord["drafts"][number]): S
   };
 }
 
+function serializeContentComplianceIssue(
+  issue: ContentPackageRecord["complianceChecks"][number]["complianceIssues"][number],
+) {
+  const dismissal =
+    issue.dismissedAt === null
+      ? null
+      : {
+          dismissed_at: issue.dismissedAt.toISOString(),
+          dismissed_by: issue.dismissedBy,
+          reason: issue.dismissReason,
+        };
+
+  return {
+    id: issue.id,
+    issue_type: issue.issueType,
+    severity: issue.severity,
+    message: issue.message,
+    suggested_fix: issue.suggestedFix,
+    blocks_export:
+      issue.severity === "high" || (issue.severity === "medium" && issue.dismissedAt === null),
+    dismissed: dismissal !== null,
+    dismissed_at: dismissal?.dismissed_at ?? null,
+    dismissed_by: dismissal?.dismissed_by ?? null,
+    dismiss_reason: dismissal?.reason ?? null,
+    dismissal,
+  };
+}
+
 export function serializeContentPackage(contentPackage: ContentPackageRecord) {
   const memo = contentPackage.paperclipDecision.opportunityMemo;
   return {
@@ -88,13 +116,18 @@ export function serializeContentPackage(contentPackage: ContentPackageRecord) {
       pass: check.pass,
       export_allowed: check.exportAllowed,
       checked_at: check.checkedAt.toISOString(),
-      issues: check.complianceIssues.map((issue) => ({
-        id: issue.id,
-        issue_type: issue.issueType,
-        severity: issue.severity,
-        message: issue.message,
-        suggested_fix: issue.suggestedFix,
-      })),
+      issues: check.complianceIssues.map(serializeContentComplianceIssue),
+    })),
+    sns_variants: contentPackage.snsVariants.map((variant) => ({
+      id: variant.id,
+      platform: variant.platform,
+      format: variant.format,
+      hook: variant.hook,
+      body: variant.body,
+      cta: variant.cta,
+      hashtags: variant.hashtags,
+      score: variant.score,
+      created_at: variant.createdAt.toISOString(),
     })),
     exports: contentPackage.exports.map((exportRecord) => ({
       id: exportRecord.id,

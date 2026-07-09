@@ -3,13 +3,13 @@ import type {
   ContentGenerationContext,
   PromptTemplateGenerationContext,
 } from "@/lib/ai/adapter";
+import { loadCompetitorBenchmarkContext } from "@/lib/content/competitorBenchmark";
 import { prisma } from "@/lib/db";
 
 const MAX_TOPIC_TOKENS = 8;
 const MAX_CATEGORY_CANDIDATES = 20;
-const MAX_PLAYBOOK_QUERY_ROWS = 24;
+const MAX_CONTEXT_QUERY_ROWS = 24;
 const MAX_PLAYBOOK_CONTEXT_ROWS = 6;
-const MAX_PROMPT_TEMPLATE_QUERY_ROWS = 24;
 
 type ProductCategorySource = {
   readonly isActive: boolean;
@@ -135,7 +135,7 @@ async function loadCategoryPlaybookContext(
       : await prisma.categoryPlaybook.findMany({
           where: { category: { in: [...exactCategories], mode: "insensitive" as const } },
           orderBy: { category: "asc" },
-          take: MAX_PLAYBOOK_QUERY_ROWS,
+          take: MAX_CONTEXT_QUERY_ROWS,
         });
   const tokenRows =
     tokens.length === 0
@@ -147,7 +147,7 @@ async function loadCategoryPlaybookContext(
             })),
           },
           orderBy: { category: "asc" },
-          take: MAX_PLAYBOOK_QUERY_ROWS,
+          take: MAX_CONTEXT_QUERY_ROWS,
         });
   const rows = mergeUniqueById(exactRows, tokenRows);
 
@@ -217,7 +217,7 @@ async function loadPromptTemplateContext(
   const exactTemplates = await prisma.promptTemplate.findMany({
     where: { name: { in: [...names], mode: "insensitive" as const } },
     orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
-    take: MAX_PROMPT_TEMPLATE_QUERY_ROWS,
+    take: MAX_CONTEXT_QUERY_ROWS,
   });
   const partialTemplates =
     exactTemplates.length > 0
@@ -227,7 +227,7 @@ async function loadPromptTemplateContext(
             OR: names.map((name) => ({ name: { contains: name, mode: "insensitive" as const } })),
           },
           orderBy: [{ version: "desc" }, { updatedAt: "desc" }],
-          take: MAX_PROMPT_TEMPLATE_QUERY_ROWS,
+          take: MAX_CONTEXT_QUERY_ROWS,
         });
   const templates = mergeUniqueById(exactTemplates, partialTemplates);
   const template = templates
@@ -261,12 +261,17 @@ async function loadPromptTemplateContext(
 export async function loadContentGenerationContext(
   input: GenerationContextInput,
 ): Promise<ContentGenerationContext> {
-  const [categoryPlaybooks, promptTemplate] = await Promise.all([
+  const [categoryPlaybooks, competitorBenchmark, promptTemplate] = await Promise.all([
     loadCategoryPlaybookContext(input),
+    input.task === "generateBlogDraft"
+      ? loadCompetitorBenchmarkContext(input.topic)
+      : Promise.resolve(undefined),
     loadPromptTemplateContext(input.task),
   ]);
 
-  return promptTemplate === undefined
-    ? { categoryPlaybooks }
-    : { categoryPlaybooks, promptTemplate };
+  return {
+    categoryPlaybooks,
+    ...(competitorBenchmark === undefined ? {} : { competitorBenchmark }),
+    ...(promptTemplate === undefined ? {} : { promptTemplate }),
+  };
 }

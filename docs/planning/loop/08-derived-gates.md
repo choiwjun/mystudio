@@ -82,7 +82,7 @@
 
 #### Domain Gates
 - DG-002-1: 고위험 카테고리(건강·투자·법률·의료·다이어트) 주제는 memo 생성 단계에서 제외 (PRD §4-9)
-- DG-002-2: `vercel.json` crons에 매일 06:00 KST 스캔 잡 등록 (06-tasks P2-R1)
+- DG-002-2: 로컬 스케줄러(Windows 작업 스케줄러/cron)가 매일 06:00 KST에 `npm run scan:hermes` 실행 (06-tasks P2-R1)
 
 #### Evidence Required
 - 실제 스캔 실행 로그(또는 모킹 명시) / memo 레코드 샘플 / 테스트 결과 / 남은 리스크

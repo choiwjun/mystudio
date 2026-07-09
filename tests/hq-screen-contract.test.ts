@@ -90,11 +90,18 @@ describe("HQ main screen contract", () => {
     expect(hqOpportunityMemoListSource).toContain('fetch("/api/hermes/opportunity-memos")');
     expect(hqOpportunityMemoListSource).toContain('fetch("/api/auth/session")');
     expect(hqOpportunityMemoListSource).toContain('fetch("/api/hq/decisions"');
+    expect(hqOpportunityMemoListSource).toContain("sessionResponseSchema");
+    expect(hqOpportunityMemoListSource).toContain("csrf_token: z.string().min(1)");
+    expect(hqOpportunityMemoListSource).not.toContain("function redirectToLogin()");
+    expect(hqOpportunityMemoListSource).not.toContain("/login?from=");
     expect(hqOpportunityMemoListSource).toContain("decision: decisionValue");
     expect(hqOpportunityMemoListSource).toContain("hiddenMemoStatuses");
     expect(hqOpportunityMemoListSource).not.toContain('memo.status === "new"');
     expect(hqOpportunityMemoListSource).toContain("window.location.assign(`/packages/${");
     expect(hqOpportunityMemoListSource).toContain("setMemos((current) =>");
+    expect(hqOpportunityMemoListSource).toContain('"x-csrf-token": csrfToken');
+    expect(hqOpportunityMemoListSource).not.toContain("Authorization");
+    expect(hqOpportunityMemoListSource).not.toContain("Bearer");
   });
 
   it("syncs the HQ kanban board from content package status mapping", () => {
@@ -125,9 +132,9 @@ describe("HQ main screen contract", () => {
     expect(hqRightRailSummarySource).toContain("summary.hq_status.pending_approvals");
     expect(hqRightRailSummarySource).toContain("summary.revenue_summary.month_total");
     expect(hqRightRailSummarySource).toContain("complianceSeverityCounts");
-    expect(hqRightRailSummarySource).toContain("Owner Approval Queue");
-    expect(hqRightRailSummarySource).toContain("Compliance Alerts");
-    expect(hqRightRailSummarySource).toContain("Revenue Snapshot");
+    expect(hqRightRailSummarySource).toContain("오너 승인 대기열");
+    expect(hqRightRailSummarySource).toContain("검수 알림");
+    expect(hqRightRailSummarySource).toContain("수익 요약");
   });
 
   it("syncs HQ briefing and winning patterns from live HQ data", () => {
@@ -146,7 +153,8 @@ describe("HQ main screen contract", () => {
   });
 
   it("generates HQ daily briefing through the runtime AI adapter with profile and memo context", () => {
-    expect(hqServiceSource).toContain("createRuntimeAIAdapter().generateDailyBriefing");
+    expect(hqServiceSource).toContain("createRuntimeAIAdapterFromConfiguredCredentials");
+    expect(hqServiceSource).toContain("adapter.generateDailyBriefing");
     expect(hqServiceSource).toContain("serializeDailyBriefingCompanyProfile(profile)");
     expect(hqServiceSource).toContain("opportunityMemoContext");
     expect(hqServiceSource).toContain("latestMemo:");
@@ -175,7 +183,12 @@ describe("HQ main screen contract", () => {
     expect(hqKanbanBoardSource).toContain("onDragStart");
     expect(hqKanbanBoardSource).toContain("onDrop");
     expect(hqKanbanBoardSource).toContain("x-csrf-token");
+    expect(hqKanbanBoardSource).toContain("sessionResponseSchema");
+    expect(hqKanbanBoardSource).toContain("csrf_token: z.string().min(1)");
+    expect(hqKanbanBoardSource).not.toContain('window.location.assign("/login?from=/")');
     expect(hqKanbanBoardSource).toContain("contentPackagePatchResponseSchema");
+    expect(hqKanbanBoardSource).not.toContain("Authorization");
+    expect(hqKanbanBoardSource).not.toContain("Bearer");
   });
 
   it("guards HQ generation and selection when company profile setup is incomplete", () => {
@@ -205,14 +218,24 @@ describe("HQ main screen contract", () => {
     expect(appHeaderSource).not.toContain("P4 HQ 브리핑 API 구현 후 활성화됩니다.");
     expect(appHeaderSource).not.toContain("disabled title=");
     expect(appHeaderActionsSource).toContain("HqDailyBriefingButton");
-    expect(appHeaderActionsSource).toContain("LogoutButton");
+    expect(appHeaderActionsSource).not.toContain('fetch("/api/auth/logout"');
     expect(appHeaderActionsSource).toContain('href="/settings"');
     expect(hqCommandActionsSource).toContain("HqDailyBriefingButton");
     expect(hqDailyBriefingButtonSource).toContain('fetch("/api/company-profile")');
     expect(hqDailyBriefingButtonSource).toContain('fetch("/api/auth/session")');
     expect(hqDailyBriefingButtonSource).toContain('fetch("/api/hq/daily-briefing"');
     expect(hqDailyBriefingButtonSource).toContain("x-csrf-token");
+    expect(hqDailyBriefingButtonSource).toContain("sessionResponseSchema");
+    expect(hqDailyBriefingButtonSource).toContain("csrf_token: z.string().min(1)");
+    expect(hqDailyBriefingButtonSource).toContain("DATABASE_URL_REQUIRED");
+    expect(hqDailyBriefingButtonSource).toContain(
+      "DATABASE_URL 설정이 없어 브리핑을 저장할 수 없습니다.",
+    );
+    expect(hqDailyBriefingButtonSource).not.toContain("function redirectToLogin()");
+    expect(hqDailyBriefingButtonSource).not.toContain("/login?from=");
     expect(hqDailyBriefingButtonSource).toContain("setProfileGuardOpen(true)");
+    expect(hqDailyBriefingButtonSource).not.toContain("Authorization");
+    expect(hqDailyBriefingButtonSource).not.toContain("Bearer");
   });
   it("renders live HQ status and performance reminder counts instead of static header copy", () => {
     expect(appHeaderSource).toContain("HqStatusBadge");

@@ -70,7 +70,9 @@ export function HqBriefingPanel() {
       {status === "ready" && briefing === null ? (
         <>
           <p>아직 생성된 오늘 브리핑이 없습니다.</p>
-          <p className="muted">상단의 오늘 브리핑 생성 액션으로 회사 프로필 기반 계획을 만듭니다.</p>
+          <p className="muted">
+            상단의 오늘 브리핑 생성 액션으로 회사 프로필 기반 계획을 만듭니다.
+          </p>
         </>
       ) : null}
       {status === "ready" && briefing !== null ? (
@@ -80,7 +82,9 @@ export function HqBriefingPanel() {
             {briefingDateLabel(briefing.date)} · 우선 각도: {briefing.priority_angle} · 상태:{" "}
             {briefing.status}
           </p>
-          {briefing.strategy_note === null ? null : <p className="muted">{briefing.strategy_note}</p>}
+          {briefing.strategy_note === null ? null : (
+            <p className="muted">{briefing.strategy_note}</p>
+          )}
           <div className="button-row">
             {briefing.focus_categories.map((category) => (
               <span className="badge" key={category}>

@@ -6,7 +6,7 @@ export default function PerformancePage() {
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Performance Desk</h1>
+          <h1 className="brand">성과 기록</h1>
           <div className="muted">게시 URL, 조회수, 클릭, 수익, Hook Type 기록</div>
         </div>
         <HqStatusBadge />

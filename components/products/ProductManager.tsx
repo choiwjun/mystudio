@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AffiliateAccountsPanel } from "@/components/products/AffiliateAccountsPanel";
+import { AffiliateLinksPanel } from "@/components/products/AffiliateLinksPanel";
 import { ProductCreatePanel } from "@/components/products/ProductCreatePanel";
 import { ProductEditPanel } from "@/components/products/ProductEditPanel";
 import {
@@ -23,9 +25,9 @@ import type {
   ContentPackageSummary,
   Product,
   ProductFormValues,
-  ShoppingConnectLinkFormValues,
   ProductTab,
   ShoppingConnectLink,
+  ShoppingConnectLinkFormValues,
 } from "@/components/products/types";
 
 const emptyProducts: Product[] = [];
@@ -38,6 +40,24 @@ const emptyShoppingConnectLinkForm: ShoppingConnectLinkFormValues = {
   commission_rate: "",
   notes: "",
 };
+
+function tabFromHash(hash: string): ProductTab {
+  switch (hash) {
+    case "#accounts":
+      return "accounts";
+    case "#affiliate-links":
+      return "affiliate_links";
+    case "#new":
+      return "new";
+    case "#refresh":
+      return "refresh";
+    case "#links":
+    case "":
+      return "registered";
+    default:
+      return "registered";
+  }
+}
 
 function shoppingConnectLinkToForm(link: ShoppingConnectLink): ShoppingConnectLinkFormValues {
   return {
@@ -64,10 +84,10 @@ async function hasProductImportBlockedFallback(response: Response): Promise<bool
 export function ProductManager() {
   const [activeTab, setActiveTab] = useState<ProductTab>("registered");
   const [products, setProducts] = useState<Product[]>(emptyProducts);
-  const [contentPackages, setContentPackages] = useState<ContentPackageSummary[]>(emptyContentPackages);
-  const [shoppingConnectLinks, setShoppingConnectLinks] = useState<ShoppingConnectLink[]>(
-    emptyShoppingConnectLinks,
-  );
+  const [contentPackages, setContentPackages] =
+    useState<ContentPackageSummary[]>(emptyContentPackages);
+  const [shoppingConnectLinks, setShoppingConnectLinks] =
+    useState<ShoppingConnectLink[]>(emptyShoppingConnectLinks);
   const [staleLinks, setStaleLinks] = useState<ShoppingConnectLink[]>(emptyShoppingConnectLinks);
   const [csrfToken, setCsrfToken] = useState("");
   const [status, setStatus] = useState("불러오는 중");
@@ -84,7 +104,7 @@ export function ProductManager() {
     emptyShoppingConnectLinkForm,
   );
 
-  async function loadProducts(): Promise<void> {
+  const loadProducts = useCallback(async (): Promise<void> => {
     const [sessionResponse, productsResponse, linksResponse, staleLinksResponse, packagesResponse] =
       await Promise.all([
         fetch("/api/auth/session"),
@@ -101,7 +121,7 @@ export function ProductManager() {
       staleLinksResponse.status === 401 ||
       packagesResponse.status === 401
     ) {
-      window.location.assign("/login?from=/products");
+      setStatus("세션 확인 실패");
       return;
     }
 
@@ -129,11 +149,32 @@ export function ProductManager() {
     setStaleLinks(staleLinksPayload.data.shopping_connect_links);
     setContentPackages(packagesPayload.data.content_packages);
     setStatus("저장됨");
-  }
+  }, []);
 
   useEffect(() => {
     void loadProducts().catch(() => setStatus("불러오기 실패"));
+  }, [loadProducts]);
+
+  useEffect(() => {
+    function syncTabFromHash(): void {
+      setActiveTab(tabFromHash(window.location.hash));
+    }
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+    return () => window.removeEventListener("hashchange", syncTabFromHash);
   }, []);
+
+  function changeTab(tab: ProductTab): void {
+    setActiveTab(tab);
+    const hashByTab: Record<ProductTab, string> = {
+      registered: "#links",
+      new: "#new",
+      refresh: "#refresh",
+      accounts: "#accounts",
+      affiliate_links: "#affiliate-links",
+    };
+    window.history.replaceState(null, "", hashByTab[tab]);
+  }
 
   const visibleProducts = useMemo(
     () => (activeTab === "refresh" ? products.filter((product) => product.stale) : products),
@@ -259,13 +300,28 @@ export function ProductManager() {
   }
 
   async function refreshProduct(product: Product): Promise<void> {
+    const priceInput = window.prompt(
+      product.price === null
+        ? "현재 가격이 없습니다. 확인한 가격을 입력해야 갱신됩니다."
+        : "확인한 최신 가격을 입력하세요.",
+      product.price?.toString() ?? "",
+    );
+    if (priceInput === null) {
+      return;
+    }
+    const price = Number.parseInt(priceInput.trim(), 10);
+    if (priceInput.trim() === "" || !Number.isSafeInteger(price) || price < 0) {
+      setStatus("가격을 입력해야 갱신됩니다");
+      return;
+    }
+
     const response = await fetch(`/api/products/${product.id}`, {
       method: "PATCH",
       headers: {
         "content-type": "application/json",
         "x-csrf-token": csrfToken,
       },
-      body: JSON.stringify({ price: product.price ?? 0 }),
+      body: JSON.stringify({ price }),
     });
 
     if (!response.ok) {
@@ -275,7 +331,7 @@ export function ProductManager() {
 
     const payload = productMutationResponseSchema.parse(await response.json());
     setProducts(products.map((item) => (item.id === product.id ? payload.data : item)));
-    setStatus("갱신됨");
+    setStatus("가격 확인됨");
   }
 
   function startProductEdit(product: Product): void {
@@ -427,7 +483,6 @@ export function ProductManager() {
     setStatus("링크 삭제됨");
   }
 
-
   async function confirmShoppingConnectLink(link: ShoppingConnectLink): Promise<void> {
     const response = await fetch(`/api/shopping-connect-links/${link.id}`, {
       method: "PATCH",
@@ -450,9 +505,13 @@ export function ProductManager() {
 
   return (
     <section className="products-surface">
-      <ProductTabs activeTab={activeTab} onTabChange={setActiveTab} status={status} />
+      <ProductTabs activeTab={activeTab} onTabChange={changeTab} status={status} />
 
-      {activeTab === "new" ? (
+      {activeTab === "accounts" ? (
+        <AffiliateAccountsPanel />
+      ) : activeTab === "affiliate_links" ? (
+        <AffiliateLinksPanel />
+      ) : activeTab === "new" ? (
         <ProductCreatePanel
           contentPackages={contentPackages}
           importUrl={importUrl}
@@ -501,82 +560,90 @@ export function ProductManager() {
             products={visibleProducts}
           />
           <section className="table-panel">
-          {editingLinkId === null ? null : (
-            <section className="form-panel">
-              <h2>쇼핑커넥트 링크 수정</h2>
-              <label>
-                상품
-                <select
-                  onChange={(event) => setLinkEdit({ ...linkEdit, product_id: event.target.value })}
-                  value={linkEdit.product_id}
-                >
-                  <option value="">상품 선택</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.product_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                콘텐츠 패키지(선택)
-                <select
-                  onChange={(event) =>
-                    setLinkEdit({ ...linkEdit, content_package_id: event.target.value })
-                  }
-                  value={linkEdit.content_package_id}
-                >
-                  <option value="">패키지 미지정</option>
-                  {contentPackages.slice(0, 20).map((contentPackage) => (
-                    <option key={contentPackage.id} value={contentPackage.id}>
-                      {contentPackage.topic.title} · {contentPackage.status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                쇼핑커넥트 URL
-                <input
-                  onChange={(event) =>
-                    setLinkEdit({ ...linkEdit, shopping_connect_url: event.target.value })
-                  }
-                  value={linkEdit.shopping_connect_url}
-                />
-              </label>
-              <label>
-                수수료율(%)
-                <input
-                  onChange={(event) => setLinkEdit({ ...linkEdit, commission_rate: event.target.value })}
-                  step="0.1"
-                  type="number"
-                  value={linkEdit.commission_rate}
-                />
-              </label>
-              <label>
-                메모
-                <textarea
-                  onChange={(event) => setLinkEdit({ ...linkEdit, notes: event.target.value })}
-                  rows={3}
-                  value={linkEdit.notes}
-                />
-              </label>
-              <div className="button-row">
-                <button className="button primary" onClick={() => void saveShoppingConnectLinkEdit()} type="button">
-                  링크 저장
-                </button>
-                <button
-                  className="button"
-                  onClick={() => {
-                    setEditingLinkId(null);
-                    setLinkEdit(emptyShoppingConnectLinkForm);
-                  }}
-                  type="button"
-                >
-                  취소
-                </button>
-              </div>
-            </section>
-          )}
+            {editingLinkId === null ? null : (
+              <section className="form-panel">
+                <h2>쇼핑커넥트 링크 수정</h2>
+                <label>
+                  상품
+                  <select
+                    onChange={(event) =>
+                      setLinkEdit({ ...linkEdit, product_id: event.target.value })
+                    }
+                    value={linkEdit.product_id}
+                  >
+                    <option value="">상품 선택</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.product_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  콘텐츠 패키지(선택)
+                  <select
+                    onChange={(event) =>
+                      setLinkEdit({ ...linkEdit, content_package_id: event.target.value })
+                    }
+                    value={linkEdit.content_package_id}
+                  >
+                    <option value="">패키지 미지정</option>
+                    {contentPackages.slice(0, 20).map((contentPackage) => (
+                      <option key={contentPackage.id} value={contentPackage.id}>
+                        {contentPackage.topic.title} · {contentPackage.status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  쇼핑커넥트 URL
+                  <input
+                    onChange={(event) =>
+                      setLinkEdit({ ...linkEdit, shopping_connect_url: event.target.value })
+                    }
+                    value={linkEdit.shopping_connect_url}
+                  />
+                </label>
+                <label>
+                  수수료율(%)
+                  <input
+                    onChange={(event) =>
+                      setLinkEdit({ ...linkEdit, commission_rate: event.target.value })
+                    }
+                    step="0.1"
+                    type="number"
+                    value={linkEdit.commission_rate}
+                  />
+                </label>
+                <label>
+                  메모
+                  <textarea
+                    onChange={(event) => setLinkEdit({ ...linkEdit, notes: event.target.value })}
+                    rows={3}
+                    value={linkEdit.notes}
+                  />
+                </label>
+                <div className="button-row">
+                  <button
+                    className="button primary"
+                    onClick={() => void saveShoppingConnectLinkEdit()}
+                    type="button"
+                  >
+                    링크 저장
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => {
+                      setEditingLinkId(null);
+                      setLinkEdit(emptyShoppingConnectLinkForm);
+                    }}
+                    type="button"
+                  >
+                    취소
+                  </button>
+                </div>
+              </section>
+            )}
             <h2>쇼핑커넥트 링크</h2>
             <ShoppingConnectLinkTable
               emptyMessage="등록된 쇼핑커넥트 링크가 없습니다."

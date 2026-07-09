@@ -20,7 +20,6 @@ export type DetailFaqItem = {
   readonly answer: string;
 };
 
-
 export type DetailComplianceIssue = {
   readonly id: string;
   readonly issue_type: string;
@@ -32,6 +31,11 @@ export type DetailComplianceIssue = {
   readonly dismissed_at?: string | null;
   readonly dismissed_by?: string | null;
   readonly dismiss_reason?: string | null;
+  readonly dismissal?: {
+    readonly dismissed_at: string;
+    readonly dismissed_by: string | null;
+    readonly reason: string | null;
+  } | null;
 };
 
 export type DetailTitleCandidate = {
@@ -42,7 +46,6 @@ export type DetailTitleCandidate = {
   readonly hookType?: string | null;
   readonly selected: boolean;
 };
-
 
 export type DetailComplianceCheck = {
   readonly id: string;
@@ -65,6 +68,17 @@ export type DetailShoppingConnectLink = {
   readonly stale: boolean;
 };
 
+export type DetailSnsVariant = {
+  readonly id: string;
+  readonly platform: string;
+  readonly format: string;
+  readonly hook: string | null;
+  readonly body: string;
+  readonly cta: string | null;
+  readonly hashtags: readonly string[];
+  readonly score: number | null;
+  readonly created_at: string;
+};
 
 export type DetailContentPackage = {
   readonly id: string;
@@ -95,6 +109,7 @@ export type DetailContentPackage = {
   }[];
   readonly title_candidates: readonly DetailTitleCandidate[];
   readonly shopping_connect_links: readonly DetailShoppingConnectLink[];
+  readonly sns_variants: readonly DetailSnsVariant[];
   readonly exports: readonly DetailExportRecord[];
 };
 

@@ -1,6 +1,6 @@
 import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
-import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import { createRuntimeAIAdapterFromConfiguredCredentials } from "@/lib/ai/runtime";
 import { getOrCreateCompanyProfile } from "@/lib/company-profile/service";
 import { loadContentGenerationContext } from "@/lib/content/generationContext";
 import { serializeActivePlacementProducts } from "@/lib/content/placement";
@@ -48,7 +48,7 @@ export async function generateSearchStructure(input: z.infer<typeof searchStruct
     };
   }
 
-  const adapter = createRuntimeAIAdapter();
+  const adapter = await createRuntimeAIAdapterFromConfiguredCredentials();
   const companyProfile = await getOrCreateCompanyProfile();
   const generationContext = await loadContentGenerationContext({
     task: "generateSearchStructure",

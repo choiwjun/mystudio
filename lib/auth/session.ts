@@ -1,6 +1,7 @@
 import { jwtVerify, SignJWT } from "jose";
 
 export const sessionCookieName = "paperclip_session";
+const sessionSecretEnvName = "NEXTAUTH_SECRET";
 const sessionMaxAgeSeconds = 60 * 60 * 8;
 
 export type OwnerSession = {
@@ -11,10 +12,25 @@ export type OwnerSession = {
   readonly expiresAt: string;
 };
 
+export const singleUserCsrfToken = "paperclip-single-user-csrf";
+const singleUserSessionExpiresAt = "9999-12-31T23:59:59.000Z";
+
+export function createSingleUserSession(): OwnerSession {
+  const configuredEmail = process.env["OWNER_EMAIL"]?.trim();
+  return {
+    sub: "owner",
+    email:
+      configuredEmail === undefined || configuredEmail === "" ? "owner@local" : configuredEmail,
+    name: "Owner",
+    csrfToken: singleUserCsrfToken,
+    expiresAt: singleUserSessionExpiresAt,
+  };
+}
+
 function sessionSecret(): Uint8Array {
-  const secret = process.env["NEXTAUTH_SECRET"];
+  const secret = process.env[sessionSecretEnvName];
   if (secret === undefined || secret.trim() === "") {
-    throw new Error("NEXTAUTH_SECRET is required for session signing.");
+    throw new Error(`${sessionSecretEnvName} is required for session signing.`);
   }
   return new TextEncoder().encode(secret);
 }
@@ -46,25 +62,6 @@ export async function createOwnerSession(email: string): Promise<{
     .sign(sessionSecret());
 
   return { token, session, maxAgeSeconds: sessionMaxAgeSeconds };
-}
-
-function readCookie(header: string | null, name: string): string | null {
-  if (header === null) {
-    return null;
-  }
-
-  for (const part of header.split(";")) {
-    const [rawKey, ...rawValue] = part.trim().split("=");
-    if (rawKey === name) {
-      try {
-        return decodeURIComponent(rawValue.join("="));
-      } catch {
-        return null;
-      }
-    }
-  }
-
-  return null;
 }
 
 export async function readSessionToken(token: string | null): Promise<OwnerSession | null> {
@@ -100,8 +97,8 @@ export async function readSessionToken(token: string | null): Promise<OwnerSessi
   }
 }
 
-export async function readSessionFromRequest(request: Request): Promise<OwnerSession | null> {
-  return readSessionToken(readCookie(request.headers.get("cookie"), sessionCookieName));
+export async function readSessionFromRequest(_request: Request): Promise<OwnerSession> {
+  return createSingleUserSession();
 }
 
 export function sessionCookieOptions(maxAgeSeconds: number) {
@@ -111,5 +108,12 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
     secure: process.env["NODE_ENV"] === "production",
     path: "/",
     maxAge: maxAgeSeconds,
+  };
+}
+
+export function expiredSessionCookieOptions() {
+  return {
+    ...sessionCookieOptions(0),
+    expires: new Date(0),
   };
 }

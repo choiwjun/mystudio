@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { summarizeHookTypeStats } from "@/lib/memory/patterns";
+import { COMPANY_MEMORY_MIN_SAMPLE_COUNT, summarizeHookTypeStats } from "@/lib/memory/patterns";
 import {
   isOlderThanSevenDays,
   serializeProduct,
@@ -168,7 +168,7 @@ export async function getWinningPatterns() {
   return {
     hook_type_stats: summarizeHookTypeStats(
       performanceLogs.map((log) => ({ hook_type: log.hookType, views: log.views })),
-    ),
+    ).filter((stat) => stat.sample_count >= COMPANY_MEMORY_MIN_SAMPLE_COUNT),
     top_product_categories: buildTopProductCategories({
       revenueLogs,
       performanceLogs,

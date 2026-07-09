@@ -132,9 +132,11 @@ export function HqRightRailSummary() {
   return (
     <>
       <section className="section-block">
-        <h3>Owner Approval Queue</h3>
+        <h3>오너 승인 대기열</h3>
         {status === "loading" ? <p className="muted">승인 대기 상태를 불러오는 중입니다.</p> : null}
-        {status === "error" ? <p className="form-error">승인 대기 상태를 불러오지 못했습니다.</p> : null}
+        {status === "error" ? (
+          <p className="form-error">승인 대기 상태를 불러오지 못했습니다.</p>
+        ) : null}
         {status === "ready" && summary !== null ? (
           <>
             <p>{summary.hq_status.pending_approvals.toLocaleString("ko-KR")}건 승인 대기</p>
@@ -146,7 +148,7 @@ export function HqRightRailSummary() {
         ) : null}
       </section>
       <section className="section-block">
-        <h3>Compliance Alerts</h3>
+        <h3>검수 알림</h3>
         {status === "loading" ? <p className="muted">검수 알림을 불러오는 중입니다.</p> : null}
         {status === "error" ? <p className="form-error">검수 알림을 불러오지 못했습니다.</p> : null}
         {status === "ready" && summary !== null ? (
@@ -154,18 +156,20 @@ export function HqRightRailSummary() {
             <p className={summary.hq_status.compliance_failures > 0 ? "form-error" : "muted"}>
               검수 실패 {summary.hq_status.compliance_failures.toLocaleString("ko-KR")}건
             </p>
-            <div className="severity-grid" aria-label="Compliance severity counts">
+            <section className="severity-grid" aria-label="검수 위험도 집계">
               <span className="badge">High {severityCounts.high}</span>
               <span className="badge">Medium {severityCounts.medium}</span>
               <span className="badge">Low {severityCounts.low}</span>
-            </div>
+            </section>
           </>
         ) : null}
       </section>
       <section className="section-block">
-        <h3>Revenue Snapshot</h3>
+        <h3>수익 요약</h3>
         {status === "loading" ? <p className="muted">수익 스냅샷을 불러오는 중입니다.</p> : null}
-        {status === "error" ? <p className="form-error">수익 스냅샷을 불러오지 못했습니다.</p> : null}
+        {status === "error" ? (
+          <p className="form-error">수익 스냅샷을 불러오지 못했습니다.</p>
+        ) : null}
         {status === "ready" && summary !== null ? (
           <>
             <p>

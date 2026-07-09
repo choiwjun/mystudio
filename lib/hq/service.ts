@@ -1,6 +1,6 @@
 import { PackageStatus } from "@prisma/client";
 import { z } from "zod";
-import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import { createRuntimeAIAdapterFromConfiguredCredentials } from "@/lib/ai/runtime";
 import {
   assertCompanyProfileReady,
   getOrCreateCompanyProfile,
@@ -96,7 +96,8 @@ export async function createDailyBriefing(input: z.infer<typeof dailyBriefingSch
     orderBy: { createdAt: "desc" },
     take: 5,
   });
-  const aiBriefing = await createRuntimeAIAdapter().generateDailyBriefing({
+  const adapter = await createRuntimeAIAdapterFromConfiguredCredentials();
+  const aiBriefing = await adapter.generateDailyBriefing({
     companyProfile: serializeDailyBriefingCompanyProfile(profile),
     opportunityMemoContext: {
       latestMemo:
@@ -164,6 +165,7 @@ export async function getHqToday() {
       titleCandidates: { orderBy: { createdAt: "asc" } },
       complianceChecks: { include: { complianceIssues: true }, orderBy: { checkedAt: "desc" } },
       exports: { orderBy: { createdAt: "desc" } },
+      snsVariants: { orderBy: { createdAt: "desc" } },
       shoppingConnectLinks: { include: { product: true } },
     },
     orderBy: { updatedAt: "desc" },

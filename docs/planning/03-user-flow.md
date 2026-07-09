@@ -7,10 +7,10 @@
 
 ## 1. 하루 운영 흐름 (15단계)
 
-### 1단계: Vercel Cron (매일 6시)
+### 1단계: 로컬 스케줄러 (매일 6시)
 
 ```
-Hermes가 자동으로 스캔 시작
+로컬 PC의 Windows 작업 스케줄러/cron이 `npm run scan:hermes` 실행
 ├─ 네이버 블로그 검색 API: 최근 인기 글 수집 (primary_categories 기반)
 ├─ 네이버 쇼핑 검색 API: 트렌드 상품 수집
 └─ AI로 3~5개 기회를 Opportunity Memo로 변환

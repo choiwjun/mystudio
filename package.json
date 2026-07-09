@@ -7,13 +7,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check .",
-    "format": "biome check --write .",
+    "lint": "biome check app lib scripts tests prisma components next.config.mjs vitest.config.ts playwright.config.ts proxy.ts tsconfig.json package.json",
+    "format": "biome check --write app lib scripts tests prisma components next.config.mjs vitest.config.ts playwright.config.ts proxy.ts tsconfig.json package.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "next build && playwright test",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "seed": "tsx prisma/seed.ts",
+    "scan:hermes": "tsx scripts/hermes-scan.ts",
     "audit:prod": "npm audit --omit=dev"
   },
   "dependencies": {

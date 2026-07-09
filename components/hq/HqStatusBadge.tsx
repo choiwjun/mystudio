@@ -28,14 +28,25 @@ type HqStatusBadgeProps = {
 };
 
 const statusLabels: Record<string, string> = {
-  Good: "Good",
-  Warning: "Warning",
-  Focus: "Focus",
-  Revenue: "Revenue",
+  Good: "정상",
+  Warning: "주의",
+  Focus: "집중",
+  Revenue: "수익",
 };
 
+function aiBudgetStateLabel(kind: string): string {
+  switch (kind) {
+    case "soft_warning":
+      return "주의";
+    case "hard_blocked":
+      return "차단";
+    default:
+      return "정상";
+  }
+}
+
 function formatAiBudget(budget: HqStatusData["ai_budget"]): string {
-  return `AI ${budget.usageRate}% · $${budget.totalCostUsd.toFixed(2)}/$${budget.capUsd.toFixed(2)}`;
+  return `AI 예산 ${aiBudgetStateLabel(budget.kind)} ${budget.usageRate}% · $${budget.totalCostUsd.toFixed(2)}/$${budget.capUsd.toFixed(2)}`;
 }
 
 export function formatHqStatusText(status: HqStatusData, compact: boolean): string {
@@ -43,9 +54,7 @@ export function formatHqStatusText(status: HqStatusData, compact: boolean): stri
   const missingText = compact
     ? `미기록 ${status.needs_performance_log.toLocaleString("ko-KR")}건`
     : `성과 미기록 ${status.needs_performance_log.toLocaleString("ko-KR")}건`;
-  return compact
-    ? `Status ${statusLabel} · ${missingText}`
-    : `Status ${statusLabel} · ${missingText} · ${formatAiBudget(status.ai_budget)}`;
+  return `상태 ${statusLabel} · ${missingText} · ${formatAiBudget(status.ai_budget)}`;
 }
 async function fetchHqStatus(): Promise<HqStatusData> {
   const response = await fetch("/api/hq/status");
@@ -58,7 +67,6 @@ async function fetchHqStatus(): Promise<HqStatusData> {
 export function requestHqStatusRefresh(): void {
   window.dispatchEvent(new Event(hqStatusRefreshEvent));
 }
-
 
 export function HqStatusBadge({ compact = false }: HqStatusBadgeProps) {
   const [status, setStatus] = useState<HqStatusData | null>(null);
@@ -96,11 +104,11 @@ export function HqStatusBadge({ compact = false }: HqStatusBadgeProps) {
   }, []);
 
   if (loadState === "loading") {
-    return <span className="badge">Status 확인 중</span>;
+    return <span className="badge">상태 확인 중</span>;
   }
 
   if (loadState === "error" || status === null) {
-    return <span className="badge">Status 확인 실패</span>;
+    return <span className="badge">상태 확인 실패</span>;
   }
 
   return (

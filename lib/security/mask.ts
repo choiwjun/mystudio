@@ -1,4 +1,4 @@
-const sensitiveKeyFragments = ["password", "token", "secret", "authorization"] as const;
+const sensitiveKeyFragments = ["password", "token", "secret", "authorization", "apikey"] as const;
 
 export type JsonSafe =
   | string

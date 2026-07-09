@@ -1,5 +1,11 @@
+import { PackageStatus } from "@prisma/client";
 import { z } from "zod";
 import { getOrCreateCompanyProfile } from "@/lib/company-profile/service";
+import { transitionContentPackageStatus } from "@/lib/content/repository";
+import {
+  isPackageStatusTransitionAllowed,
+  performanceRecordableStatuses,
+} from "@/lib/content/statusTransitions";
 import { prisma } from "@/lib/db";
 import { buildCompanyMemoryEntriesForPerformance } from "@/lib/memory/patterns";
 import {
@@ -66,6 +72,7 @@ async function listRecentContentPackageChoices(): Promise<
   SerializedPerformanceContentPackageChoice[]
 > {
   const contentPackages = await prisma.contentPackage.findMany({
+    where: { status: { in: [...performanceRecordableStatuses] } },
     include: { topic: true },
     orderBy: {
       updatedAt: "desc",
@@ -75,12 +82,21 @@ async function listRecentContentPackageChoices(): Promise<
   return contentPackages.map(serializeContentPackageChoice);
 }
 
-async function contentPackageExists(id: string): Promise<boolean> {
-  const contentPackage = await prisma.contentPackage.findUnique({
-    where: { id },
-    select: { id: true },
+async function loadPerformanceRecordableContentPackage(id: string) {
+  return prisma.contentPackage.findFirst({
+    where: {
+      id,
+      status: { in: [...performanceRecordableStatuses] },
+    },
+    select: {
+      id: true,
+      status: true,
+      shoppingConnectLinks: {
+        where: { isActive: true },
+        include: { product: true },
+      },
+    },
   });
-  return contentPackage !== null;
 }
 
 function mergeAverage(
@@ -192,8 +208,31 @@ async function upsertCompanyMemoryEntry(
   });
 }
 
+async function markPerformanceRecorded(input: {
+  readonly contentPackageId: string;
+  readonly fromStatus: PackageStatus;
+  readonly memoryUpdated: boolean;
+}): Promise<void> {
+  const toStatus = input.memoryUpdated
+    ? PackageStatus.memory_updated
+    : PackageStatus.performance_recorded;
+  if (!isPackageStatusTransitionAllowed(input.fromStatus, toStatus)) {
+    return;
+  }
+  await transitionContentPackageStatus({
+    id: input.contentPackageId,
+    fromStatus: input.fromStatus,
+    toStatus,
+    actor: "system",
+    reason: input.memoryUpdated
+      ? "Performance recorded and Company Memory updated."
+      : "Performance recorded.",
+  });
+}
+
 export async function createPerformanceLog(input: z.infer<typeof performanceLogCreateSchema>) {
-  if (!(await contentPackageExists(input.content_package_id))) {
+  const contentPackage = await loadPerformanceRecordableContentPackage(input.content_package_id);
+  if (contentPackage === null) {
     return null;
   }
   const contentPackageId = input.content_package_id;
@@ -217,10 +256,20 @@ export async function createPerformanceLog(input: z.infer<typeof performanceLogC
     views: input.views,
     clicks: input.clicks,
     directRevenue: input.direct_revenue ?? 0,
+    products: contentPackage.shoppingConnectLinks.map((link) => ({
+      category: link.product.category,
+      productName: link.product.productName,
+      price: link.product.price,
+    })),
   });
   for (const entry of memoryEntries) {
     await upsertCompanyMemoryEntry(entry);
   }
+  await markPerformanceRecorded({
+    contentPackageId,
+    fromStatus: contentPackage.status,
+    memoryUpdated: memoryEntries.length > 0,
+  });
 
   return serializePerformanceLog(log);
 }
@@ -264,6 +313,59 @@ export async function getContentPerformance(contentPackageId: string) {
         hook_type: log.hookType,
       })),
     ),
+  };
+}
+
+export async function getCategoryPerformance(category: string) {
+  const normalizedCategory = category.trim().toLowerCase();
+  const [performanceLogs, revenueLogs] = await Promise.all([
+    prisma.performanceLog.findMany({
+      include: {
+        contentPackage: {
+          include: {
+            topic: true,
+            shoppingConnectLinks: { include: { product: true } },
+          },
+        },
+      },
+      orderBy: { recordedAt: "desc" },
+    }),
+    prisma.revenueLog.findMany({
+      include: { product: true },
+      orderBy: { orderedAt: "desc" },
+    }),
+  ]);
+  const matchingPerformanceLogs = performanceLogs.filter((log) =>
+    directRevenueCategoryEntries(log).some(
+      (entry) => entry.category?.trim().toLowerCase() === normalizedCategory,
+    ),
+  );
+  const matchingRevenueLogs = revenueLogs.filter(
+    (log) => log.product.category?.trim().toLowerCase() === normalizedCategory,
+  );
+
+  return {
+    category,
+    performance_logs: matchingPerformanceLogs.map(serializePerformanceLog),
+    revenue_logs: matchingRevenueLogs.map((log) => ({
+      id: log.id,
+      product_id: log.productId,
+      product_name: log.product.productName,
+      amount: log.amount,
+      ordered_at: log.orderedAt.toISOString(),
+      source: log.product.source,
+    })),
+    summary: summarizePerformance(
+      matchingPerformanceLogs.map((log) => ({
+        views: log.views,
+        clicks: log.clicks ?? 0,
+        direct_revenue: log.directRevenue ?? 0,
+        hook_type: log.hookType,
+      })),
+    ),
+    revenue_total:
+      matchingPerformanceLogs.reduce((total, log) => total + (log.directRevenue ?? 0), 0) +
+      matchingRevenueLogs.reduce((total, log) => total + log.amount, 0),
   };
 }
 

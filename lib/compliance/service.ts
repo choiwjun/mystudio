@@ -1,13 +1,14 @@
 import { PackageStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { AIAdapter, ComplianceOutput } from "@/lib/ai/adapter";
-import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import { createRuntimeAIAdapterFromConfiguredCredentials } from "@/lib/ai/runtime";
 import {
   applyComplianceFixes,
   type ComplianceRuleIssue,
   evaluateCompliance,
   type PolicyRuleContext,
 } from "@/lib/compliance/rules";
+import { loadCompetitorSimilarityIssues } from "@/lib/compliance/similarity";
 import {
   transitionContentPackageStatus,
   updateContentPackageProgress,
@@ -56,6 +57,46 @@ function deriveRiskLevel(issues: readonly { readonly severity: string }[]): Comp
     return "medium";
   }
   return "low";
+}
+
+function isStaleCheckedAt(date: Date | null, now = new Date()): boolean {
+  if (date === null) {
+    return false;
+  }
+  return now.getTime() - date.getTime() > 7 * 24 * 60 * 60 * 1000;
+}
+
+function staleProductLinkIssues(
+  links: readonly {
+    readonly product: { readonly productName: string; readonly priceCheckedAt: Date | null };
+    readonly shoppingConnectUrl: string;
+    readonly linkCheckedAt: Date | null;
+  }[],
+): ComplianceRuleIssue[] {
+  const issues: ComplianceRuleIssue[] = [];
+  const stalePrices = links
+    .filter((link) => isStaleCheckedAt(link.product.priceCheckedAt))
+    .map((link) => link.product.productName);
+  const staleLinks = links
+    .filter((link) => isStaleCheckedAt(link.linkCheckedAt))
+    .map((link) => link.shoppingConnectUrl);
+  if (stalePrices.length > 0) {
+    issues.push({
+      issue_type: "stale_product_price",
+      severity: "medium",
+      message: `7일 초과 가격 확인 데이터가 있습니다: ${stalePrices.join(", ")}`,
+      suggested_fix: "제품 가격을 다시 확인하고 가격 기준일을 갱신하세요.",
+    });
+  }
+  if (staleLinks.length > 0) {
+    issues.push({
+      issue_type: "stale_shopping_link",
+      severity: "medium",
+      message: `7일 초과 쇼핑링크 확인 데이터가 있습니다: ${staleLinks.join(", ")}`,
+      suggested_fix: "쇼핑커넥트 링크 유효성을 다시 확인하고 확인일을 갱신하세요.",
+    });
+  }
+  return issues;
 }
 
 export function mergeComplianceIssues(input: {
@@ -248,14 +289,16 @@ export async function runComplianceCheck(
   }
   const packageBeforeCheck = await prisma.contentPackage.findUnique({
     where: { id: input.content_package_id },
+    include: { topic: { select: { title: true } } },
   });
   if (packageBeforeCheck === null) {
     return null;
   }
 
-  const [shoppingLinkCount, policyRuleRecords] = await Promise.all([
-    prisma.shoppingConnectLink.count({
+  const [shoppingLinks, policyRuleRecords] = await Promise.all([
+    prisma.shoppingConnectLink.findMany({
       where: { contentPackageId: input.content_package_id, isActive: true },
+      include: { product: true },
     }),
     prisma.policyRule.findMany({
       where: { isActive: true },
@@ -269,7 +312,7 @@ export async function runComplianceCheck(
     description: rule.description,
   }));
   const bodyMarkdown = draft.bodyMarkdown ?? "";
-  const hasShoppingConnectLinks = shoppingLinkCount > 0;
+  const hasShoppingConnectLinks = shoppingLinks.length > 0;
   const hasPriceMentions = /[0-9,]+원|가격/.test(bodyMarkdown);
   const ruleResult = evaluateCompliance({
     body_markdown: bodyMarkdown,
@@ -279,9 +322,16 @@ export async function runComplianceCheck(
     price_notice: draft.priceNotice,
     policy_rules: policyRules,
   });
+  const competitorSimilarityIssues = await loadCompetitorSimilarityIssues({
+    bodyMarkdown,
+    topicTitle: packageBeforeCheck.topic.title,
+  });
   let semanticOutput: ComplianceOutput | null = null;
   try {
-    const adapter = options.aiAdapter ?? options.createAIAdapter?.() ?? createRuntimeAIAdapter();
+    const adapter =
+      options.aiAdapter ??
+      options.createAIAdapter?.() ??
+      (await createRuntimeAIAdapterFromConfiguredCredentials());
     semanticOutput = await runSemanticComplianceReview({
       adapter,
       bodyMarkdown,
@@ -293,7 +343,11 @@ export async function runComplianceCheck(
     semanticOutput = null;
   }
   const result = mergeComplianceIssues({
-    ruleIssues: ruleResult.issues,
+    ruleIssues: [
+      ...ruleResult.issues,
+      ...staleProductLinkIssues(shoppingLinks),
+      ...competitorSimilarityIssues,
+    ],
     semanticOutput,
   });
 

@@ -5,6 +5,25 @@ source_documents:
   - docs/planning/06-tasks.md
 
 resources:
+  auth_session:
+    kind: security
+    description: "single_owner_no_login local owner session + CSRF token; no login screen required."
+    endpoints:
+      - POST /api/auth/login
+      - POST /api/auth/logout
+      - GET /api/auth/session
+    canonical_contract:
+      mode: single_owner_no_login
+      login_required: false
+      session_cookie: none_required
+      csrf_response_field: csrf_token
+      csrf_request_header: x-csrf-token
+      api_guard: withAuthenticatedApi
+      edge_guard: proxy
+      fail_closed_statuses:
+        csrf_invalid: 403
+    env:
+      - OWNER_EMAIL
   hq_status:
     kind: derived
     endpoints:
@@ -54,6 +73,7 @@ resources:
       max_daily_cards: 5
       cron_requires_header: CRON_SECRET
       idempotency_key: trigger_execution_id
+      scheduler: local_os_runs_npm_scan_hermes
 
   keyword_clusters:
     table: keyword_clusters

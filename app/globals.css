@@ -157,7 +157,8 @@ select {
 }
 
 .nav-link {
-  display: block;
+  display: grid;
+  gap: 2px;
   border-radius: 6px;
   padding: var(--space-2) var(--space-3);
   color: var(--text-secondary);
@@ -172,10 +173,40 @@ select {
   color: var(--text-primary);
 }
 
+.nav-sublist {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 var(--space-2);
+  padding: 0 0 0 var(--space-3);
+  list-style: none;
+}
+
+.nav-link-child {
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 0 6px 6px 0;
+  padding: var(--space-1) var(--space-3);
+}
+
+.nav-link-label {
+  font-weight: 590;
+}
+
+.nav-link-description {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.7fr);
   gap: var(--space-6);
+}
+
+.report-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
 }
 
 .stack {
@@ -197,6 +228,32 @@ select {
   border-radius: 8px;
   background: var(--surface-card);
   padding: var(--space-5);
+}
+
+.metric-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-card);
+  padding: var(--space-5);
+}
+
+.metric-card strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.metric-label {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 590;
+  line-height: 1.35;
 }
 
 .memo-list {
@@ -362,6 +419,7 @@ select {
 
 .auth-form input,
 .form-panel input,
+.form-panel select,
 .form-panel textarea {
   width: 100%;
   border: 1px solid var(--border-default);
@@ -373,6 +431,37 @@ select {
 
 .form-panel textarea {
   resize: vertical;
+}
+
+.form-fieldset {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: var(--space-3);
+}
+
+.form-fieldset legend {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 510;
+  padding: 0 var(--space-1);
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-2);
+}
+
+.form-panel .checkbox-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.form-panel .checkbox-row input {
+  width: auto;
 }
 
 .form-error {
@@ -471,6 +560,13 @@ select {
   gap: var(--space-5);
 }
 
+.affiliate-account-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.55fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
 .data-table {
   width: 100%;
   min-width: 640px;
@@ -519,6 +615,25 @@ select {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.budget-grid div {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: var(--space-3);
+}
+
+.budget-grid dd {
+  margin: var(--space-1) 0 0;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .winning-patterns-grid {
@@ -620,9 +735,11 @@ select {
 @media (max-width: 900px) {
   .app-shell,
   .dashboard-grid,
+  .report-metric-grid,
   .settings-grid,
   .form-row,
   .product-create-grid,
+  .affiliate-account-grid,
   .content-detail-grid,
   .winning-patterns-grid,
   .metric-grid {
@@ -652,5 +769,15 @@ select {
 
   .topbar-message {
     text-align: left;
+  }
+
+  .button,
+  .tab-button,
+  .nav-link,
+  .auth-form input,
+  .form-panel input,
+  .form-panel select,
+  .form-panel textarea {
+    min-height: 44px;
   }
 }

@@ -76,7 +76,7 @@ export function CompanyProfileForm() {
       ]);
 
       if (sessionResponse.status === 401 || profileResponse.status === 401) {
-        window.location.assign("/login?from=/settings");
+        setStatus("세션 확인 실패");
         return;
       }
 
@@ -162,7 +162,9 @@ export function CompanyProfileForm() {
       {setupRequired ? (
         <aside className="setup-modal" aria-label="초기 설정 필요">
           <h2>초기 설정 필요</h2>
-          <p>회사명과 주요 카테고리 1개 이상이 저장되기 전까지 Hermes와 Content 생성은 차단됩니다.</p>
+          <p>
+            회사명과 주요 카테고리 1개 이상이 저장되기 전까지 Hermes와 Content 생성은 차단됩니다.
+          </p>
         </aside>
       ) : null}
 
@@ -178,12 +180,15 @@ export function CompanyProfileForm() {
             />
           </label>
           <label>
-            월 수익 목표
+            월 매출 목표
             <input
               disabled={formBusy}
               min="0"
               onChange={(event) =>
-                setProfile({ ...profile, revenue_goal_monthly: Number.parseInt(event.target.value, 10) || 0 })
+                setProfile({
+                  ...profile,
+                  revenue_goal_monthly: Number.parseInt(event.target.value, 10) || 0,
+                })
               }
               type="number"
               value={profile.revenue_goal_monthly}
@@ -195,7 +200,9 @@ export function CompanyProfileForm() {
           주요 카테고리
           <input
             disabled={formBusy}
-            onChange={(event) => setProfile({ ...profile, primary_categories: splitList(event.target.value) })}
+            onChange={(event) =>
+              setProfile({ ...profile, primary_categories: splitList(event.target.value) })
+            }
             placeholder="자취, 계절, 청소"
             required
             value={joinList(profile.primary_categories)}
@@ -206,7 +213,9 @@ export function CompanyProfileForm() {
           차단 카테고리
           <input
             disabled={formBusy}
-            onChange={(event) => setProfile({ ...profile, blocked_categories: splitList(event.target.value) })}
+            onChange={(event) =>
+              setProfile({ ...profile, blocked_categories: splitList(event.target.value) })
+            }
             placeholder="건강, 의료, 투자"
             value={joinList(profile.blocked_categories)}
           />
@@ -233,10 +242,20 @@ export function CompanyProfileForm() {
         </label>
 
         <div className="button-row">
-          <button className="button primary" disabled={!canSaveProfile || status === "저장 중"} onClick={save} type="button">
+          <button
+            className="button primary"
+            disabled={!canSaveProfile || status === "저장 중"}
+            onClick={save}
+            type="button"
+          >
             저장
           </button>
-          <button className="button" disabled={formBusy} onClick={() => setProfile(lastSaved)} type="button">
+          <button
+            className="button"
+            disabled={formBusy}
+            onClick={() => setProfile(lastSaved)}
+            type="button"
+          >
             취소
           </button>
           <span className="badge">{status}</span>

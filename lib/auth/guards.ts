@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { withApiErrorLogging } from "@/lib/api/handler";
-import { fail } from "@/lib/api/response";
+import { fail, getCurrentRequestId } from "@/lib/api/response";
 import { type OwnerSession, readSessionFromRequest } from "@/lib/auth/session";
 import { recordErrorLog } from "@/lib/logging/errorLogger";
 
@@ -14,12 +14,14 @@ async function safeRecordAuthError(
   code: string,
   message: string,
 ): Promise<void> {
+  const requestId = getCurrentRequestId();
   try {
     await recordErrorLog({
       errorCode: code,
       message,
       severity: "medium",
       context: {
+        ...(requestId === null ? {} : { request_id: requestId }),
         apiPath: request.nextUrl.pathname,
         method: request.method,
       },

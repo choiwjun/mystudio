@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LogoutButton } from "@/components/auth/LogoutButton";
 import { HqDailyBriefingButton } from "@/components/hq/HqDailyBriefingButton";
 
 export function AppHeaderActions() {
@@ -15,7 +14,6 @@ export function AppHeaderActions() {
         <Link className="button" href="/settings">
           설정
         </Link>
-        <LogoutButton />
       </div>
       {message === "" ? null : <p className="topbar-message muted">{message}</p>}
     </div>

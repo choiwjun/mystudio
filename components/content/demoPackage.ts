@@ -39,9 +39,15 @@ export const demoContentPackage: DetailContentPackage = {
         "출처: 네이버 쇼핑 검색 결과와 상품 상세 정보를 기준으로 정리했습니다.\n\n장마철 자취방 습기는 먼저 환기, 흡습, 제습 순서로 점검합니다.\n\n가격은 확인일 기준이며 변동될 수 있습니다.",
       comparison_table: "| 기준 | 확인 |\n| --- | --- |\n| 가격 | 기준일 필요 |",
       faq: [
-        { question: "언제 가격을 다시 확인하나요?", answer: "게시 전과 7일 경과 시 다시 확인합니다." },
+        {
+          question: "언제 가격을 다시 확인하나요?",
+          answer: "게시 전과 7일 경과 시 다시 확인합니다.",
+        },
         { question: "자동 게시되나요?", answer: "아니요. 검수와 승인 후 수동 게시합니다." },
-        { question: "쇼핑커넥트 표기는 필수인가요?", answer: "링크가 있으면 대가성 문구를 반드시 표시합니다." },
+        {
+          question: "쇼핑커넥트 표기는 필수인가요?",
+          answer: "링크가 있으면 대가성 문구를 반드시 표시합니다.",
+        },
       ],
       disclosure_text: "이 글은 쇼핑커넥트 활동을 포함할 수 있습니다.",
       price_notice: "가격은 확인일 기준이며 변동될 수 있습니다.",
@@ -89,6 +95,30 @@ export const demoContentPackage: DetailContentPackage = {
       is_active: true,
       notes: "본문 비교표 하단 배치 후보",
       stale: false,
+    },
+  ],
+  sns_variants: [
+    {
+      id: "demo_clip",
+      platform: "naver_clip",
+      format: "copy",
+      hook: "장마철 자취방 습기, 30초 점검",
+      body: "0-2초: 장마철 냄새와 곰팡이, 시작은 습기입니다.\n3-20초: 환기, 흡습, 제습 순서로 체크합니다.\n20-30초: 자세한 비교 기준은 블로그 표에서 확인하세요.",
+      cta: "자세한 비교는 블로그에서 확인하세요.",
+      hashtags: ["#네이버클립", "#자취방습기", "#제습체크"],
+      score: 72,
+      created_at: "2026-07-05T00:00:00.000Z",
+    },
+    {
+      id: "demo_instagram",
+      platform: "instagram",
+      format: "carousel_6",
+      hook: "습기 잡기 전에 먼저 버릴 기준",
+      body: "장마철 자취방은 환기만으로 해결되지 않는 날이 많습니다. 가격보다 먼저 공간 크기와 배수 편의성을 보세요.",
+      cta: "저장해두고 게시 전 가격 기준일을 다시 확인하세요.",
+      hashtags: ["#자취방", "#장마철", "#쇼핑체크"],
+      score: 74,
+      created_at: "2026-07-05T00:00:00.000Z",
     },
   ],
   exports: [

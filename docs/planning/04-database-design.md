@@ -1,7 +1,7 @@
 # 04-database-design.md: 데이터베이스 설계
 
 > Paperclip Company OS v0.7
-> Prisma ORM, PostgreSQL (Supabase)
+> Prisma ORM, 로컬 PostgreSQL
 > 기준일: 2026-07-02
 
 ---
@@ -512,7 +512,7 @@ model ErrorLog {
   errorCode             String   @map("error_code")
   message               String
   stackTrace            String?  @map("stack_trace")
-  // @TASK B5: context에 request_body 원문 저장 금지. 민감 필드 거부목록(password, token, secret, authorization) 마스킹 후 저장
+  // @TASK B5: context에 request_body 원문 저장 금지. 민감 필드 거부목록(password, token, secret, authorization, apiKey) 마스킹 후 저장
   context               Json?    // { user_id, api_path, request_id, request_body_masked: {...} }
   severity              String   @default("low") // "low" / "medium" / "high"
   createdAt             DateTime @default(now()) @map("created_at")
@@ -680,7 +680,7 @@ CREATE INDEX idx_error_logs_severity_created ON error_logs(severity, created_at 
 
 ## 마이그레이션 체크리스트
 
-- [ ] PostgreSQL (Supabase) 생성
+- [ ] 로컬 PostgreSQL 데이터베이스 생성
 - [ ] Prisma 초기 스키마 작성 및 마이그레이션
 - [ ] PackageStatus enum 동기화 (specs/shared/types.yaml와 정본 유지)
 - [ ] 상태 전이 서비스 구현 (단일 진입점, StatusTransition 로깅)
@@ -697,8 +697,8 @@ CREATE INDEX idx_error_logs_severity_created ON error_logs(severity, created_at 
 - **Downstream documents affected**: 07-coding-convention.md (쿼리 및 마이그레이션 규칙), revision-request-02.md (B1~B7 반영 사항)
 - **Council 미합의 쟁점 (council-report §4)**: 
   - §4-1: ✅ 확정 (2026-07-02) — 승인 상태 정식 채택, StatusTransition이 승인 감사 원장
-  - §4-2: ✅ 확정 (2026-07-02) — 경량 중간해 (maxDuration + 클라이언트 단계별 순차 호출), 마이그레이션 전략에 미영향
+  - §4-2: ✅ 확정 (2026-07-02) — 경량 중간해 (클라이언트 단계별 순차 호출), 마이그레이션 전략에 미영향
   - §4-3: 멀티테넌시 (owner_id 컬럼 지금 추가 vs Won't 확정) → 현재 단일 사용자 구조 유지
   - §4-6: ✅ 확정 (2026-07-05) — P2-S1 URL 붙여넣기 존속, SSRF 방어 + 수동 입력 폴백 필수
 - **Open questions**: 멀티 테넌트 전환 시 마이그레이션 경로, 벡터 임베딩 필드 추가 시기, 데이터 익명화 정책, Company Memory 알고리즘 완정
-- **Assumptions**: Supabase PostgreSQL의 안정성, Prisma 마이그레이션 자동화, 월 데이터 증가량 < 10GB, 상태 머신 단일 정본 준수
+- **Assumptions**: 로컬 PostgreSQL의 안정성, Prisma 마이그레이션 자동화, 월 데이터 증가량 < 10GB, 상태 머신 단일 정본 준수

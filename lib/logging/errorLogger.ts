@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { hasDatabaseUrl, prisma } from "@/lib/db";
 import { type JsonSafe, maskSensitiveContext } from "@/lib/security/mask";
 
 export type ErrorSeverity = "low" | "medium" | "high";
@@ -13,7 +13,7 @@ export type ErrorLogInput = {
 };
 
 export async function recordErrorLog(input: ErrorLogInput): Promise<void> {
-  if (process.env["ERROR_LOG_ENABLED"] === "false") {
+  if (process.env["ERROR_LOG_ENABLED"] === "false" || !hasDatabaseUrl()) {
     return;
   }
 

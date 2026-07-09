@@ -3,10 +3,12 @@ import { readJsonBody } from "@/lib/api/json";
 import { fail, ok } from "@/lib/api/response";
 import { withAuthenticatedApi } from "@/lib/auth/guards";
 import {
+  ContentPackageStatusBlockedError,
   contentPackageStatusPatchSchema,
   getContentPackage,
   updateContentPackageStatus,
 } from "@/lib/content/service";
+import { IllegalPackageStatusTransitionError } from "@/lib/content/statusTransitions";
 
 type RouteContext = {
   readonly params: Promise<{ readonly id: string }>;
@@ -30,7 +32,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     if (!parsed.success) {
       return fail(
         {
-          code: "BAD_REQUEST",
+          code: "VALIDATION_ERROR",
           message: "Invalid content package status payload.",
           details: { issues: parsed.error.flatten().fieldErrors },
         },
@@ -38,11 +40,35 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       );
     }
     const params = await context.params;
-    const contentPackage = await updateContentPackageStatus(params.id, parsed.data);
-    if (contentPackage === null) {
-      return fail({ code: "NOT_FOUND", message: "Content package was not found." }, 404);
+    try {
+      const contentPackage = await updateContentPackageStatus(params.id, parsed.data);
+      if (contentPackage === null) {
+        return fail({ code: "NOT_FOUND", message: "Content package was not found." }, 404);
+      }
+      return ok(contentPackage);
+    } catch (error) {
+      if (error instanceof ContentPackageStatusBlockedError) {
+        return fail(
+          {
+            code: "CONTENT_PACKAGE_STATUS_BLOCKED",
+            message: error.message,
+            details: { reason: error.reason },
+          },
+          409,
+        );
+      }
+      if (error instanceof IllegalPackageStatusTransitionError) {
+        return fail(
+          {
+            code: "INVALID_STATUS_TRANSITION",
+            message: error.message,
+            details: { reason: "invalid_transition" },
+          },
+          409,
+        );
+      }
+      throw error;
     }
-    return ok(contentPackage);
   });
   return guarded(request);
 }

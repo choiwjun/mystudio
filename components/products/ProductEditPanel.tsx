@@ -38,7 +38,10 @@ export function ProductEditPanel({ values, onCancel, onChange, onSave }: Product
         </label>
         <label>
           메모
-          <input onChange={(event) => onChange({ ...values, memo: event.target.value })} value={values.memo} />
+          <input
+            onChange={(event) => onChange({ ...values, memo: event.target.value })}
+            value={values.memo}
+          />
         </label>
       </div>
       <div className="form-row">

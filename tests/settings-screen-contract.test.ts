@@ -21,12 +21,20 @@ describe("settings screen contract", () => {
 
     expect(companyProfileFormSource).toContain("companyProfileResponseSchema");
     expect(companyProfileFormSource).toContain("companyProfileResponseSchema.parse");
+    expect(companyProfileFormSource).toContain("sessionResponseSchema");
+    expect(companyProfileFormSource).toContain("csrf_token: z.string().min(1)");
+    expect(companyProfileFormSource).toContain('fetch("/api/auth/session")');
+    expect(companyProfileFormSource).toContain('setStatus("세션 확인 실패")');
     expect(companyProfileFormSource).toContain("canSaveProfile");
     expect(companyProfileFormSource).toContain("profile.company_name.trim().length > 0");
     expect(companyProfileFormSource).toContain("profile.primary_categories.length > 0");
+    expect(companyProfileFormSource).toContain('csrfToken !== ""');
     expect(companyProfileFormSource).toContain("disabled={!canSaveProfile");
     expect(companyProfileFormSource).toContain("const wasSetupRequired = lastSaved.setup_required");
     expect(companyProfileFormSource).toContain('window.location.assign("/?setup=complete")');
+    expect(companyProfileFormSource).toContain('"x-csrf-token": csrfToken');
+    expect(companyProfileFormSource).not.toContain("Authorization");
+    expect(companyProfileFormSource).not.toContain("Bearer");
     expect(companyProfileFormSource).toContain("취소");
     expect(companyProfileFormSource).not.toContain("초기화");
   });

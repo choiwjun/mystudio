@@ -57,6 +57,7 @@ model Workspace {
   name            String           @default("default")
   createdAt       DateTime         @default(now()) @map("created_at")
   companyProfiles CompanyProfile[]
+  affiliateAccounts AffiliateAccount[]
 
   @@map("workspaces")
 }
@@ -213,6 +214,7 @@ model ContentPackage {
   complianceChecks     ComplianceCheck[]
   performanceLogs      PerformanceLog[]
   shoppingConnectLinks ShoppingConnectLink[]
+  affiliateLinks       AffiliateLink[]
 
   @@index([status, updatedAt])
   @@map("content_packages")
@@ -307,14 +309,67 @@ model Product {
   priceCheckedAt       DateTime?             @map("price_checked_at")
   imageUrl             String?               @map("image_url")
   category             String?
+  popularityScore      Float?                @map("popularity_score")
+  popularityRank       Int?                  @map("popularity_rank")
+  popularitySource     String?               @map("popularity_source")
+  popularityCheckedAt  DateTime?             @map("popularity_checked_at")
   memo                 String?
   createdAt            DateTime              @default(now()) @map("created_at")
   updatedAt            DateTime              @updatedAt @map("updated_at")
   shoppingConnectLinks ShoppingConnectLink[]
+  affiliateLinks       AffiliateLink[]
   revenueLogs          RevenueLog[]          @relation("ProductRevenue")
 
   @@index([createdAt])
   @@map("products")
+}
+
+model AffiliateAccount {
+  id               String          @id @default(cuid())
+  workspaceId      String?         @map("workspace_id")
+  workspace        Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  platform         String
+  accountName      String          @map("account_name")
+  channelUrl       String?         @map("channel_url")
+  affiliateProgram String          @map("affiliate_program")
+  disclosurePolicy String?         @map("disclosure_policy")
+  categoryFocus    String[]        @default([]) @map("category_focus")
+  snsTargets       String[]        @default([]) @map("sns_targets")
+  hookStyle        String?         @map("hook_style")
+  status           String          @default("setup_needed")
+  memo             String?
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  affiliateLinks   AffiliateLink[]
+
+  @@index([workspaceId, platform])
+  @@map("affiliate_accounts")
+}
+
+model AffiliateLink {
+  id               String            @id @default(cuid())
+  accountId        String?           @map("account_id")
+  account          AffiliateAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  productId        String?           @map("product_id")
+  product          Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  contentPackageId String?           @map("content_package_id")
+  contentPackage   ContentPackage?   @relation(fields: [contentPackageId], references: [id], onDelete: SetNull)
+  platform         String
+  program          String
+  destinationUrl   String            @map("destination_url")
+  affiliateUrl     String            @map("affiliate_url")
+  commissionRate   Float?            @map("commission_rate")
+  disclosurePolicy String?           @map("disclosure_policy")
+  placementGuide   String?           @map("placement_guide")
+  isActive         Boolean           @default(true) @map("is_active")
+  linkCheckedAt    DateTime?         @map("link_checked_at")
+  notes            String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@index([accountId, platform])
+  @@index([productId, contentPackageId])
+  @@map("affiliate_links")
 }
 
 model ShoppingConnectLink {
@@ -334,6 +389,22 @@ model ShoppingConnectLink {
 
   @@index([productId, contentPackageId])
   @@map("shopping_connect_links")
+}
+
+model ApiCredential {
+  id              String    @id @default(cuid())
+  provider        String
+  label           String
+  encryptedValue  String    @map("encrypted_value")
+  iv              String
+  authTag         String    @map("auth_tag")
+  status          String    @default("active")
+  lastValidatedAt DateTime? @map("last_validated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([provider, status])
+  @@map("api_credentials")
 }
 
 model ComplianceCheck {
@@ -441,6 +512,22 @@ model ErrorLog {
 
   @@index([severity, createdAt])
   @@map("error_logs")
+}
+
+model ApiRequestLog {
+  id         String   @id @default(cuid())
+  routeName  String   @map("route_name")
+  apiPath    String   @map("api_path")
+  method     String
+  statusCode Int      @map("status_code")
+  durationMs Int      @map("duration_ms")
+  requestId  String   @map("request_id")
+  errorCode  String?  @map("error_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([routeName, createdAt])
+  @@index([statusCode, createdAt])
+  @@map("api_request_logs")
 }
 
 model CompanyMemory {

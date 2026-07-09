@@ -105,14 +105,15 @@ export function HqRefreshNeededPanel() {
     };
   }, []);
 
-  const refreshNeededTotal =
-    refreshNeeded.stale_products_count + refreshNeeded.stale_links_count;
+  const refreshNeededTotal = refreshNeeded.stale_products_count + refreshNeeded.stale_links_count;
 
   return (
     <section className="section-block">
       <h3>Refresh Needed ({refreshNeededTotal}개)</h3>
       {status === "loading" ? <p className="muted">갱신 필요 항목을 불러오는 중입니다.</p> : null}
-      {status === "error" ? <p className="form-error">갱신 필요 항목을 불러오지 못했습니다.</p> : null}
+      {status === "error" ? (
+        <p className="form-error">갱신 필요 항목을 불러오지 못했습니다.</p>
+      ) : null}
       {status === "ready" && refreshNeededTotal === 0 ? (
         <p className="muted">갱신할 상품이나 링크가 없습니다.</p>
       ) : null}

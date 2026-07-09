@@ -25,6 +25,11 @@ const opportunityMemoSchema = z.object({
   search_score: z.number(),
   revenue_score: z.number(),
   risk_score: z.number(),
+  homefeed_reasons: z.string().nullable().optional(),
+  search_reasons: z.string().nullable().optional(),
+  revenue_reasons: z.string().nullable().optional(),
+  risk_reasons: z.string().nullable().optional(),
+  score_reasons: z.string().nullable().optional(),
   status: z.string(),
 });
 
@@ -52,13 +57,55 @@ const decisionResponseSchema = z.object({
 type DecisionValue = (typeof decisionValues)[number];
 type OpportunityMemo = z.infer<typeof opportunityMemoSchema>;
 
-function scoreLabel(memo: OpportunityMemo): string {
-  return [
-    `HomeFeed ${memo.homefeed_score}`,
-    `Search ${memo.search_score}`,
-    `Revenue ${memo.revenue_score}`,
-    `Risk ${memo.risk_score}`,
-  ].join(" / ");
+const scoreAxes = [
+  {
+    key: "homefeed_score",
+    reasonKey: "homefeed_reasons",
+    label: "홈피드",
+    tone: "#1d4ed8",
+  },
+  {
+    key: "search_score",
+    reasonKey: "search_reasons",
+    label: "검색",
+    tone: "#047857",
+  },
+  {
+    key: "revenue_score",
+    reasonKey: "revenue_reasons",
+    label: "수익",
+    tone: "#b45309",
+  },
+  {
+    key: "risk_score",
+    reasonKey: "risk_reasons",
+    label: "안전성",
+    tone: "#b91c1c",
+  },
+] as const satisfies readonly {
+  readonly key: keyof Pick<
+    OpportunityMemo,
+    "homefeed_score" | "search_score" | "revenue_score" | "risk_score"
+  >;
+  readonly reasonKey: keyof Pick<
+    OpportunityMemo,
+    "homefeed_reasons" | "search_reasons" | "revenue_reasons" | "risk_reasons"
+  >;
+  readonly label: string;
+  readonly tone: string;
+}[];
+
+function scoreReason(
+  memo: OpportunityMemo,
+  reasonKey: (typeof scoreAxes)[number]["reasonKey"],
+): string {
+  return memo[reasonKey] ?? memo.score_reasons ?? "축별 근거가 아직 없습니다.";
+}
+
+function scoreAxisAria(memo: OpportunityMemo, axis: (typeof scoreAxes)[number]): string {
+  const value = memo[axis.key];
+  const inverseText = axis.key === "risk_score" ? " 낮을수록 안전" : "";
+  return `${axis.label} ${value}점.${inverseText} 근거: ${scoreReason(memo, axis.reasonKey)}`;
 }
 
 function decisionLabel(value: DecisionValue): string {
@@ -103,7 +150,7 @@ export function HqOpportunityMemoList() {
         memosResponse.status === 401 ||
         profileResponse.status === 401
       ) {
-        window.location.assign("/login?from=/");
+        setLoadStatus("error");
         return;
       }
       if (!sessionResponse.ok || !memosResponse.ok || !profileResponse.ok) {
@@ -111,10 +158,7 @@ export function HqOpportunityMemoList() {
       }
       const sessionPayload = await parseJsonResponse(sessionResponse, sessionResponseSchema);
       const memosPayload = await parseJsonResponse(memosResponse, opportunityMemosResponseSchema);
-      const profilePayload = await parseJsonResponse(
-        profileResponse,
-        companyProfileResponseSchema,
-      );
+      const profilePayload = await parseJsonResponse(profileResponse, companyProfileResponseSchema);
       if (!active) {
         return;
       }
@@ -164,6 +208,10 @@ export function HqOpportunityMemoList() {
         setProfileGuardOpen(true);
         return;
       }
+      if (response.status === 401) {
+        setMessage("세션 확인에 실패했습니다.");
+        return;
+      }
       if (!response.ok) {
         throw new Error("HQ_DECISION_FAILED");
       }
@@ -199,7 +247,24 @@ export function HqOpportunityMemoList() {
               <article className="memo-row" key={memo.id}>
                 <h3>{memo.topic}</h3>
                 <p>{memo.why_now}</p>
-                <p className="muted">{scoreLabel(memo)}</p>
+                <fieldset className="severity-grid" aria-label={`${memo.topic} 4축 점수와 근거`}>
+                  {scoreAxes.map((axis) => (
+                    <span
+                      role="img"
+                      aria-label={scoreAxisAria(memo, axis)}
+                      className="badge"
+                      key={axis.key}
+                      style={{
+                        borderColor: axis.tone,
+                        color: axis.tone,
+                      }}
+                      title={scoreReason(memo, axis.reasonKey)}
+                    >
+                      {axis.label} {memo[axis.key]}
+                      {axis.key === "risk_score" ? " · 낮을수록 안전" : ""}
+                    </span>
+                  ))}
+                </fieldset>
                 <div className="button-row compact-actions">
                   {decisionValues.map((decisionValue) => (
                     <button
@@ -221,9 +286,7 @@ export function HqOpportunityMemoList() {
           </div>
         ) : null}
       </section>
-      {profileGuardOpen ? (
-        <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} />
-      ) : null}
+      {profileGuardOpen ? <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} /> : null}
     </>
   );
 }

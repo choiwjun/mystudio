@@ -140,14 +140,14 @@
 
 ```
 개발·운영 비용 (초기):
-  - 인프라: Vercel + Supabase = $0 ~ $50/월 (Free tier)
+  - 인프라: 로컬 PC + 로컬 PostgreSQL = 추가 클라우드 비용 $0
   - AI 모델: Claude / OpenAI = $100~500/월
-  - 모니터링: Sentry 등 = $0~29/월
-  - 도메인 + SSL = 자체 보유
+  - 모니터링: 로컬 error_logs/cost_logs = $0
+  - 도메인 + SSL = 로컬 운영에서는 불필요
 
 유지보수 비용:
   - 개발자 1명 (현재)
-  - 인프라 관리 (자동화)
+  - 인프라 관리 (로컬 백업/스케줄러 점검)
   
 → 목표: 사용자에게 비용 청구 안 함 (오픈소스 또는 개인 프로젝트)
 ```
@@ -274,8 +274,8 @@ OpenAI API:
   총 수익: ₩500,000 / 월
 
 비용 항목:
-  - AI 모델: $0 (Vercel Free tier AI 미사용)
-  - 인프라: $0 (Vercel + Supabase Free)
+  - AI 모델: $0 (mock/local dry-run 또는 무료 크레딧 사용)
+  - 인프라: $0 (로컬 PC + 로컬 PostgreSQL)
   - 기타: $0
   총 비용: $0 / 월
 
@@ -292,7 +292,7 @@ OpenAI API:
 
 비용 항목:
   - AI 모델: ₩50,000 / 월 (Claude API 집중)
-  - 인프라: ₩0 (Vercel + Supabase Free 범위)
+  - 인프라: ₩0 (로컬 PC + 로컬 PostgreSQL)
   - 기타 (모니터링 등): ₩10,000 / 월
   총 비용: ₩60,000 / 월
 

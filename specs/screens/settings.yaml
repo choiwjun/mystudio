@@ -29,6 +29,24 @@ actions:
     endpoint: PATCH /api/company-profile
   cancel_changes:
     behavior: restore_last_saved_values
+  load_ai_budget:
+    endpoint: GET /api/hq/status
+
+ai_budget:
+  source_env: DAILY_AI_COST_CAP_USD
+  default_cap_usd: 5
+  display: read_only
+  payment_flow: none
+  thresholds:
+    soft_warning_percent: 70
+    hard_blocked_percent: 100
+  behavior:
+    - show_daily_cap
+    - show_today_used
+    - show_remaining_budget
+    - show_usage_rate
+    - show_soft_warning
+    - show_hard_blocked_generation_status
 
 tests:
   - id: settings_load

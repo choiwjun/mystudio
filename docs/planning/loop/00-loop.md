@@ -22,7 +22,7 @@
 
 ## 3. 우선 구현 순서 (from final-planning-approval)
 1. **P0**: 프로젝트 생성 + Prisma 스키마 마이그레이션(P0-T1, 04 Round 2 정렬본 기준) + 네이버 검색 API 클라이언트·폴백(P0-T2) → REQ-013
-2. **P1~P2**: 인증·공통 레이어 → Hermes 스캔·memo·4축 점수(P2-R1, Vercel Cron 포함) + 의사결정(P2-R2) + 상품/링크(P2-R3) → REQ-002·003·004·007
+2. **P1~P2**: 인증·공통 레이어 → Hermes 스캔·memo·4축 점수(P2-R1, 로컬 스케줄러 포함) + 의사결정(P2-R2) + 상품/링크(P2-R3) → REQ-002·003·004·007
 3. **P3**: 콘텐츠 생성 파이프라인(P3-R1 3분할) → Compliance(P3-R2) → Export(P3-R3) → REQ-005·006·008·009·010
 4. **P4**: HQ 메인(P4-R1/S1) → Performance Logger(P4-R2/S2) → Company Memory(P4-R3) → REQ-001·011·012
 

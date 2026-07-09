@@ -9,6 +9,22 @@ const productManagerSource = readFileSync("components/products/ProductManager.ts
 const productTablesSource = readFileSync("components/products/ProductTables.tsx", "utf8");
 const productCreatePanelSource = readFileSync("components/products/ProductCreatePanel.tsx", "utf8");
 const productEditPanelSource = readFileSync("components/products/ProductEditPanel.tsx", "utf8");
+const affiliateAccountsPanelSource = readFileSync(
+  "components/products/AffiliateAccountsPanel.tsx",
+  "utf8",
+);
+const affiliateAccountFormSource = readFileSync(
+  "components/products/AffiliateAccountForm.tsx",
+  "utf8",
+);
+const affiliateAccountTableSource = readFileSync(
+  "components/products/AffiliateAccountTable.tsx",
+  "utf8",
+);
+const affiliateAccountFieldsSource = readFileSync(
+  "components/products/affiliateAccountFields.ts",
+  "utf8",
+);
 const productTypesSource = readFileSync("components/products/types.ts", "utf8");
 const productFormSource = readFileSync("components/products/productForm.ts", "utf8");
 const productSchemasSource = readFileSync("components/products/productSchemas.ts", "utf8");
@@ -43,8 +59,8 @@ describe("products screen contract", () => {
     expect(productManagerSource).toContain("PRODUCT_IMPORT_BLOCKED");
     expect(productTablesSource).toContain("onEditProduct");
     expect(productTablesSource).toContain("onDeleteProduct");
-    expect(productTablesSource).toContain(">수정<");
-    expect(productTablesSource).toContain(">삭제<");
+    expect(productTablesSource).toMatch(/>\s*수정\s*</);
+    expect(productTablesSource).toMatch(/>\s*삭제\s*</);
   });
 
   it("keeps manual product create and edit fields wired through form values, panels, and manager", () => {
@@ -76,6 +92,8 @@ describe("products screen contract", () => {
   it("keeps automatic product import behind the SSRF gate", () => {
     expect(productImportRouteSource).toContain('code: "PRODUCT_IMPORT_BLOCKED"');
     expect(productImportRouteSource).toContain("Use manual input");
+    expect(productImportRouteSource).not.toContain("message.startsWith");
+    expect(productImportRouteSource).not.toContain('replace("PRODUCT_IMPORT_BLOCKED:"');
     expect(productServiceSource).toContain(
       'import { validateProductImportUrl } from "@/lib/security/productImport"',
     );
@@ -83,7 +101,9 @@ describe("products screen contract", () => {
       "const validatedUrl = await validateProductImportUrl(input.url)",
     );
     expect(productServiceSource).toContain("if (!validatedUrl.ok)");
-    expect(productServiceSource).toContain("parseNaverProductFromUrl(validatedUrl.url)");
+    expect(productServiceSource).toContain(
+      "const crawlerResult = await importProductWithInsaneSearch(validatedUrl.url)",
+    );
 
     expect(productCreatePanelSource).toContain("URL 정보 가져오기");
     expect(productCreatePanelSource).not.toContain("자동 크롤링");
@@ -147,5 +167,34 @@ describe("products screen contract", () => {
     expect(productTablesSource).toContain("onEditLink");
     expect(productTablesSource).toContain("onToggleLinkActive");
     expect(productTablesSource).toContain("onDeleteLink");
+  });
+
+  it("exposes affiliate multi-account management from the revenue workspace", () => {
+    expect(productTypesSource).toContain(
+      '"registered" | "new" | "refresh" | "accounts" | "affiliate_links"',
+    );
+    expect(productTypesSource).toContain("export type AffiliateAccount");
+    expect(productTypesSource).toContain("affiliateAccountPlatforms");
+    expect(productManagerSource).toContain('case "#accounts"');
+    expect(productManagerSource).toContain('case "#affiliate-links"');
+    expect(productManagerSource).toContain("<AffiliateAccountsPanel />");
+    expect(productManagerSource).toContain("<AffiliateLinksPanel />");
+    expect(productManagerSource).toContain('accounts: "#accounts"');
+    expect(productManagerSource).toContain('affiliate_links: "#affiliate-links"');
+    expect(affiliateAccountsPanelSource).toContain('fetch("/api/affiliate-accounts")');
+    expect(affiliateAccountFormSource).toContain("어필리에이트 다계정");
+    expect(affiliateAccountFormSource).toContain("제휴 프로그램");
+    expect(affiliateAccountFormSource).toContain("카테고리 포커스");
+    expect(affiliateAccountFormSource).toContain("후킹 스타일");
+    expect(affiliateAccountFormSource).toContain("대상 SNS");
+    expect(affiliateAccountFormSource).toContain("계정 추가");
+    expect(affiliateAccountTableSource).toContain("운영 포커스");
+    expect(affiliateAccountTableSource).toContain("운영안");
+    expect(affiliateAccountTableSource).toContain("상태 변경");
+    expect(affiliateAccountFieldsSource).toContain("parseAffiliateAccountPlatform");
+    expect(productSchemasSource).toContain("affiliateAccountContentPlanResponseSchema");
+    expect(affiliateAccountsPanelSource).not.toContain("window.localStorage.setItem");
+    expect(productSchemasSource).toContain("affiliateLinkListResponseSchema");
+    expect(productSchemasSource).toContain("affiliateLinkMutationResponseSchema");
   });
 });

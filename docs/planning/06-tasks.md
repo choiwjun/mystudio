@@ -18,12 +18,12 @@
 | 영역 | 기술 | 이유 |
 |-----|------|------|
 | **Frontend** | Next.js (App Router) | 최신 React 패턴, 서버 컴포넌트 활용 |
-| **Backend** | Next.js API Routes | Vercel 올인 전략 |
-| **DB** | PostgreSQL (Supabase) | 관계형 + 벡터 확장 가능 |
+| **Backend** | Next.js API Routes | 로컬 Node/Next 런타임 |
+| **DB** | 로컬 PostgreSQL | 관계형 + 벡터 확장 가능 |
 | **ORM** | Prisma | TypeScript 안전성, 마이그레이션 자동화 |
-| **배포** | Vercel + Supabase | Serverless 자동 스케일링 |
-| **Job Runner** | Vercel Cron | 매일 06:00 Hermes 스캔 |
-| **인증** | jose signed-cookie session | 단일 Owner 로그인, httpOnly `paperclip_session` + CSRF |
+| **운영** | 로컬 PC 실행 | Vercel/Supabase 사용 안 함 |
+| **Job Runner** | 로컬 스케줄러 | Windows 작업 스케줄러/cron에서 `npm run scan:hermes` |
+| **인증** | single_owner_no_login | 로그인 화면 없이 단일 Owner 세션 자동 제공 + CSRF |
 | **AI Adapter** | 교체 가능 인터페이스 | Claude/OpenAI 선택 가능, cost_logs 기록 |
 
 ---
@@ -133,7 +133,7 @@ graph TD
 
 ## Phase 0: 프로젝트 셋업
 
-### [ ] P0-T1: Next.js + Prisma + Supabase 프로젝트 초기화
+### [ ] P0-T1: Next.js + Prisma + 로컬 PostgreSQL 프로젝트 초기화
 
 - **담당**: database-specialist
 - **의존**: 없음
@@ -148,15 +148,15 @@ graph TD
     - Paperclip: paperclip_decisions / Content: topics, keyword_clusters, content_packages, drafts, sns_variants, title_candidates, exports
     - ShoppingConnect: products, shopping_connect_links / Compliance: compliance_checks, compliance_issues, policy_rules, status_transitions
     - Analytics: performance_logs, revenue_logs, cost_logs, error_logs / Memory: company_memory, prompt_templates / Admin: agent_runs, category_playbooks
-  - Supabase 데이터베이스 연결
+  - 로컬 PostgreSQL 데이터베이스 연결
   - 초기 마이그레이션 실행
-  - .env.example 작성 (DATABASE_URL, NEXTAUTH_SECRET 등; NEXTAUTH_SECRET은 legacy-compatible 세션 서명 secret 이름)
+  - .env.example 작성 (DATABASE_URL, OWNER_EMAIL 등; 로그인 secret은 필요 없음)
 - **acceptance_criteria**:
   - Given Next.js 프로젝트 생성 / When `npm run dev` 실행 / Then http://localhost:3000 접속 가능
   - Given Prisma 스키마 정의(04 정본, 28개 모델) / When `npx prisma migrate dev --name init` 실행 / Then 28개 테이블 + PackageStatus enum 생성, SQL 파일 migrations/ 폴더에 저장됨
   - Given 초기 마이그레이션 완료 / When 시드 실행 / Then workspaces에 default 워크스페이스 1행 존재, company_profile 생성 시 해당 workspace_id 연결
-  - Given Supabase 환경 설정 / When `npx prisma db push` 실행 / Then Supabase PostgreSQL에 전체 스키마 적용, prisma.io 대시보드에서 확인 가능
-  - Given .env.example 작성 / When 개발자가 .env.local 생성 / Then DATABASE_URL과 legacy-compatible 세션 서명 secret인 NEXTAUTH_SECRET 등 주요 변수 명시됨
+  - Given 로컬 PostgreSQL 환경 설정 / When `npx prisma db push` 실행 / Then 로컬 PostgreSQL에 전체 스키마 적용, Prisma Studio에서 확인 가능
+  - Given .env.example 작성 / When 개발자가 .env.local 생성 / Then DATABASE_URL, OWNER_EMAIL, 외부 API 키 등 주요 변수 명시됨
 
 ### [ ] P0-T2: 공통 인프라 구축
 
@@ -189,22 +189,22 @@ graph TD
 
 ## Phase 1: 공통 기반
 
-### [ ] P1-R1-T1: 단일 사용자 인증 API
+### [ ] P1-R1-T1: 단일 Owner no-login 세션 API
 
 - **담당**: backend-specialist
 - **의존**: P0-T2
 - **브랜치**: `phase-1-auth`
 - **TDD**: RED → GREEN → REFACTOR
-- **구현 대상**: jose signed-cookie 단일 Owner 인증 (로그인/세션) + 전 API 보호
+- **구현 대상**: `single_owner_no_login` 접근 방식. 로그인 화면 없이 단일 Owner 세션을 자동 제공하고, 상태 변경 API에는 `withAuthenticatedApi`의 CSRF 검증을 유지한다.
 - **엔드포인트**:
-  - POST /api/auth/login (이메일, 비밀번호)
-  - POST /api/auth/logout
-  - GET /api/auth/session (현재 세션 조회)
+  - POST /api/auth/login (호환 no-op)
+  - POST /api/auth/logout (호환 no-op)
+  - GET /api/auth/session (현재 단일 Owner 세션 조회)
 - **acceptance_criteria**:
-  - Given Owner 자격증명 설정 / When POST /api/auth/login (유효한 이메일/비밀번호) / Then httpOnly signed `paperclip_session` 쿠키와 CSRF 토큰이 발급되고 세션이 생성됨
-  - Given 인증 없음 / When API 호출 / Then 401 Unauthorized 반환, error_logs 기록
-  - Given 세션 만료 / When GET /api/auth/session / Then 쿠키 검증 실패로 401 반환, 사용자는 /login으로 리다이렉트
-  - Given 전 API / When middleware/proxy 적용 / Then jose 쿠키 검증 후 통과 또는 401 반환하며 Bearer token 또는 `next-auth` 패키지는 사용하지 않음
+  - Given 단일 사용자 운영 / When 앱 접속 / Then 로그인 화면 없이 단일 Owner 세션을 자동 제공함
+  - Given GET /api/auth/session / When 쿠키 없이 호출 / Then 사용자 정보, `csrf_token`, `expires_at`을 반환함
+  - Given POST /api/auth/login 또는 POST /api/auth/logout / When 호출 / Then 쿠키 발급/삭제 없이 호환 응답만 반환함
+  - Given 전 API / When `proxy.ts` 적용 / Then 로그인 리다이렉트 없이 통과하며 Authorization 헤더 기반 앱 세션이나 별도 인증 프레임워크 세션은 사용하지 않음
   - Given 상태 변경 API / When `x-csrf-token` 헤더가 세션 CSRF 토큰과 불일치하거나 누락됨 / Then 403 CSRF_TOKEN_INVALID 반환
 
 ### [ ] P1-R2-T1: company_profile Resource
@@ -237,7 +237,7 @@ graph TD
   - `/packages/demo`는 개발/데모 확인용 상세 id이며 production 사이드바 또는 compliance 진입점으로 노출하지 않음
   - Next.js 동적 레이아웃 (RootLayout)
 - **acceptance_criteria**:
-  - Given RootLayout 구현 / When 모든 페이지 로드 / Then 헤더·사이드바 공통 표시, 인증 없으면 /login 리다이렉트
+  - Given RootLayout 구현 / When 모든 페이지 로드 / Then 헤더·사이드바 공통 표시, 로그인 화면 없이 접근 가능
   - Given 사이드바 메뉴 / When 항목 클릭 / Then production 상위 경로(`/`, `/hermes`, `/packages`, `/products`, `/compliance`, `/memory`, `/performance`)로 네비게이트하고 active 상태 표시
   - Given 반응형 레이아웃 / When 모바일 화면 / Then 사이드바 축소·펼침 토글 가능 (선택)
   - Given 모든 자식 페이지 / When RootLayout 적용 / Then 메인 콘텐츠 영역은 children으로 렌더, 헤더/사이드바는 고정
@@ -263,7 +263,7 @@ graph TD
   - Given API 정상 / When GET /api/hermes/opportunity-memos/:id / Then keyword_clusters 5~10개 내장 반환 ({ primary_keyword, search_volume, related_keywords, competition_score })
   - Given 네이버 API 장애 / When POST /api/hermes/scan / Then 이전 스캔 결과 사용 + AI 보완, error_logs에 "HERMES_API_TIMEOUT" 기록
   - Given blocked_categories / When 스캔 / Then 필터링된 memo만 생성 (예: 건강 카테고리 제외)
-  - Given Vercel Cron 설정 / When vercel.json에 crons 정의 (매일 06:00 KST Hermes 스캔 잡) / Then 정시에 POST /api/hermes/scan 자동 호출, error_logs에 성공/실패 기록
+  - Given 로컬 스케줄러 설정 / When Windows 작업 스케줄러 또는 cron이 매일 06:00에 `npm run scan:hermes`를 실행 / Then POST /api/hermes/scan과 동일한 Hermes 스캔 로직이 실행되고 error_logs에 성공/실패 기록
   - **[C1 신규]** Given Cron 트리거 엔드포인트 호출 / When 요청 헤더에 `CRON_SECRET` / Then env.CRON_SECRET과 일치 검증, 불일치 시 401 Unauthorized 반환 (무인증 트리거 방지)
   - **[C1 신규]** Given 동일한 트리거 실행 ID로 재호출 / When `POST /api/hermes/scan` 멱등키 적용 / Then opportunity_memo 중복 생성 0건, 기존 레코드 참조 반환
 
@@ -367,7 +367,7 @@ graph TD
 
 - **담당**: backend-specialist
 - **의존**: P2-R1, P2-R3
-- **✅ 선행 조건 충족**: 비동기 실행 모델 확정 — **경량 중간해** (Vercel maxDuration 연장 + 클라이언트 단계별 순차 호출, 02-trd §2.3 확정안 준수. 단계 경계 = 비용 체크 지점, 단계 단위 재개 멱등)
+- **✅ 선행 조건 충족**: 비동기 실행 모델 확정 — **경량 중간해** (클라이언트 단계별 순차 호출, 02-trd §2.3 확정안 준수. 단계 경계 = 비용 체크 지점, 단계 단위 재개 멱등)
 - **브랜치**: `phase-3-content-engine`
 - **TDD**: RED → GREEN → REFACTOR
 - **구현 대상**: content_packages + drafts + title_candidates (AI 생성, NaverBlogProfile)
@@ -603,7 +603,7 @@ graph TD
 
 1. **AI 모델**: Open Question — Phase 0-T2에서 Adapter 인터페이스 구현, 모델 선택은 별개 (Claude vs OpenAI vs 하이브리드)
 2. **Naver API 쿼터**: 확정 필요 — 스캔 빈도 및 rate limiting 전략
-3. **초기 배포**: Vercel + Supabase 확정 (대안 검토 불필요)
+3. **초기 운영**: 로컬 PC + 로컬 PostgreSQL 확정 (Vercel/Supabase 사용 안 함)
 4. **마크다운 에디터**: 2초 debounce 자동 저장 (편의성 vs 백엔드 부하 트레이드오프)
 5. **상태값 머신**: 00-source-plan.md 10장 준수 (변경 금지)
 
@@ -628,7 +628,7 @@ graph TD
    - 각 Phase별 worktree: `worktree/phase-{n}-{feature}`
    - 각 Phase별 브랜치: `phase-{n}-{feature}`
    - 병합 후 브랜치 삭제
-4. **CI/CD**: Vercel 자동 배포 (main push → production)
+4. **운영 규칙**: 로컬에서 `npm run build && npm run start`로 실행, Hermes 자동 스캔은 OS 스케줄러가 `npm run scan:hermes` 호출
 
 ---
 
@@ -651,14 +651,14 @@ graph TD
 - **Open questions**:
   - AI 모델 최종 선택 (Claude vs OpenAI vs 하이브리드)
   - Naver API 쿼터 확정 (일일 요청 수, rate limiting)
-  - 초기 배포 타이밍 (P1 완료 후 vs P3 완료 후)
+  - 로컬 운영 전환 타이밍 (P1 완료 후 vs P3 완료 후)
   - 성과 수집 자동화 (수동 입력 vs API 크롤링)
 
 - **Assumptions**:
-  - Vercel Cron의 신뢰성 (매일 06:00 정시 실행)
+  - 로컬 PC가 Hermes 스캔 시간에 켜져 있음
   - Naver API의 안정성 (< 10% 에러율)
   - PostgreSQL의 확장성 (초기 단일 사용자, 향후 멀티유저)
-  - jose signed-cookie 단일 Owner 로그인의 충분성 (Phase 3까지)
+  - single_owner_no_login + CSRF 방식의 충분성 (Phase 3까지)
 
 - **Critical Path**:
   1. P0-T1 → P0-T2 (3~4일)

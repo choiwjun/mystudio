@@ -6,7 +6,7 @@ import { generateSearchStructure, searchStructureSchema } from "@/lib/content/se
 export const POST = withAuthenticatedApi("optimizers.search.structure", async (request) => {
   const parsed = searchStructureSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
-    return fail({ code: "BAD_REQUEST", message: "content_package_id is required." }, 400);
+    return fail({ code: "VALIDATION_ERROR", message: "content_package_id is required." }, 400);
   }
   const result = await generateSearchStructure(parsed.data);
   if (result === null) {

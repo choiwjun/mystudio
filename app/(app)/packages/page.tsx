@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listContentPackages } from "@/lib/content/service";
+import { canUseMissingDatabaseFallback } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +12,26 @@ function normalizeProgress(value: number | null): number | null {
   return Math.round(Math.min(Math.max(percent, 0), 100));
 }
 
+async function loadContentPackages() {
+  try {
+    return await listContentPackages(null);
+  } catch (error: unknown) {
+    if (canUseMissingDatabaseFallback(error)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 export default async function ContentPackagesPage() {
-  const contentPackages = await listContentPackages(null);
+  const contentPackages = await loadContentPackages();
 
   return (
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Content Factory</h1>
-          <div className="muted">실제 저장된 콘텐츠 패키지와 제작 상태</div>
+          <h1 className="brand">콘텐츠 제작</h1>
+          <div className="muted">블로그 콘텐츠, SNS 변환 준비, 제작 상태</div>
         </div>
       </header>
 
@@ -28,7 +40,7 @@ export default async function ContentPackagesPage() {
         {contentPackages.length === 0 ? (
           <article className="card">
             <h3>아직 제작 중인 콘텐츠 패키지가 없습니다.</h3>
-            <p className="muted">HQ에서 기회를 선택하면 Content Factory 패키지가 생성됩니다.</p>
+            <p className="muted">HQ에서 기회를 선택하면 콘텐츠 제작 패키지가 생성됩니다.</p>
             <Link className="button primary" href="/">
               HQ로 돌아가기
             </Link>

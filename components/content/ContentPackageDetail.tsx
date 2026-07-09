@@ -19,6 +19,9 @@ import type {
 import type { ApiResponse } from "@/lib/api/response";
 
 type ExportPayload = { readonly exports: readonly DetailExportRecord[] };
+type DecisionPayload = {
+  readonly content_packages: readonly { readonly id: string; readonly status: string }[];
+};
 type DismissIssuePayload = {
   readonly issue: DetailComplianceIssue;
   readonly compliance_check: DetailComplianceCheck;
@@ -27,6 +30,10 @@ type GeneratePackagePayload = {
   readonly draft: DetailDraft;
   readonly content_package: DetailContentPackage;
 };
+type GenerateSnsPayload = {
+  readonly content_package: DetailContentPackage;
+};
+const exportReadyStatuses = new Set(["approved", "exported"]);
 type TitleGenerationPayload = {
   readonly title_candidates: readonly DetailTitleCandidate[];
   readonly hook_coverage_complete: boolean;
@@ -137,7 +144,6 @@ function firstDraft(packageData: DetailContentPackage): DetailDraft {
   return packageData.drafts[0] ?? fallbackDraft;
 }
 
-
 export function isExplicitDemoPackageId(packageId: string): boolean {
   return packageId === "demo";
 }
@@ -157,12 +163,15 @@ export function emptyContentPackageDetail(packageId: string): DetailContentPacka
     products: [],
     title_candidates: [],
     shopping_connect_links: [],
+    sns_variants: [],
     exports: [],
   };
 }
 
 function initialPackageForId(packageId: string): DetailContentPackage {
-  return isExplicitDemoPackageId(packageId) ? demoContentPackage : emptyContentPackageDetail(packageId);
+  return isExplicitDemoPackageId(packageId)
+    ? demoContentPackage
+    : emptyContentPackageDetail(packageId);
 }
 
 async function loadApiData<T>(url: string): Promise<T> {
@@ -206,6 +215,19 @@ function base64ToArrayBuffer(value: string): ArrayBuffer {
   return buffer;
 }
 
+function isExportReady(
+  packageData: DetailContentPackage,
+  check: DetailComplianceCheck | null,
+): boolean {
+  return check?.export_allowed === true && exportReadyStatuses.has(packageData.status);
+}
+
+function isOwnerApprovalReady(
+  packageData: DetailContentPackage,
+  check: DetailComplianceCheck | null,
+): boolean {
+  return check?.export_allowed === true && packageData.status === "owner_approval_required";
+}
 
 export function ContentPackageDetail({ packageId }: { readonly packageId: string }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("preview");
@@ -222,8 +244,8 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
 
   const draft = firstDraft(packageData);
   const check = packageData.compliance_checks[0] ?? null;
-  const exportAllowed = check?.export_allowed === true;
-  const highRisk = check?.risk_level === "high";
+  const exportAllowed = isExportReady(packageData, check);
+  const ownerApprovalAllowed = isOwnerApprovalReady(packageData, check);
   const canRunPackageActions =
     !isDemoMode && packageData.status !== "load_failed" && packageData.paperclip_decision_id !== "";
 
@@ -261,14 +283,20 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
   ]);
 
   function nextSearchStructureStatus(currentStatus: string): string {
-    return searchStructureTransitionStatuses.has(currentStatus) ? "search_structured" : currentStatus;
+    return searchStructureTransitionStatuses.has(currentStatus)
+      ? "search_structured"
+      : currentStatus;
   }
 
   function nextComplianceStatus(currentStatus: string, allowed: boolean): string {
     if (allowed) {
-      return compliancePassTransitionStatuses.has(currentStatus) ? "owner_approval_required" : currentStatus;
+      return compliancePassTransitionStatuses.has(currentStatus)
+        ? "owner_approval_required"
+        : currentStatus;
     }
-    return complianceFailTransitionStatuses.has(currentStatus) ? "compliance_failed" : currentStatus;
+    return complianceFailTransitionStatuses.has(currentStatus)
+      ? "compliance_failed"
+      : currentStatus;
   }
 
   function blockDraftReplacementWhileRecovering(): boolean {
@@ -297,7 +325,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       try {
         const session = await loadApiData<{ readonly csrf_token: string }>("/api/auth/session");
         setCsrfToken(session.csrf_token);
-        const detail = await loadApiData<DetailContentPackage>(`/api/content-packages/${packageId}`);
+        const detail = await loadApiData<DetailContentPackage>(
+          `/api/content-packages/${packageId}`,
+        );
         setPackageData(detail);
         const loadedDraft = firstDraft(detail);
         const recoveredDraft = parseDraftRecoveryRecord(
@@ -305,7 +335,10 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
           packageId,
           loadedDraft.id,
         );
-        if (recoveredDraft !== null && recoveredDraft.bodyMarkdown !== (loadedDraft.body_markdown ?? "")) {
+        if (
+          recoveredDraft !== null &&
+          recoveredDraft.bodyMarkdown !== (loadedDraft.body_markdown ?? "")
+        ) {
           setDraftBody(recoveredDraft.bodyMarkdown);
           setRecoveryAvailable(true);
           setStatus("로컬 임시 저장본 복구됨 · 자동 재전송 대기");
@@ -319,7 +352,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
         }
       } catch (error) {
         if (error instanceof HTTPError && error.response.status === 401) {
-          window.location.assign(`/login?from=/packages/${packageId}`);
+          setStatus("세션 확인 실패");
           return;
         }
         setPackageData(emptyContentPackageDetail(packageId));
@@ -372,7 +405,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
               setStatus("자동 저장 실패 · 로컬 보존 실패");
             }
             if (error instanceof HTTPError && error.response.status === 401) {
-              window.location.assign(`/login?from=/packages/${packageId}`);
+              setStatus("세션 확인 실패");
             }
             return;
           }
@@ -465,6 +498,28 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
     }
   }
 
+  async function generateSnsVariants(): Promise<void> {
+    if (!canRunPackageActions) {
+      setStatus(isDemoMode ? "데모 SNS 변환 생략" : "SNS 변환할 패키지 없음");
+      return;
+    }
+    if (blockDraftReplacementWhileRecovering()) {
+      return;
+    }
+    try {
+      setStatus("클립/SNS 변환 중");
+      const payload = await postApiData<GenerateSnsPayload>(
+        `/api/content-packages/${packageData.id}/generate-sns`,
+        csrfToken,
+      );
+      setPackageData(payload.content_package);
+      setActiveTab("sns");
+      setStatus("클립/SNS 변환 완료");
+    } catch (error) {
+      setStatus(error instanceof HTTPError ? "클립/SNS 변환 실패" : "클립/SNS 변환 실패");
+    }
+  }
+
   async function runCompliance(): Promise<void> {
     if (draft.id === "empty_draft") {
       setStatus("불러오기 실패");
@@ -506,7 +561,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
     setStatus("수정 적용됨");
   }
 
-  async function dismissIssue(issueId: string): Promise<void> {
+  async function dismissIssue(issueId: string, dismissReason: string): Promise<void> {
     if (isDemoMode && issueId.startsWith("demo")) {
       setStatus("데모 이슈 무시");
       return;
@@ -515,7 +570,7 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       `/api/compliance/issues/${issueId}/dismiss`,
       csrfToken,
       {
-        dismiss_reason: "owner accepted medium or low risk",
+        dismiss_reason: dismissReason,
       },
     );
     setPackageData((current) => ({
@@ -533,41 +588,52 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       return;
     }
     if (isDemoMode) {
-      setStatus("데모 Export 준비");
+      setStatus("데모 내보내기 준비");
       return;
     }
-    const payload = await postApiData<ExportPayload>(
-      `/api/content-packages/${packageData.id}/export`,
-      csrfToken,
-    );
-    setPackageData((current) => ({
-      ...current,
-      exports: payload.exports,
-    }));
-    const selectedExport = payload.exports.find((item) => item.format === format);
-    if (selectedExport === undefined) {
-      setStatus("Export 형식 없음");
-      return;
+    try {
+      const payload = await postApiData<ExportPayload>(
+        `/api/content-packages/${packageData.id}/export`,
+        csrfToken,
+      );
+      setPackageData((current) => ({
+        ...current,
+        exports: payload.exports,
+      }));
+      const selectedExport = payload.exports.find((item) => item.format === format);
+      if (selectedExport === undefined) {
+        setStatus("내보내기 형식 없음");
+        return;
+      }
+      if (selectedExport.content === undefined) {
+        setStatus("내보내기 내용 없음");
+        return;
+      }
+      if (format === "copy") {
+        await navigator.clipboard.writeText(selectedExport.content);
+        setStatus("복사됨");
+        return;
+      }
+      if (format === "zip") {
+        createDownload(
+          `${packageData.topic.title}.zip`,
+          base64ToArrayBuffer(selectedExport.content),
+          "application/zip",
+        );
+      } else {
+        const extension = format === "markdown" ? "md" : format;
+        const mimeType = format === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8";
+        createDownload(`${packageData.topic.title}.${extension}`, selectedExport.content, mimeType);
+      }
+      setStatus("내보내기 생성됨");
+    } catch (error) {
+      if (error instanceof HTTPError && error.response.status === 403) {
+        setStatus("내보내기 차단됨 · 승인 상태와 최신 검수 결과를 확인하세요");
+        return;
+      }
+      setStatus("내보내기 실패");
     }
-    if (selectedExport.content === undefined) {
-      setStatus("Export 내용 없음");
-      return;
-    }
-    if (format === "copy") {
-      await navigator.clipboard.writeText(selectedExport.content);
-      setStatus("복사됨");
-      return;
-    }
-    if (format === "zip") {
-      createDownload(`${packageData.topic.title}.zip`, base64ToArrayBuffer(selectedExport.content), "application/zip");
-    } else {
-      const extension = format === "markdown" ? "md" : format;
-      const mimeType = format === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8";
-      createDownload(`${packageData.topic.title}.${extension}`, selectedExport.content, mimeType);
-    }
-    setStatus("Export 생성됨");
   }
-
   async function decide(action: "approve" | "reject"): Promise<void> {
     if (packageData.paperclip_decision_id === "") {
       setStatus("불러오기 실패");
@@ -577,9 +643,17 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       setStatus(action === "approve" ? "데모 승인됨" : "데모 반려됨");
       return;
     }
-    await ky.post(`/api/hq/decisions/${packageData.paperclip_decision_id}/${action}`, {
-      headers: { "x-csrf-token": csrfToken },
-    });
+    const payload = await ky
+      .post(`/api/hq/decisions/${packageData.paperclip_decision_id}/${action}`, {
+        headers: { "x-csrf-token": csrfToken },
+      })
+      .json<ApiResponse<DecisionPayload>>();
+    const updatedPackage = payload.data?.content_packages.find(
+      (item) => item.id === packageData.id,
+    );
+    if (updatedPackage !== undefined) {
+      setPackageData((current) => ({ ...current, status: updatedPackage.status }));
+    }
     setStatus(action === "approve" ? "승인됨" : "반려됨");
   }
 
@@ -591,13 +665,14 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       draft={draft}
       draftBody={draftBody}
       exportAllowed={exportAllowed}
-      highRisk={highRisk}
+      ownerApprovalAllowed={ownerApprovalAllowed}
       keywordText={keywordText}
       onApplyFixes={(checkId) => void applyFixes(checkId)}
       onDecide={(action) => void decide(action)}
-      onDismissIssue={(issueId) => void dismissIssue(issueId)}
+      onDismissIssue={(issueId, dismissReason) => void dismissIssue(issueId, dismissReason)}
       onGeneratePackage={() => void generatePackage()}
       onGenerateSearchStructure={() => void generateSearchStructure()}
+      onGenerateSnsVariants={() => void generateSnsVariants()}
       onGenerateTitleCandidates={() => void generateTitles()}
       onDraftBodyChange={(body) => {
         setDraftBody(body);
@@ -614,7 +689,9 @@ export function ContentPackageDetail({ packageId }: { readonly packageId: string
       onRunCompliance={() => void runCompliance()}
       onTabChange={setActiveTab}
       packageData={packageData}
-      status={recoveryAvailable && !status.includes("로컬") ? `${status} · 로컬 임시본 보존 중` : status}
+      status={
+        recoveryAvailable && !status.includes("로컬") ? `${status} · 로컬 임시본 보존 중` : status
+      }
     />
   );
 }

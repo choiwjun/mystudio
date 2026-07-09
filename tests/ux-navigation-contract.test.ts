@@ -9,12 +9,70 @@ const designSystemSource = readFileSync("docs/planning/05-design-system.md", "ut
 const tasksSource = readFileSync("docs/planning/06-tasks.md", "utf8");
 const screenIndexSource = readFileSync("specs/screens/index.yaml", "utf8");
 const globalsCssSource = readFileSync("app/globals.css", "utf8");
+const phase1SidebarRoutes = [
+  "/",
+  "/hermes",
+  "/packages",
+  "/packages#sns",
+  "/products",
+  "/products#links",
+  "/products#affiliate-links",
+  "/products#accounts",
+  "/reports",
+  "/reports/daily",
+  "/reports/weekly",
+  "/reports/monthly",
+  "/compliance",
+  "/memory",
+  "/performance",
+];
+const hiddenSidebarRoutes = [
+  "/hermes/keywords",
+  "/hermes/competitors",
+  "/compliance/policies",
+  "/memory/patterns",
+  "/packages/demo",
+];
 
 describe("G010 UX navigation and design contract", () => {
-  it("routes production Content Factory entry points to real packages instead of demo data", () => {
-    expect(departmentNavSource).toContain('href: "/packages"');
-    expect(departmentNavSource).toContain('match: "prefix"');
-    expect(departmentNavSource).not.toContain("/packages/demo");
+  it("routes content production entry points to real packages instead of demo data", () => {
+    expect(departmentNavSource).toContain("phase1SidebarDepartments");
+    for (const route of phase1SidebarRoutes) {
+      expect(departmentNavSource).toContain(`href: "${route}"`);
+    }
+    for (const route of hiddenSidebarRoutes) {
+      expect(departmentNavSource).not.toContain(route);
+    }
+    for (const visibleLabel of [
+      "HQ 지휘실",
+      "기회 발굴",
+      "콘텐츠 제작",
+      "블로그 콘텐츠",
+      "SNS 변환",
+      "제휴/어필리에이트 수익",
+      "제휴 상품",
+      "쇼핑커넥트 링크",
+      "범용 제휴 링크",
+      "제휴 계정",
+      "성과 기록",
+      "리포트",
+      "일간 리포트",
+      "주간 리포트",
+      "월간 리포트",
+      "컴플라이언스",
+      "회사 메모리",
+    ]) {
+      expect(departmentNavSource).toContain(`label: "${visibleLabel}"`);
+    }
+    for (const englishDepartmentLabel of [
+      "Content Factory",
+      "Revenue Desk",
+      "Compliance",
+      "Company Memory",
+      "Reports",
+    ]) {
+      expect(departmentNavSource).not.toContain(`label: "${englishDepartmentLabel}"`);
+    }
     expect(departmentNavSource).not.toContain('href: "/settings"');
 
     expect(compliancePageSource).toContain('href: "/packages"');
@@ -23,6 +81,10 @@ describe("G010 UX navigation and design contract", () => {
     expect(compliancePageSource).not.toContain("/settings");
 
     expect(appHeaderActionsSource).toContain('href="/settings"');
+    expect(appHeaderActionsSource).not.toContain('fetch("/api/auth/logout"');
+    expect(appHeaderActionsSource).not.toContain('window.location.assign("/login")');
+    expect(appHeaderActionsSource).not.toContain("Authorization");
+    expect(appHeaderActionsSource).not.toContain("Bearer");
   });
 
   it("provides a production packages index backed by persisted content packages", () => {
@@ -54,6 +116,10 @@ describe("G010 UX navigation and design contract", () => {
       expect(globalsCssSource).toContain(token);
     }
     expect(designSystemSource).toContain("color-scheme: dark");
+    expect(designSystemSource).toContain("Compact:       0px - 900px");
+    expect(designSystemSource).toContain("Compact:  최소 44px");
+    expect(globalsCssSource).toContain("@media (max-width: 900px)");
+    expect(globalsCssSource).toContain("min-height: 44px");
 
     expect(designSystemSource).not.toContain("#F7F8FA");
     expect(designSystemSource).not.toContain("#FFFFFF (흰색)");

@@ -8,6 +8,8 @@ export const AI_GENERATION_COST_USD = {
   hermesOpportunityMemo: 0.02,
   contentBlogDraft: 0.08,
   searchStructure: 0.03,
+  homefeedScore: 0.01,
+  snsVariant: 0.02,
 } as const;
 
 export type DailyAiBudgetInput = {

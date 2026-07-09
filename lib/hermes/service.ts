@@ -1,12 +1,13 @@
 import { type AgentRun, type KeywordCluster, type OpportunityMemo, Prisma } from "@prisma/client";
 import type { HermesMemoryContext, HermesMemoryPattern } from "@/lib/ai/adapter";
-import { createRuntimeAIAdapter } from "@/lib/ai/runtime";
+import { createRuntimeAIAdapterFromConfiguredCredentials } from "@/lib/ai/runtime";
 import {
   assertCompanyProfileReady,
   getOrCreateCompanyProfile,
 } from "@/lib/company-profile/service";
 import { prisma } from "@/lib/db";
-import { collectHermesRawItems } from "@/lib/hermes/rawItems";
+import type { RawItemInput } from "@/lib/hermes/rawItems";
+import { collectHermesRawItems } from "@/lib/hermes/searchProvider";
 import { AI_GENERATION_COST_USD, assertAiBudgetAllows } from "@/lib/logging/costBudget";
 import { recordCostLog } from "@/lib/logging/costLogger";
 import { buildHermesMemoryContext } from "@/lib/memory/patterns";
@@ -34,6 +35,10 @@ export type SerializedOpportunityMemo = {
   readonly revenue_score: number;
   readonly risk_score: number;
   readonly score_reasons: string | null;
+  readonly homefeed_reasons: string | null;
+  readonly search_reasons: string | null;
+  readonly revenue_reasons: string | null;
+  readonly risk_reasons: string | null;
   readonly status: string;
   readonly created_at: string;
   readonly keyword_clusters?: readonly SerializedKeywordCluster[];
@@ -79,6 +84,10 @@ export function serializeOpportunityMemo(
     revenue_score: memo.revenueScore,
     risk_score: memo.riskScore,
     score_reasons: memo.scoreReasons,
+    risk_reasons: memo.scoreReasons,
+    homefeed_reasons: memo.homefeedReasons,
+    search_reasons: memo.searchReasons,
+    revenue_reasons: memo.revenueReasons,
     status: memo.status,
     created_at: memo.createdAt.toISOString(),
     ...(memo.keywordClusters === undefined
@@ -112,9 +121,21 @@ function buildHermesScanTaskType(idempotencyKey: string): string {
 }
 
 function extractMemoIds(outputJson: unknown): string[] {
-  return Array.isArray(outputJson)
-    ? outputJson.filter((value): value is string => typeof value === "string")
-    : [];
+  if (Array.isArray(outputJson)) {
+    return outputJson.filter((value): value is string => typeof value === "string");
+  }
+  if (
+    outputJson !== null &&
+    typeof outputJson === "object" &&
+    !Array.isArray(outputJson) &&
+    "memo_ids" in outputJson
+  ) {
+    const memoIds = (outputJson as { readonly memo_ids?: unknown }).memo_ids;
+    return Array.isArray(memoIds)
+      ? memoIds.filter((value): value is string => typeof value === "string")
+      : [];
+  }
+  return [];
 }
 
 function isUniqueConstraintViolation(error: unknown): boolean {
@@ -156,6 +177,109 @@ function hermesMemoryContextToJson(memoryContext: HermesMemoryContext): Prisma.I
     learning_pattern_count: memoryContext.learning_pattern_count,
     patterns: memoryContext.patterns.map(hermesMemoryPatternToJson),
   };
+}
+type RawCollectionContext = {
+  readonly query: string;
+  readonly fallback: boolean;
+  readonly fallback_source: string;
+  readonly fallback_reason_code?: string;
+  readonly fallback_reason?: string;
+};
+
+function rawCollectionContextToJson(context: RawCollectionContext): Prisma.InputJsonObject {
+  return {
+    query: context.query,
+    fallback: context.fallback,
+    fallback_source: context.fallback_source,
+    ...(context.fallback_reason_code === undefined
+      ? {}
+      : { fallback_reason_code: context.fallback_reason_code }),
+    ...(context.fallback_reason === undefined ? {} : { fallback_reason: context.fallback_reason }),
+  };
+}
+
+function extractRawCollectionContext(
+  query: string,
+  rawItems: readonly RawItemInput[],
+): RawCollectionContext {
+  const fallbackItem = rawItems.find((item) => {
+    const metadata = item.metadata;
+    return (
+      metadata !== null &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata) &&
+      "fallback" in metadata &&
+      metadata["fallback"] === true
+    );
+  });
+  if (fallbackItem === undefined) {
+    return { query, fallback: false, fallback_source: "naver_api" };
+  }
+  const metadata = fallbackItem.metadata as {
+    readonly source?: unknown;
+    readonly fallback_reason_code?: unknown;
+    readonly fallback_reason?: unknown;
+  };
+  return {
+    query,
+    fallback: true,
+    fallback_source: typeof metadata.source === "string" ? metadata.source : "fallback_context",
+    ...(typeof metadata.fallback_reason_code === "string"
+      ? { fallback_reason_code: metadata.fallback_reason_code }
+      : {}),
+    ...(typeof metadata.fallback_reason === "string"
+      ? { fallback_reason: metadata.fallback_reason }
+      : {}),
+  };
+}
+
+function buildHermesRunOutputJson(
+  memoIds: readonly string[],
+  rawCollectionContexts: readonly RawCollectionContext[],
+): Prisma.InputJsonObject {
+  return {
+    memo_ids: [...memoIds],
+    raw_collection_context: rawCollectionContexts.map(rawCollectionContextToJson),
+  };
+}
+
+function kstDayBounds(now = new Date()): { readonly start: Date; readonly end: Date } {
+  const kstDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  const start = new Date(`${kstDate}T00:00:00+09:00`);
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
+}
+
+function expandedHermesQueries(categories: readonly string[], targetCount: number): string[] {
+  const normalizedCategories = categories
+    .map((category) => category.replace(/\s+/g, " ").trim())
+    .filter((category) => category.length > 0);
+  const queries: string[] = [];
+
+  for (const category of normalizedCategories) {
+    if (!queries.includes(category)) {
+      queries.push(category);
+    }
+  }
+
+  const suffixes = ["추천", "비교", "트렌드", "문제 해결", "구매 가이드"];
+  for (const category of normalizedCategories) {
+    for (const suffix of suffixes) {
+      const query = `${category} ${suffix}`;
+      if (!queries.includes(query)) {
+        queries.push(query);
+      }
+      if (queries.length >= targetCount) {
+        return queries.slice(0, targetCount);
+      }
+    }
+  }
+
+  return queries.slice(0, targetCount);
 }
 
 function buildHermesRunInputJson(
@@ -397,21 +521,30 @@ export async function scanHermes(triggerExecutionId: string | null): Promise<Her
   try {
     await assertCompanyProfileReady();
     const profile = await getOrCreateCompanyProfile();
+    const { start: kstTodayStart, end: kstTomorrowStart } = kstDayBounds();
     const existingCount = await prisma.opportunityMemo.count({
       where: {
         createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          gte: kstTodayStart,
+          lt: kstTomorrowStart,
         },
       },
     });
-    const createCount = Math.max(0, Math.min(5 - existingCount, 5));
-    const categories = filterBlockedCategories(
+    const remainingTodayCount = Math.max(0, 5 - existingCount);
+    const targetCreateCount = Math.min(5, Math.max(0, remainingTodayCount));
+    const minimumCandidateCount = Math.min(3, targetCreateCount);
+    const baseCategories = filterBlockedCategories(
       profile.primaryCategories,
       profile.blockedCategories,
-    ).slice(0, createCount);
-    const adapter = createRuntimeAIAdapter();
+    );
+    const categories = expandedHermesQueries(
+      baseCategories,
+      Math.max(minimumCandidateCount, targetCreateCount),
+    );
+    const adapter = await createRuntimeAIAdapterFromConfiguredCredentials();
     const createdIds: string[] = [];
     let budgetBlockedAfterPartial = false;
+    const rawCollectionContexts: RawCollectionContext[] = [];
 
     for (const category of categories) {
       const budget = await assertAiBudgetAllows({
@@ -433,6 +566,19 @@ export async function scanHermes(triggerExecutionId: string | null): Promise<Her
       }
 
       const rawItems = await collectHermesRawItems(category);
+      const rawCollectionContext = extractRawCollectionContext(category, rawItems);
+      rawCollectionContexts.push(rawCollectionContext);
+      if (hermesRunLock !== null) {
+        await prisma.agentRun.update({
+          where: { id: hermesRunLock.id },
+          data: {
+            inputJson: {
+              ...buildHermesRunInputJson(idempotencyKey ?? "", memoryContext),
+              raw_collection_context: rawCollectionContexts.map(rawCollectionContextToJson),
+            },
+          },
+        });
+      }
       const output = await adapter.generateOpportunityMemo({
         categories: [category],
         rawItems,
@@ -485,7 +631,7 @@ export async function scanHermes(triggerExecutionId: string | null): Promise<Her
         where: { id: hermesRunLock.id },
         data: {
           status: "completed",
-          outputJson: createdIds,
+          outputJson: buildHermesRunOutputJson(createdIds, rawCollectionContexts),
         },
       });
     }

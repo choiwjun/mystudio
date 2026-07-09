@@ -17,7 +17,6 @@ type ShoppingConnectLinkTableProps = {
   readonly onToggleLinkActive?: (link: ShoppingConnectLink) => void;
 };
 
-
 type RefreshNeededPanelProps = {
   readonly staleProducts: readonly Product[];
   readonly staleLinks: readonly ShoppingConnectLink[];
@@ -39,9 +38,10 @@ function checkedAtLabel(value: string | null): string {
   return value === null ? "확인 이력 없음" : new Date(value).toLocaleDateString("ko-KR");
 }
 function productNameForLink(link: ShoppingConnectLink, products: readonly Product[] = []): string {
-  return products.find((product) => product.id === link.product_id)?.product_name ?? link.product_id;
+  return (
+    products.find((product) => product.id === link.product_id)?.product_name ?? link.product_id
+  );
 }
-
 
 export function ProductTable(props: ProductTableProps) {
   return (
@@ -70,11 +70,27 @@ export function ProductTable(props: ProductTableProps) {
                 <td>{product.stale ? "갱신 필요" : "정상"}</td>
                 <td>
                   <div className="button-row compact-actions">
-                    <button className="button" onClick={() => props.onRefreshProduct(product)} type="button">
+                    <button
+                      className="button"
+                      onClick={() => props.onRefreshProduct(product)}
+                      type="button"
+                    >
                       갱신
                     </button>
-                    <button className="button" onClick={() => props.onEditProduct(product)} type="button">수정</button>
-                    <button className="button" onClick={() => props.onDeleteProduct(product)} type="button">삭제</button>
+                    <button
+                      className="button"
+                      onClick={() => props.onEditProduct(product)}
+                      type="button"
+                    >
+                      수정
+                    </button>
+                    <button
+                      className="button"
+                      onClick={() => props.onDeleteProduct(product)}
+                      type="button"
+                    >
+                      삭제
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -130,12 +146,20 @@ export function ShoppingConnectLinkTable(props: ShoppingConnectLinkTableProps) {
                   <td>
                     <div className="button-row compact-actions">
                       {props.onConfirmLink === undefined ? null : (
-                        <button className="button" onClick={() => props.onConfirmLink?.(link)} type="button">
+                        <button
+                          className="button"
+                          onClick={() => props.onConfirmLink?.(link)}
+                          type="button"
+                        >
                           확인
                         </button>
                       )}
                       {props.onEditLink === undefined ? null : (
-                        <button className="button" onClick={() => props.onEditLink?.(link)} type="button">
+                        <button
+                          className="button"
+                          onClick={() => props.onEditLink?.(link)}
+                          type="button"
+                        >
                           수정
                         </button>
                       )}
@@ -149,7 +173,11 @@ export function ShoppingConnectLinkTable(props: ShoppingConnectLinkTableProps) {
                         </button>
                       )}
                       {props.onDeleteLink === undefined ? null : (
-                        <button className="button" onClick={() => props.onDeleteLink?.(link)} type="button">
+                        <button
+                          className="button"
+                          onClick={() => props.onDeleteLink?.(link)}
+                          type="button"
+                        >
                           삭제
                         </button>
                       )}
@@ -164,7 +192,6 @@ export function ShoppingConnectLinkTable(props: ShoppingConnectLinkTableProps) {
     </div>
   );
 }
-
 
 export function RefreshNeededPanel(props: RefreshNeededPanelProps) {
   return (

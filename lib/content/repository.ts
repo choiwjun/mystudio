@@ -1,4 +1,8 @@
 import type { ContentPackage, PackageStatus, Prisma } from "@prisma/client";
+import {
+  assertPackageStatusTransitionAllowed,
+  type PackageStatusTransitionBypass,
+} from "@/lib/content/statusTransitions";
 import { prisma } from "@/lib/db";
 
 export const contentPackageInclude = {
@@ -11,6 +15,7 @@ export const contentPackageInclude = {
     orderBy: { checkedAt: "desc" },
   },
   exports: { orderBy: { createdAt: "desc" } },
+  snsVariants: { orderBy: { createdAt: "desc" } },
   shoppingConnectLinks: { include: { product: true } },
 } satisfies Prisma.ContentPackageInclude;
 
@@ -42,12 +47,20 @@ export type ContentPackageStatusTransitionInput = {
   readonly actor?: string;
   readonly reason?: string;
   readonly progress?: number;
+  readonly bypass?: PackageStatusTransitionBypass;
 };
 
 export async function transitionContentPackageStatusInTransaction(
   tx: Prisma.TransactionClient,
   input: ContentPackageStatusTransitionInput,
 ): Promise<ContentPackage> {
+  assertPackageStatusTransitionAllowed(input.fromStatus, input.toStatus, input.bypass);
+  if (input.fromStatus === input.toStatus) {
+    return tx.contentPackage.findUniqueOrThrow({
+      where: { id: input.id },
+    });
+  }
+
   const updated = await tx.contentPackage.update({
     where: { id: input.id },
     data: {
@@ -73,6 +86,20 @@ export async function updateContentPackageProgress(input: {
   return prisma.contentPackage.update({
     where: { id: input.id },
     data: { progress: input.progress },
+  });
+}
+
+export async function updateContentPackageHomefeedScore(input: {
+  readonly id: string;
+  readonly score: number;
+  readonly reasons: string;
+}): Promise<ContentPackage> {
+  return prisma.contentPackage.update({
+    where: { id: input.id },
+    data: {
+      homefeedScore: input.score,
+      homefeedReasons: input.reasons,
+    },
   });
 }
 

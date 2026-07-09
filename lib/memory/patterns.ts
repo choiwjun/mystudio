@@ -18,6 +18,12 @@ export type CompanyMemoryPatternInput = {
   readonly createdPatternIds: readonly string[];
 };
 
+export type PerformanceMemoryProductInput = {
+  readonly category: string | null;
+  readonly productName: string;
+  readonly price: number | null;
+};
+
 export type PerformanceMemoryInput = {
   readonly performanceLogId: string;
   readonly platform: string;
@@ -25,6 +31,7 @@ export type PerformanceMemoryInput = {
   readonly views: number;
   readonly clicks: number;
   readonly directRevenue: number;
+  readonly products?: readonly PerformanceMemoryProductInput[];
 };
 
 export type CompanyMemoryEntryInput = {
@@ -41,6 +48,36 @@ export type CompanyMemoryEntryInput = {
 };
 
 const LOW_VIEW_FAILURE_THRESHOLD = 100;
+const PRICE_BANDS = [
+  { label: "budget", maxExclusive: 10_000 },
+  { label: "mid_range", maxExclusive: 50_000 },
+] as const;
+
+function priceBand(price: number | null): string | null {
+  if (price === null) {
+    return null;
+  }
+  const band = PRICE_BANDS.find((candidate) => price < candidate.maxExclusive);
+  return band?.label ?? "premium";
+}
+
+function uniquePerformanceProducts(
+  products: readonly PerformanceMemoryProductInput[] | undefined,
+): PerformanceMemoryProductInput[] {
+  const unique = new Map<string, PerformanceMemoryProductInput>();
+  for (const product of products ?? []) {
+    const category = product.category?.trim() ?? null;
+    const productName = product.productName.trim();
+    if (productName.length === 0) {
+      continue;
+    }
+    const key = `${category ?? "uncategorized"}:${productName}:${product.price ?? "unknown"}`;
+    if (!unique.has(key)) {
+      unique.set(key, { category, productName, price: product.price });
+    }
+  }
+  return [...unique.values()];
+}
 
 function patternTextFromPerformance(input: PerformanceMemoryInput): string | null {
   if (input.hookType !== null) {
@@ -71,16 +108,75 @@ function baseMemoryEntry(
   };
 }
 
+function buildProductMemoryEntries(input: PerformanceMemoryInput): CompanyMemoryEntryInput[] {
+  const products = uniquePerformanceProducts(input.products);
+  const entries: CompanyMemoryEntryInput[] = [];
+  const seenCategories = new Set<string>();
+
+  for (const product of products) {
+    const category = product.category?.trim();
+    if (category !== undefined && category.length > 0 && !seenCategories.has(category)) {
+      seenCategories.add(category);
+      entries.push({
+        patternType: "product_angle",
+        patternText: category,
+        resultSummary: `${category} category recorded ${input.views} views / ${input.clicks} clicks.`,
+        tags: [input.platform, "category", "success"],
+        score: input.directRevenue > 0 ? input.directRevenue : input.views,
+        sampleCount: 1,
+        avgViews: input.views,
+        avgClicks: input.clicks,
+        avgRevenueUsd: input.directRevenue,
+        createdPatternIds: [input.performanceLogId],
+      });
+    }
+
+    entries.push({
+      patternType: "product_angle",
+      patternText: product.productName,
+      resultSummary: `${product.productName} recorded ${input.views} views / ${input.clicks} clicks.`,
+      tags:
+        category === undefined || category.length === 0
+          ? [input.platform, "product", "success"]
+          : [input.platform, "product", category, "success"],
+      score: input.directRevenue > 0 ? input.directRevenue : input.views,
+      sampleCount: 1,
+      avgViews: input.views,
+      avgClicks: input.clicks,
+      avgRevenueUsd: input.directRevenue,
+      createdPatternIds: [input.performanceLogId],
+    });
+
+    const band = priceBand(product.price);
+    if (band !== null) {
+      entries.push({
+        patternType: "pricing_strategy",
+        patternText: band,
+        resultSummary: `${band} pricing recorded ${input.views} views / ${input.clicks} clicks.`,
+        tags:
+          category === undefined || category.length === 0
+            ? [input.platform, "price", "success"]
+            : [input.platform, "price", category, "success"],
+        score: input.directRevenue > 0 ? input.directRevenue : input.views,
+        sampleCount: 1,
+        avgViews: input.views,
+        avgClicks: input.clicks,
+        avgRevenueUsd: input.directRevenue,
+        createdPatternIds: [input.performanceLogId],
+      });
+    }
+  }
+
+  return entries;
+}
+
 export function buildCompanyMemoryEntriesForPerformance(
   input: PerformanceMemoryInput,
 ): readonly CompanyMemoryEntryInput[] {
   const base = baseMemoryEntry(input);
-  if (base === null) {
-    return [];
-  }
 
   const successEntry: CompanyMemoryEntryInput | null =
-    input.hookType === null
+    base === null || input.hookType === null
       ? null
       : {
           ...base,
@@ -90,7 +186,7 @@ export function buildCompanyMemoryEntriesForPerformance(
         };
 
   const failureEntry: CompanyMemoryEntryInput | null =
-    input.views >= LOW_VIEW_FAILURE_THRESHOLD
+    base === null || input.views >= LOW_VIEW_FAILURE_THRESHOLD
       ? null
       : {
           ...base,
@@ -99,7 +195,7 @@ export function buildCompanyMemoryEntriesForPerformance(
           score: input.views - LOW_VIEW_FAILURE_THRESHOLD,
         };
 
-  return [successEntry, failureEntry].filter(
+  return [successEntry, failureEntry, ...buildProductMemoryEntries(input)].filter(
     (entry): entry is CompanyMemoryEntryInput => entry !== null,
   );
 }

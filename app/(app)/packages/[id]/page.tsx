@@ -10,8 +10,8 @@ export default async function ContentPackagePage({ params }: ContentPackagePageP
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Content Factory</h1>
-          <div className="muted">콘텐츠 상세, Markdown 정본, Compliance Gate, Export Bundle</div>
+          <h1 className="brand">콘텐츠 제작 상세</h1>
+          <div className="muted">블로그 정본, 검수 게이트, 내보내기 묶음</div>
         </div>
       </header>
       <ContentPackageDetail packageId={id} />

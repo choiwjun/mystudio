@@ -4,16 +4,16 @@ import type { DragEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import {
+  type ContentPackage,
   contentPackagePatchResponseSchema,
   groupPackages,
   hqTodayResponseSchema,
+  type KanbanColumnId,
+  type KanbanPackageStatus,
   kanbanColumns,
   normalizeProgress,
   statusLabels,
   updatedAtLabel,
-  type KanbanColumnId,
-  type KanbanPackageStatus,
-  type ContentPackage,
 } from "@/components/hq/kanban";
 
 const sessionResponseSchema = z.object({
@@ -22,6 +22,51 @@ const sessionResponseSchema = z.object({
     csrf_token: z.string().min(1),
   }),
 });
+
+type ApiErrorPayload = {
+  readonly success?: boolean;
+  readonly error?: {
+    readonly code?: string;
+    readonly message?: string;
+    readonly details?: unknown;
+  } | null;
+};
+
+function isComplianceTarget(status: KanbanPackageStatus): boolean {
+  return status === "compliance_checked";
+}
+
+function kanbanSuccessMessage(status: KanbanPackageStatus): string {
+  return `상태가 ${statusLabels[status]}로 업데이트되었습니다.`;
+}
+
+function kanbanFailureMessage(responseStatus: number, payload: ApiErrorPayload | null): string {
+  const errorText = `${payload?.error?.code ?? ""} ${payload?.error?.message ?? ""}`.toLowerCase();
+  if (errorText.includes("draft") || errorText.includes("초안")) {
+    return "검수를 실행하려면 먼저 초안이 필요합니다.";
+  }
+  if (
+    responseStatus === 400 ||
+    responseStatus === 409 ||
+    errorText.includes("transition") ||
+    errorText.includes("invalid")
+  ) {
+    return "허용되지 않는 상태 전환입니다. 현재 단계에서 가능한 다음 상태를 선택하세요.";
+  }
+  return "상태 업데이트에 실패했습니다.";
+}
+
+async function readApiErrorPayload(response: Response): Promise<ApiErrorPayload | null> {
+  try {
+    const payload: unknown = await response.json();
+    if (payload === null || typeof payload !== "object") {
+      return null;
+    }
+    return payload as ApiErrorPayload;
+  } catch {
+    return null;
+  }
+}
 
 export function HqKanbanBoard() {
   const [contentPackages, setContentPackages] = useState<readonly ContentPackage[]>([]);
@@ -41,8 +86,7 @@ export function HqKanbanBoard() {
         fetch("/api/auth/session"),
       ]);
       if (todayResponse.status === 401 || sessionResponse.status === 401) {
-        window.location.assign("/login?from=/");
-        return;
+        throw new Error("HQ_TODAY_SESSION_FAILED");
       }
       if (!todayResponse.ok || !sessionResponse.ok) {
         throw new Error("HQ_TODAY_KANBAN_FAILED");
@@ -71,6 +115,10 @@ export function HqKanbanBoard() {
   }, []);
 
   function startDrag(event: DragEvent<HTMLAnchorElement>, contentPackageId: string): void {
+    if (updatingPackageId === contentPackageId) {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", contentPackageId);
   }
@@ -84,7 +132,7 @@ export function HqKanbanBoard() {
       return;
     }
     setUpdatingPackageId(contentPackageId);
-    setMessage("");
+    setMessage(isComplianceTarget(targetStatus) ? "검수를 실행하고 상태를 확인하는 중입니다." : "");
     try {
       const response = await fetch(`/api/content-packages/${contentPackageId}`, {
         method: "PATCH",
@@ -98,7 +146,9 @@ export function HqKanbanBoard() {
         }),
       });
       if (!response.ok) {
-        throw new Error("HQ_KANBAN_STATUS_UPDATE_FAILED");
+        const payload = await readApiErrorPayload(response);
+        setMessage(kanbanFailureMessage(response.status, payload));
+        return;
       }
       const payload = contentPackagePatchResponseSchema.parse(await response.json());
       setContentPackages((current) =>
@@ -106,7 +156,7 @@ export function HqKanbanBoard() {
           contentPackage.id === payload.data.id ? payload.data : contentPackage,
         ),
       );
-      setMessage("상태가 업데이트되었습니다.");
+      setMessage(kanbanSuccessMessage(payload.data.status));
     } catch {
       setMessage("상태 업데이트에 실패했습니다.");
     } finally {
@@ -124,14 +174,11 @@ export function HqKanbanBoard() {
     setDraggingOverColumnId(null);
   }
 
-  function dropOnColumn(
-    event: DragEvent<HTMLElement>,
-    targetStatus: KanbanPackageStatus,
-  ): void {
+  function dropOnColumn(event: DragEvent<HTMLElement>, targetStatus: KanbanPackageStatus): void {
     event.preventDefault();
     setDraggingOverColumnId(null);
     const contentPackageId = event.dataTransfer.getData("text/plain");
-    if (contentPackageId === "") {
+    if (contentPackageId === "" || updatingPackageId === contentPackageId) {
       return;
     }
     void updatePackageStatus(contentPackageId, targetStatus);
@@ -140,15 +187,22 @@ export function HqKanbanBoard() {
   return (
     <section className="section-block" aria-labelledby="pipeline-title">
       <h2 id="pipeline-title">Content Production Pipeline</h2>
-      {status === "loading" ? <p className="muted">콘텐츠 파이프라인을 불러오는 중입니다.</p> : null}
-      {status === "error" ? <p className="form-error">콘텐츠 파이프라인을 불러오지 못했습니다.</p> : null}
+      {status === "loading" ? (
+        <p className="muted">콘텐츠 파이프라인을 불러오는 중입니다.</p>
+      ) : null}
+      {status === "error" ? (
+        <p className="form-error">콘텐츠 파이프라인을 불러오지 못했습니다.</p>
+      ) : null}
       {message === "" ? null : <p className="muted">{message}</p>}
-      <div className="kanban-scroll" aria-label="Content package status kanban">
+      <section className="kanban-scroll" aria-label="Content package status kanban">
         <div className="kanban-grid">
           {kanbanColumns.map((column) => (
             <section
+              aria-label={column.title}
               className={
-                draggingOverColumnId === column.id ? "kanban-column kanban-column-active" : "kanban-column"
+                draggingOverColumnId === column.id
+                  ? "kanban-column kanban-column-active"
+                  : "kanban-column"
               }
               key={column.id}
               onDragLeave={leaveColumn}
@@ -163,13 +217,21 @@ export function HqKanbanBoard() {
               ) : null}
               {groupedPackages[column.id].map((contentPackage) => {
                 const progress = normalizeProgress(contentPackage.progress);
+                const updating = updatingPackageId === contentPackage.id;
                 return (
                   <a
+                    aria-disabled={updating}
                     className="kanban-card"
-                    draggable
+                    draggable={!updating}
                     href={`/packages/${contentPackage.id}`}
                     key={contentPackage.id}
+                    onClick={(event) => {
+                      if (updating) {
+                        event.preventDefault();
+                      }
+                    }}
                     onDragStart={(event) => startDrag(event, contentPackage.id)}
+                    tabIndex={updating ? -1 : undefined}
                   >
                     <strong>{contentPackage.topic.title}</strong>
                     <span className="badge">{statusLabels[contentPackage.status]}</span>
@@ -182,8 +244,10 @@ export function HqKanbanBoard() {
                     <span className="muted">
                       진행 {progress}% · {updatedAtLabel(contentPackage.updated_at)}
                     </span>
-                    {updatingPackageId === contentPackage.id ? (
-                      <span className="muted">상태 업데이트 중</span>
+                    {updating ? (
+                      <span className="muted">
+                        상태 업데이트 중 · 이 카드 이동 및 열기 비활성화
+                      </span>
                     ) : null}
                   </a>
                 );
@@ -191,7 +255,7 @@ export function HqKanbanBoard() {
             </section>
           ))}
         </div>
-      </div>
+      </section>
     </section>
   );
 }

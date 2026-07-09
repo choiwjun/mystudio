@@ -8,7 +8,7 @@ export const POST = withAuthenticatedApi("compliance.check", async (request) => 
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid compliance check payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

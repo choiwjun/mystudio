@@ -42,6 +42,15 @@ const aiAdapterSource = readFileSync("lib/ai/adapter.ts", "utf8");
 const complianceServiceSource = readFileSync("lib/compliance/service.ts", "utf8");
 const exportServiceSource = readFileSync("lib/export/service.ts", "utf8");
 const exportRouteSource = readFileSync("app/api/content-packages/[id]/export/route.ts", "utf8");
+const generateBlogRouteSource = readFileSync(
+  "app/api/content-packages/[id]/generate-blog/route.ts",
+  "utf8",
+);
+const searchFaqRouteSource = readFileSync("app/api/optimizers/search/faq/route.ts", "utf8");
+const searchComparisonRouteSource = readFileSync(
+  "app/api/optimizers/search/comparison-table/route.ts",
+  "utf8",
+);
 const contentPackagesPageSource = readFileSync("app/(app)/packages/page.tsx", "utf8");
 const prismaSchemaSource = readFileSync("prisma/schema.prisma", "utf8");
 const initialMigrationSource = readFileSync(
@@ -51,6 +60,20 @@ const initialMigrationSource = readFileSync(
 const retentionServiceSource = readFileSync("lib/retention/service.ts", "utf8");
 
 describe("P3 content engine contract", () => {
+  it("exposes documented blog, FAQ, and comparison table generation routes", () => {
+    expect(generateBlogRouteSource).toContain("generate/route");
+    expect(searchFaqRouteSource).toContain("optimizers.search.faq");
+    expect(searchFaqRouteSource).toContain("generateSearchStructure");
+    expect(searchComparisonRouteSource).toContain("optimizers.search.comparison-table");
+    expect(searchComparisonRouteSource).toContain("comparison_table");
+  });
+
+  it("passes the canonical blog draft body into SNS and clip repurposing", () => {
+    expect(aiAdapterSource).toContain("sourceDraftMarkdown");
+    expect(contentServiceSource).toContain("sourceDraftMarkdown: draft.bodyMarkdown");
+    expect(contentServiceSource).toContain("clipVariantFromDraft");
+  });
+
   it("rejects malformed AI blog draft output before persistence", () => {
     expect(() =>
       parseBlogDraftOutput({
@@ -99,9 +122,11 @@ describe("P3 content engine contract", () => {
     expect(output.comparison_table).toContain("| 기준 |");
   });
 
-  it("keeps the DB-backed packages index out of static prerender", () => {
+  it("keeps the DB-backed packages index out of static prerender with a dev DB fallback", () => {
     expect(contentPackagesPageSource).toContain('export const dynamic = "force-dynamic"');
     expect(contentPackagesPageSource).toContain("listContentPackages(null)");
+    expect(contentPackagesPageSource).toContain("canUseMissingDatabaseFallback");
+    expect(contentPackagesPageSource).toContain("return []");
   });
 });
 
@@ -123,7 +148,7 @@ describe("G005 generation context contract", () => {
     }
     expect(contentServiceSource).toContain('task: "generateBlogDraft"');
     expect(searchStructureSource).toContain('task: "generateSearchStructure"');
-    expect(generationContextSource).toContain("MAX_PROMPT_TEMPLATE_QUERY_ROWS");
+    expect(generationContextSource).toContain("MAX_CONTEXT_QUERY_ROWS");
   });
 
   it("lets the mock adapter reflect supplied playbook and template context", async () => {
@@ -216,10 +241,12 @@ describe("G005 generation context contract", () => {
       async (query: { readonly where?: Record<string, unknown> }) =>
         Object.hasOwn(query.where ?? {}, "category") ? [exactPlaybook] : partialPlaybooks,
     );
+    const rawItemFindMany = vi.fn(async () => []);
     vi.doMock("@/lib/db", () => ({
       prisma: {
         categoryPlaybook: { findMany: categoryPlaybookFindMany },
         promptTemplate: { findMany: promptTemplateFindMany },
+        rawItem: { findMany: rawItemFindMany },
       },
     }));
 
@@ -241,6 +268,12 @@ describe("G005 generation context contract", () => {
       expect(promptTemplateFindMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ name: expect.any(Object) }),
+          take: expect.any(Number),
+        }),
+      );
+      expect(rawItemFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ itemType: "naver_blog" }),
           take: expect.any(Number),
         }),
       );
@@ -335,7 +368,7 @@ describe("G005 generation context contract", () => {
     ];
 
     vi.doMock("@/lib/ai/runtime", () => ({
-      createRuntimeAIAdapter: () => ({
+      createRuntimeAIAdapterFromConfiguredCredentials: async () => ({
         generateBlogDraft,
         generateSearchStructure: generateSearchStructureMock,
       }),
@@ -462,6 +495,7 @@ describe("P3 G007 staged content package contract", () => {
     for (const route of [
       "/api/optimizers/homefeed/titles",
       "/api/optimizers/search/structure",
+      "/generate-sns",
       "/api/compliance/check",
     ]) {
       expect(contentDetailSource).toContain(route);
@@ -471,6 +505,7 @@ describe("P3 G007 staged content package contract", () => {
       "onGeneratePackage",
       "onGenerateTitleCandidates",
       "onGenerateSearchStructure",
+      "onGenerateSnsVariants",
       "onRunCompliance",
     ]) {
       expect(contentLayoutSource).toContain(callback);
@@ -485,13 +520,7 @@ describe("P3 G007 staged content package contract", () => {
       expect(contentLayoutSource).toContain(field);
     }
 
-    for (const label of [
-      "Title Candidates",
-      "Search Structure",
-      "Comparison Table",
-      "FAQ",
-      "Shopping Connect",
-    ]) {
+    for (const label of ["제목 후보", "검색 구조", "비교표", "질문 답변", "제휴 링크 맥락"]) {
       expect(contentLayoutSource).toContain(label);
     }
   });
@@ -507,8 +536,9 @@ describe("P3 G007 staged content package contract", () => {
     expect(complianceServiceSource).toContain("compliancePassTransitionStatuses");
     expect(complianceServiceSource).toContain("complianceFailTransitionStatuses");
     expect(complianceServiceSource).toContain("Math.max(input.currentProgress ?? 0, 0.75)");
-    expect(exportServiceSource).toContain("exportTransitionStatuses");
+    expect(exportServiceSource).toContain("exportableStatuses");
     expect(exportServiceSource).toContain("Math.max(input.currentProgress ?? 0, 0.9)");
+    expect(exportServiceSource).toContain("Owner approval is required before export.");
     expect(contentDetailSource).toContain(
       "nextComplianceStatus(current.status, check.export_allowed)",
     );
@@ -573,7 +603,7 @@ describe("P3 content detail failure contract", () => {
       'setStatus("자동 저장 실패 · 로컬 보존됨")',
       'setStatus("자동 저장 실패 · 로컬 보존 실패")',
       "clearDraftRecovery(packageId, draft.id)",
-      "window.location.assign(`/login?from=/packages/",
+      'setStatus("세션 확인 실패")',
     ]) {
       expect(contentDetailSource).toContain(requiredSource);
     }
@@ -786,7 +816,7 @@ describe("P3 compliance contract", () => {
       "rule_type: rule.ruleType",
       "rule_code: rule.ruleCode",
       "description: rule.description",
-      "createRuntimeAIAdapter()",
+      "createRuntimeAIAdapterFromConfiguredCredentials",
       "adapter.checkCompliance({",
       "policyRules: input.policyRules",
     ]) {
@@ -1089,7 +1119,23 @@ describe("P3 export contract", () => {
     expect(plan.cutoffs.exports.toISOString()).toBe("2026-04-07T00:00:00.000Z");
     expect(plan.cutoffs.resolved_errors.toISOString()).toBe("2026-06-06T00:00:00.000Z");
     expect(plan.cutoffs.cost_logs.toISOString()).toBe("2026-01-07T00:00:00.000Z");
-    expect(plan.deleted).toEqual({ exports: 0, resolved_errors: 0, cost_logs: 0 });
+    expect(plan.cutoffs.raw_items.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+    expect(plan.cutoffs.agent_runs.toISOString()).toBe("2026-06-06T00:00:00.000Z");
+    expect(plan.cutoffs.triggered_agent_runs.toISOString()).toBe("2026-04-07T00:00:00.000Z");
+    expect(plan.deleted).toEqual({
+      exports: 0,
+      resolved_errors: 0,
+      cost_logs: 0,
+      raw_items: 0,
+      agent_runs: 0,
+    });
+    expect(plan.skipped).toEqual({
+      exports: 0,
+      resolved_errors: 0,
+      cost_logs: 0,
+      raw_items: 0,
+      agent_runs: 0,
+    });
     expect(retentionServiceSource).toContain('if (input.mode === "dry-run")');
     expect(retentionServiceSource).toContain("resolvedAt: { not: null }");
     expect(retentionServiceSource).toContain('if (input.mode !== "execute")');

@@ -12,7 +12,7 @@ export const POST = withAuthenticatedApi("products.create", async (request) => {
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid product payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

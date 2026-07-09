@@ -7,7 +7,7 @@ import { generateHomefeedTitles } from "@/lib/content/titleService";
 export const POST = withAuthenticatedApi("optimizers.homefeed.titles", async (request) => {
   const parsed = packageIdSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
-    return fail({ code: "BAD_REQUEST", message: "content_package_id is required." }, 400);
+    return fail({ code: "VALIDATION_ERROR", message: "content_package_id is required." }, 400);
   }
 
   const contentPackage = await getContentPackage(parsed.data.content_package_id);

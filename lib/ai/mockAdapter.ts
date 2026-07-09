@@ -113,14 +113,18 @@ export class MockAIAdapter implements AIAdapter {
   }
 
   async generateSNSVariant(input: ContentInput, profile: SnsProfile): Promise<SnsVariantOutput> {
+    const sourceExcerpt =
+      input.sourceDraftMarkdown === undefined || input.sourceDraftMarkdown.trim() === ""
+        ? "블로그 본문"
+        : input.sourceDraftMarkdown.replace(/\s+/g, " ").trim().slice(0, 80);
     return parseSnsVariantOutput({
       platform: profile.platform,
       format: profile.format,
-      hook: `${input.topic}를 오늘 확인해야 하는 이유`,
-      body: `${input.topic} 핵심만 재가공한 소셜 버전입니다.`,
-      cta: "블로그 본문에서 체크리스트를 확인하세요.",
-      hashtags: ["자취", "쇼핑", "체크리스트"],
-      score: 70,
+      hook: `원룸 ${input.topic}, 이 기준 놓치면 돈만 쓰기 쉽습니다`,
+      body: `문제: ${sourceExcerpt}\n체크: 가격 기준일, 사용 상황, 제휴 고지를 함께 확인하세요.\n선택: 필요한 조건이 맞을 때만 링크를 눌러 비교합니다.`,
+      cta: "블로그 본문에서 체크리스트와 쇼핑커넥트 고지를 함께 확인하세요.",
+      hashtags: ["자취", "생활템", "쇼핑커넥트", "체크리스트"],
+      score: 82,
     });
   }
 

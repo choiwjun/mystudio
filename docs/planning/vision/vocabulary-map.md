@@ -28,7 +28,7 @@
 
 ## 상태값
 
-| v0.7 PackageStatus (29상태, types.yaml §10 정본) | Studio v2 (23상태) |
+| v0.7 PackageStatus (28상태, types.yaml §10 정본) | Studio v2 (23상태) |
 |---|---|
 | opportunity_found | collected/normalized/deduplicated/brief_created |
 | paperclip_review | scored |

@@ -5,7 +5,7 @@ export default function MemoryPage() {
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Company Memory</h1>
+          <h1 className="brand">회사 메모리</h1>
           <div className="muted">성과 로그에서 학습한 훅, 상품군, 갱신 후보</div>
         </div>
         <a className="button" href="/performance">

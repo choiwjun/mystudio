@@ -10,16 +10,16 @@
 | 영역 | 기술 | 이유 |
 |-----|------|------|
 | **Frontend** | Next.js (App Router) | 최신 React 패턴 + 서버 컴포넌트 활용, 빠른 개발 |
-| **Backend** | Next.js API Routes | Vercel 올인 전략, 별도 서버 관리 불필요 |
-| **데이터베이스** | PostgreSQL (Supabase) | 관계형 데이터 + 벡터 확장 가능 (향후 임베딩) |
+| **Backend** | Next.js API Routes | 로컬 Node/Next 런타임에서 프론트와 API를 함께 실행 |
+| **데이터베이스** | 로컬 PostgreSQL | Supabase 없이 개인 PC의 PostgreSQL에 Prisma로 접속 |
 | **ORM** | Prisma | TypeScript 안전성, 마이그레이션 자동화 |
-| **배포** | Vercel + Supabase | Serverless 운영, 자동 스케일링 |
-| **Job Runner** | Vercel Cron | 매일 Hermes 스캔 / 성과 집계 자동화 |
-| **Storage** | Supabase Storage | 이미지, Export 파일 저장 |
+| **운영** | 로컬 PC 실행 | `npm run dev`/`npm run start` 기반, Vercel 배포 없음 |
+| **Job Runner** | 로컬 스케줄러 | Windows 작업 스케줄러/cron이 `npm run scan:hermes`를 실행 |
+| **Storage** | 로컬 파일 저장소 | 이미지, Export 파일은 `LOCAL_STORAGE_DIR` 아래 저장 |
 | **AI 모델** | Open Question | 교체 가능한 인터페이스 뒤에 구현. 후보: Claude API / OpenAI API / 작업별 라우팅 |
-| **인증** | jose signed-cookie session (단일 Owner) | `paperclip_session` httpOnly 서명 쿠키, CSRF 토큰, 멀티유저 불필요 |
+| **인증** | single_owner_no_login | 나 혼자 쓰는 운영 도구로 로그인 화면 없이 단일 Owner 세션을 자동 제공한다. 상태 변경 API는 CSRF 토큰을 유지한다. |
 | **모니터링** | Error logs + Cost logs | 기본 에러 추적, AI 호출 비용 기록 |
-| **Environment** | Vercel Environment Variables | API 키, DB 주소 등 보안 관리 |
+| **Environment** | `.env.local` | API 키, 로컬 DB 주소 등 보안 관리 |
 
 ---
 
@@ -51,13 +51,13 @@ Service Layer (Business Logic)
     ↓
 Data Layer (Prisma ORM)
     ├── Models: company_profile, opportunity_memos, paperclip_decisions, ...
-    └── Database: PostgreSQL (Supabase)
+    └── Database: Local PostgreSQL
     ↓
 External Services
     ├── Naver Blog Search API  → 검색 데이터 수집
     ├── Naver Shopping API     → 상품 데이터 수집
     ├── AI Model API           → 콘텐츠 생성 (Claude / OpenAI)
-    └── Supabase Storage       → 파일 저장
+    └── Local File Storage       → Export/Import 파일 저장
 ```
 
 ---
@@ -94,7 +94,7 @@ POST /api/hq/decisions/:id/reject     → 검수 실패 처리
 
 **주요 API**:
 ```
-POST /api/hermes/scan                 → 전체 스캔 시작 (Vercel Cron 호출)
+POST /api/hermes/scan                 → 전체 스캔 시작 (로컬 스케줄러 또는 수동 호출)
 POST /api/hermes/scan/naver-blog      → 블로그 검색 API 호출
 POST /api/hermes/scan/naver-shopping  → 쇼핑 API 호출
 POST /api/hermes/opportunity-memos    → Memo 생성 (AI 처리)
@@ -109,7 +109,7 @@ GET  /api/hermes/opportunity-memos/:id → 상세
 
 **처리 로직**:
 ```
-1. Vercel Cron 매일 아침 6시 실행
+1. 로컬 스케줄러(Windows 작업 스케줄러/cron)가 매일 아침 6시 `npm run scan:hermes` 실행
 2. company_profile의 primary_categories로 검색 키워드 생성
 3. 네이버 블로그 검색 API: 최근 7일 인기 글 수집
 4. 네이버 쇼핑 검색 API: 트렌드 상품 수집
@@ -182,13 +182,13 @@ AI에 전달:
 ```
 
 **✅ 비동기 실행 모델 — 확정: 경량 중간해 (2026-07-02, council-report §4-2 사용자 결정)**:
-동기식 단일 `POST /api/content-packages/:id/generate`는 Vercel Serverless 타임아웃과 충돌하므로 폐기하고, 아래 방식으로 확정합니다.
+동기식 단일 `POST /api/content-packages/:id/generate`는 장시간 AI 호출 중 브라우저/로컬 서버 재시작에 취약하므로 폐기하고, 아래 방식으로 확정합니다.
 
-- **실행 방식**: Vercel `maxDuration` 연장 + **클라이언트가 생성 단계를 순차 호출** — 제목 생성 → 검색 구조 → 본문 생성 → 검수를 각각 별도 POST로 분리 (단계당 1 함수 실행, 타임아웃 내 완료)
+- **실행 방식**: **클라이언트가 생성 단계를 순차 호출** — 제목 생성 → 검색 구조 → 본문 생성 → 검수를 각각 별도 POST로 분리 (단계별 완료 상태를 DB에 저장)
 - **진행 가시성**: 각 단계 응답이 다음 단계 트리거 — §9 성능 기준(시작 피드백 <1초 + 단계별 진행 표시)과 자연 정합
 - **비용 정합**: 단계 경계 = 서킷브레이커 예산 체크 지점(§5) — soft-stop이 단계 단위로 동작, 중단 시 데이터 유실 없음
 - **중단/재개**: 브라우저 이탈 시 파이프라인 중단 — content_packages.progress + drafts 저장 상태 기준으로 **완료된 단계 다음부터 재개** (미완료 단계 재호출은 멱등)
-- **기각안 기록**: 잡 큐(Inngest/QStash/Supabase Queues)는 새 벤더 종속 + 웹훅 서명 검증 공격면 + eventual consistency UX 복잡성으로 1인 MVP에 과잉 — Phase 2+ 재검토 가능
+- **기각안 기록**: 외부 잡 큐/호스팅 큐 도입은 새 벤더 종속 + 웹훅 서명 검증 공격면 + eventual consistency UX 복잡성으로 1인 로컬 MVP에 과잉 — Phase 2+ 재검토 가능
 
 P3-R1 착수 조건 충족 (선행 결정 완료).
 
@@ -398,27 +398,27 @@ compliance_checked
 
 ## 3.5 데이터 접근 경계 설계 (A7)
 
-**원칙**: Row-Level Security(RLS) 미사용 + 모든 데이터 접근은 서버 API Routes 경유
+**원칙**: 로컬 PostgreSQL은 서버 API Routes만 접근하고, 브라우저는 DB/파일시스템에 직접 접근하지 않는다.
 
 | 항목 | 정책 | 근거 |
 |-----|------|------|
-| **데이터베이스 RLS** | 미사용 | 단일 사용자 + Prisma ORM 직결이므로 row-level filtering 불필요. 대신 서버측 API에서 검증 |
-| **Supabase Anon Key** | 클라이언트 미사용 | 모든 DB 접근은 API Routes 경유. anon key는 Storage 서명 URL 생성 전용 |
-| **Connection Pooling** | PgBouncer 또는 Vercel Postgres | DATABASE_URL(풀) / DIRECT_URL(마이그레이션) 구분 명시 |
-| **Storage 버킷** | 비공개 (Private) | 임포트 이미지, Export 파일 모두 서명된 URL만 제공 (public read 금지) |
-| **API Routes** | Vercel serverless 함수 | 모든 비즈니스 로직 검증·로깅·속도 제한은 이 계층에서 수행 |
+| **데이터베이스 RLS** | 미사용 | 단일 사용자 + 로컬 Prisma ORM 직결이므로 row-level filtering 불필요. 대신 서버측 API에서 검증 |
+| **DB 공개 범위** | localhost 전용 | PostgreSQL은 개인 PC/로컬 네트워크 내부에서만 열고 외부 공개 금지 |
+| **Connection** | 로컬 `DATABASE_URL` / 선택적 `DIRECT_URL` | Prisma 런타임과 마이그레이션 모두 로컬 PostgreSQL 기준. 풀링 전제 없음 |
+| **Storage 디렉터리** | 로컬 비공개 디렉터리 | 임포트 이미지, Export 파일 모두 `LOCAL_STORAGE_DIR` 아래 저장하고 앱 API로만 노출 |
+| **API Routes** | 로컬 Next.js 서버 | 모든 비즈니스 로직 검증·로깅·속도 제한은 이 계층에서 수행 |
 
 **신뢰 경계 도식**:
 ```
 클라이언트 (브라우저)
-    ↓ (HTTPS + 쿠키 세션)
-API Routes (Next.js, env 시크릿 보유)
+    ↓ (localhost HTTP)
+API Routes (Next.js, .env.local 시크릿 보유)
     ├→ Prisma ORM (DATABASE_URL)
-    ├→ Supabase Storage (SERVICE_KEY로 서명 URL 생성)
+    ├→ Local File Storage (LOCAL_STORAGE_DIR)
     └→ 외부 API (NAVER_*, OPENAI_*, 등)
-    
-❌ 클라이언트 → 데이터베이스 직결 (anon key 사용 금지)
-❌ 클라이언트 → Storage 직접 업로드 (presigned URL도 제한적)
+
+❌ 클라이언트 → 데이터베이스 직결
+❌ 클라이언트 → 로컬 파일시스템 직접 접근
 ```
 
 ---
@@ -427,7 +427,7 @@ API Routes (Next.js, env 시크릿 보유)
 
 ```text
 매일 아침 6시
-    ↓ Vercel Cron
+    ↓ 로컬 스케줄러 (`npm run scan:hermes`)
 Hermes 스캔
     ├→ Naver Blog API (최근 키워드 글)
     ├→ Naver Shopping API (인기 상품)
@@ -634,33 +634,33 @@ export type OpportunityMemo = z.infer<typeof OpportunityMemoSchema>;
 
 ---
 
-## 7. 환경변수 관리 (Vercel)
+## 7. 환경변수 관리 (`.env.local`)
 
 ```env
-# Database
-DATABASE_URL=postgresql://...@supabase.com/postgres
+# Database (local PostgreSQL)
+DATABASE_URL=postgresql://paperclip:paperclip@127.0.0.1:5432/paperclip
+DIRECT_URL=postgresql://paperclip:paperclip@127.0.0.1:5432/paperclip
 
-# Auth
-NEXTAUTH_SECRET=... # legacy-compatible name; jose paperclip_session signing secret
+# Single-user access
 OWNER_EMAIL=owner@example.com
-OWNER_PASSWORD_HASH=...
 
 # AI Model (미결)
 # OPENAI_API_KEY=...
 # CLAUDE_API_KEY=...
-AI_ADAPTER=hybrid
+AI_ADAPTER=mock
+AI_ADAPTER_ALLOW_MOCK=true
 
 # External APIs
-NAVER_BLOG_SEARCH_API_KEY=...
-NAVER_SHOPPING_API_KEY=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+NAVER_BLOG_SEARCH_URL=https://openapi.naver.com/v1/search/blog.json
+NAVER_SHOPPING_SEARCH_URL=https://openapi.naver.com/v1/search/shop.json
 
-# Storage
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_KEY=...
+# Local scheduler / API trigger guard
+CRON_SECRET=replace-with-random-secret
 
-# Logging
-SENTRY_DSN=...
+# Local file storage
+LOCAL_STORAGE_DIR=./storage
 
 # Monitoring
 COST_LOG_ENABLED=true
@@ -714,7 +714,7 @@ ERROR_LOG_ENABLED=true
 |-----|--------|------|
 | **HQ 메인 로딩** | < 2초 | (변경 없음) |
 | **Hermes 스캔 완료** | < 30초 (매일 아침, 병렬 처리) | (변경 없음) |
-| **Blog Draft 생성** | **생성 시작 피드백 < 1초** + **단계별 진행 상태 가시화** + **완료 알림 도달** | 기존 "< 10초" 는 Vercel Pro maxDuration과 충돌. 측정 대상 변경으로 비동기 대기 UX를 먼저 설계 |
+| **Blog Draft 생성** | **생성 시작 피드백 < 1초** + **단계별 진행 상태 가시화** + **완료 알림 도달** | 장시간 AI 생성을 단일 요청으로 묶지 않고 로컬 단계별 실행·재개 UX로 처리 |
 | **Compliance 검수** | < 5초 | (변경 없음) |
 | **Export 생성** | < 3초 | (변경 없음) |
 | **API 응답 (일반)** | < 500ms | (변경 없음) |
@@ -730,17 +730,16 @@ ERROR_LOG_ENABLED=true
 
 ## 10. 보안 & 컴플라이언스
 
-- **인증 (A4 — jose signed-cookie 단일 Owner 세션 방식으로 확정)**:
-  - 방식: `jose`로 서명한 httpOnly `paperclip_session` 쿠키 기반 세션 인증. Bearer Token 및 `next-auth` 패키지는 사용하지 않음
-  - 자격증명: `OWNER_EMAIL` + `OWNER_PASSWORD_HASH` 환경변수 기반 단일 Owner 로그인
-  - 로그인 성공: `POST /api/auth/login`은 `paperclip_session` 쿠키와 응답 본문의 CSRF 토큰(`csrf_token`)을 발급
-  - 세션 조회: `GET /api/auth/session`은 쿠키를 읽어 사용자 정보, CSRF 토큰, 만료 시각을 반환
-  - 보호: middleware/proxy가 `jose` 쿠키를 검증하고 미인증 API 요청은 401 처리. rate limit 미들웨어는 5회 실패 시 1분 lock, 자동 lockout 금지 — 유일 사용자 자기잠금 방지
-  - CSRF 방어: 상태 변경 API(`POST /api/hq/decisions`, `POST /api/compliance/*/apply-fixes` 등)는 세션의 CSRF 토큰과 `x-csrf-token` 헤더 일치 검증 필수
-  - 세션 만료 중 자동 저장 손실 방지: 에디터 자동 저장 실패 시 로컬 스토리지 보존 → 재로그인 후 재전송 경로 제공
+- **인증 (A4 — `single_owner_no_login` 단일 Owner 접근 방식으로 확정)**:
+  - 방식: 나 혼자 쓰는 운영 도구이므로 로그인 화면 없이 서버가 단일 Owner 세션을 자동 제공한다.
+  - 세션 조회: `GET /api/auth/session`은 쿠키 없이 사용자 정보, 고정 CSRF 토큰(`csrf_token`), 장기 만료 시각을 반환한다.
+  - 호환 엔드포인트: `POST /api/auth/login`과 `POST /api/auth/logout`은 기존 클라이언트/테스트 호환용 no-op 응답만 제공하며 쿠키를 발급하거나 제거하지 않는다.
+  - 보호: `proxy.ts`는 페이지/API를 로그인으로 리다이렉트하지 않고 통과시킨다. 라우트 내부에서는 `withAuthenticatedApi`를 계속 사용해 요청 컨텍스트와 CSRF 검증을 유지한다.
+  - CSRF 방어: 상태 변경 API(`POST /api/hq/decisions`, `POST /api/compliance/*/apply-fixes` 등)는 `withAuthenticatedApi`에서 세션의 CSRF 토큰과 `x-csrf-token` 헤더 일치 검증 필수.
+  - Authorization 헤더 기반 앱 세션이나 별도 인증 프레임워크 세션은 사용하지 않는다.
   
-- **HTTPS**: 모든 통신 암호화
-- **환경변수**: Vercel Secrets (노출 금지) + `CRON_SECRET` 추가 (A1)
+- **로컬 네트워크 보안**: 기본은 `127.0.0.1` 바인딩. 외부 접속을 열 경우 OS 방화벽/리버스 프록시에서 별도 접근 제어
+- **환경변수**: `.env.local` (노출 금지) + `CRON_SECRET` 추가 (A1)
 - **데이터 삭제**: 아카이브 후 90일 자동 삭제 정책
 - **감시**: error_logs / cost_logs 매일 리뷰
 
@@ -750,5 +749,5 @@ ERROR_LOG_ENABLED=true
 
 - **Upstream documents referenced**: 00-source-plan.md (시스템 구조, 엔진 설계, API 설계, 기술 스택, 상태값), 01-prd.md (기능 요구사항)
 - **Downstream documents affected**: 04-database-design.md (Prisma 스키마), 07-coding-convention.md (API 구현 규칙), 08-business-model.md (비용 추적)
-- **Open questions**: AI 모델 최종 선택 (Claude vs OpenAI vs 하이브리드), Naver API 쿼터 확정, 초기 배포 서버 선택 (Vercel만 vs 혼합)
-- **Assumptions**: Vercel Cron의 신뢰성, Naver API의 안정성, PostgreSQL의 확장성 (초기 사용자 1인)
+- **Open questions**: AI 모델 최종 선택 (Claude vs OpenAI vs 하이브리드), Naver API 쿼터 확정, 로컬 DB 백업 주기
+- **Assumptions**: 로컬 PC가 매일 운영 시간에 켜져 있음, Naver API의 안정성, 로컬 PostgreSQL의 안정성 (초기 사용자 1인)

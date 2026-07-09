@@ -1,6 +1,10 @@
 import { Prisma, type Product, type ShoppingConnectLink } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import {
+  type InsaneSearchFailureReason,
+  importProductWithInsaneSearch,
+} from "@/lib/products/insaneSearch";
 import { validateProductImportUrl } from "@/lib/security/productImport";
 
 const productNameMaxLength = 160;
@@ -8,8 +12,7 @@ const productSourceMaxLength = 80;
 const productUrlMaxLength = 2048;
 const productCategoryMaxLength = 80;
 const productMemoMaxLength = 500;
-const importedProductNameMaxLength = productNameMaxLength;
-const importedCategoryMaxLength = productCategoryMaxLength;
+const popularitySourceMaxLength = 80;
 
 function hasAllowedUrlProtocol(value: string, protocols: readonly string[]): boolean {
   try {
@@ -40,6 +43,9 @@ export const productCreateSchema = z.object({
   price: z.number().int().nonnegative().optional(),
   image_url: optionalImageUrlSchema,
   category: z.string().trim().max(productCategoryMaxLength).optional(),
+  popularity_score: z.number().nonnegative().optional(),
+  popularity_rank: z.number().int().positive().optional(),
+  popularity_source: z.string().trim().max(popularitySourceMaxLength).optional(),
   memo: z.string().trim().max(productMemoMaxLength).optional(),
 });
 
@@ -73,6 +79,10 @@ export type SerializedProduct = {
   readonly price_checked_at: string | null;
   readonly image_url: string | null;
   readonly category: string | null;
+  readonly popularity_score: number | null;
+  readonly popularity_rank: number | null;
+  readonly popularity_source: string | null;
+  readonly popularity_checked_at: string | null;
   readonly memo: string | null;
   readonly stale: boolean;
   readonly created_at: string;
@@ -111,6 +121,10 @@ export function serializeProduct(product: Product, now = new Date()): Serialized
     price_checked_at: product.priceCheckedAt?.toISOString() ?? null,
     image_url: product.imageUrl,
     category: product.category,
+    popularity_score: product.popularityScore,
+    popularity_rank: product.popularityRank,
+    popularity_source: product.popularitySource,
+    popularity_checked_at: product.popularityCheckedAt?.toISOString() ?? null,
     memo: product.memo,
     stale: isOlderThanSevenDays(product.priceCheckedAt, now),
     created_at: product.createdAt.toISOString(),
@@ -141,113 +155,27 @@ function isRecordNotFoundError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 }
 
-function decodePathSegment(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
+export class ProductImportBlockedError extends Error {
+  readonly reason: InsaneSearchFailureReason | "invalid_url";
+  readonly traceId: string | undefined;
+
+  constructor(reason: InsaneSearchFailureReason | "invalid_url", traceId?: string) {
+    super(`PRODUCT_IMPORT_BLOCKED:${reason}`);
+    this.name = "ProductImportBlockedError";
+    this.reason = reason;
+    this.traceId = traceId;
   }
 }
 
-function cleanImportedText(value: string, maxLength = importedProductNameMaxLength): string {
-  const cleaned = value
-    .replace(/\+/g, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/[_|]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return cleaned.length > maxLength ? cleaned.slice(0, maxLength).trim() : cleaned;
-}
-
-function firstCleanParam(
-  url: URL,
-  names: readonly string[],
-  maxLength = importedProductNameMaxLength,
-): string | undefined {
-  for (const name of names) {
-    const value = url.searchParams.get(name);
-    if (value !== null) {
-      const cleaned = cleanImportedText(value, maxLength);
-      if (cleaned.length > 0) {
-        return cleaned;
-      }
-    }
+function assertImportableProduct(
+  input: unknown,
+  reason: InsaneSearchFailureReason = "metadata_missing",
+): z.infer<typeof productCreateSchema> {
+  const parsed = productCreateSchema.safeParse(input);
+  if (!parsed.success || parsed.data.price === undefined) {
+    throw new ProductImportBlockedError(reason);
   }
-  return undefined;
-}
-
-function cleanPathProductName(url: URL): string | undefined {
-  const segments = url.pathname
-    .split("/")
-    .map((segment) => cleanImportedText(decodePathSegment(segment).replace(/[-–—]+/g, " ")))
-    .filter((segment) => segment.length > 0 && !/^\d+$/.test(segment));
-
-  const ignoredSegments = new Set(["search", "all", "products", "product", "catalog", "ns"]);
-  const candidate = segments
-    .reverse()
-    .find((segment) => !ignoredSegments.has(segment.toLowerCase()) && !segment.includes("."));
-  return candidate;
-}
-function parseOptionalPrice(url: URL): number | undefined {
-  const rawPrice = firstCleanParam(url, ["price", "lowPrice", "salePrice", "productPrice"]);
-  if (rawPrice === undefined) {
-    return undefined;
-  }
-  const price = Number.parseInt(rawPrice.replace(/[^\d]/g, ""), 10);
-  return Number.isSafeInteger(price) && price >= 0 ? price : undefined;
-}
-
-function parseOptionalImageUrl(url: URL): string | undefined {
-  const imageUrl = firstCleanParam(
-    url,
-    ["image", "imageUrl", "img", "thumbnail", "thumb"],
-    productUrlMaxLength,
-  );
-  if (imageUrl === undefined || imageUrl.length > productUrlMaxLength) {
-    return undefined;
-  }
-
-  try {
-    const parsedImageUrl = new URL(imageUrl);
-    return ["http:", "https:"].includes(parsedImageUrl.protocol)
-      ? parsedImageUrl.toString()
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export function parseNaverProductFromUrl(url: URL): z.infer<typeof productCreateSchema> {
-  const productName =
-    firstCleanParam(url, [
-      "query",
-      "keyword",
-      "title",
-      "productTitle",
-      "productName",
-      "goodsName",
-      "itemName",
-      "name",
-    ]) ?? cleanPathProductName(url);
-  if (productName === undefined) {
-    throw new Error("PRODUCT_IMPORT_BLOCKED:missing_product_metadata");
-  }
-  const category = firstCleanParam(
-    url,
-    ["catName", "categoryName", "category", "cat", "menu", "displayCategoryName"],
-    importedCategoryMaxLength,
-  );
-
-  return {
-    product_name: productName,
-    product_url: url.toString(),
-    source: "naver_shopping",
-    price: parseOptionalPrice(url),
-    image_url: parseOptionalImageUrl(url),
-    category,
-    memo: `Naver Shopping URL import from ${url.hostname}. Price needs confirmation before publishing.`,
-  };
+  return parsed.data;
 }
 
 export async function listProducts(staleOnly: boolean): Promise<SerializedProduct[]> {
@@ -260,6 +188,10 @@ export async function listProducts(staleOnly: boolean): Promise<SerializedProduc
 export async function createProduct(
   input: z.infer<typeof productCreateSchema>,
 ): Promise<SerializedProduct> {
+  const popularityCheckedAt =
+    input.popularity_score === undefined && input.popularity_rank === undefined
+      ? undefined
+      : new Date();
   const product = await prisma.product.create({
     data: {
       productName: input.product_name,
@@ -268,6 +200,12 @@ export async function createProduct(
       ...(input.price === undefined ? {} : { price: input.price, priceCheckedAt: new Date() }),
       ...(input.image_url === undefined ? {} : { imageUrl: input.image_url }),
       ...(input.category === undefined ? {} : { category: input.category }),
+      ...(input.popularity_score === undefined ? {} : { popularityScore: input.popularity_score }),
+      ...(input.popularity_rank === undefined ? {} : { popularityRank: input.popularity_rank }),
+      ...(input.popularity_source === undefined
+        ? {}
+        : { popularitySource: input.popularity_source }),
+      ...(popularityCheckedAt === undefined ? {} : { popularityCheckedAt }),
       ...(input.memo === undefined ? {} : { memo: input.memo }),
     },
   });
@@ -279,15 +217,25 @@ export async function importProduct(
 ): Promise<SerializedProduct> {
   const validatedUrl = await validateProductImportUrl(input.url);
   if (!validatedUrl.ok) {
-    throw new Error(`PRODUCT_IMPORT_BLOCKED:${validatedUrl.reason}`);
+    throw new ProductImportBlockedError(validatedUrl.reason);
   }
-  return createProduct(parseNaverProductFromUrl(validatedUrl.url));
+
+  const crawlerResult = await importProductWithInsaneSearch(validatedUrl.url);
+  if (crawlerResult.ok) {
+    return createProduct(assertImportableProduct(crawlerResult.product, "metadata_missing"));
+  }
+
+  throw new ProductImportBlockedError(crawlerResult.reason, crawlerResult.trace_id);
 }
 
 export async function updateProduct(
   id: string,
   input: z.infer<typeof productPatchSchema>,
 ): Promise<SerializedProduct | null> {
+  const popularityCheckedAt =
+    input.popularity_score === undefined && input.popularity_rank === undefined
+      ? undefined
+      : new Date();
   try {
     const product = await prisma.product.update({
       where: { id },
@@ -298,6 +246,14 @@ export async function updateProduct(
         ...(input.price === undefined ? {} : { price: input.price, priceCheckedAt: new Date() }),
         ...(input.image_url === undefined ? {} : { imageUrl: input.image_url }),
         ...(input.category === undefined ? {} : { category: input.category }),
+        ...(input.popularity_score === undefined
+          ? {}
+          : { popularityScore: input.popularity_score }),
+        ...(input.popularity_rank === undefined ? {} : { popularityRank: input.popularity_rank }),
+        ...(input.popularity_source === undefined
+          ? {}
+          : { popularitySource: input.popularity_source }),
+        ...(popularityCheckedAt === undefined ? {} : { popularityCheckedAt }),
         ...(input.memo === undefined ? {} : { memo: input.memo }),
       },
     });

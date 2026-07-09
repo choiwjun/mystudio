@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/hermes/scan",
-      "schedule": "0 21 * * *"
-    }
-  ]
-}
+{}

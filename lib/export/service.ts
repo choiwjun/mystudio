@@ -11,18 +11,21 @@ import { createExportBundle, createExportManifest } from "@/lib/export/render";
 import { recordCostLog } from "@/lib/logging/costLogger";
 
 export const exportRequestSchema = z.object({}).strict();
-const exportTransitionStatuses: ReadonlySet<PackageStatus> = new Set([
-  PackageStatus.compliance_checked,
-  PackageStatus.owner_approval_required,
+const exportableStatuses: ReadonlySet<PackageStatus> = new Set([
   PackageStatus.approved,
+  PackageStatus.exported,
 ]);
+
+function hasExportReadyStatus(status: PackageStatus): boolean {
+  return exportableStatuses.has(status);
+}
 
 async function updateExportStatus(input: {
   readonly contentPackageId: string;
   readonly currentStatus: PackageStatus;
   readonly currentProgress: number | null;
 }): Promise<void> {
-  if (exportTransitionStatuses.has(input.currentStatus)) {
+  if (input.currentStatus === PackageStatus.approved) {
     await transitionContentPackageStatus({
       id: input.contentPackageId,
       fromStatus: input.currentStatus,
@@ -87,6 +90,9 @@ export async function exportContentPackage(contentPackageId: string) {
   const draft = contentPackage.drafts[0];
   if (draft === undefined || draft.bodyMarkdown === null) {
     return { kind: "blocked" as const, reason: "A generated draft is required before export." };
+  }
+  if (!hasExportReadyStatus(contentPackage.status)) {
+    return { kind: "blocked" as const, reason: "Owner approval is required before export." };
   }
   const latestCheckAllowsExport =
     latestCheck !== undefined && deriveComplianceCheckExportAllowed(latestCheck.complianceIssues);

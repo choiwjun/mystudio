@@ -2,8 +2,8 @@ const complianceActions = [
   {
     href: "/packages",
     label: "콘텐츠 패키지 열기",
-    title: "Compliance Gate",
-    text: "본문 Markdown과 대가성 문구를 서버에서 검수하고 Export 차단을 확정합니다.",
+    title: "검수 게이트",
+    text: "본문 마크다운과 대가성 문구를 서버에서 검수하고 내보내기 차단 여부를 확정합니다.",
   },
   {
     href: "/products",
@@ -18,8 +18,8 @@ export default function CompliancePage() {
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Compliance Desk</h1>
-          <div className="muted">서버 강제 검수 · High Risk Export 차단</div>
+          <h1 className="brand">컴플라이언스</h1>
+          <div className="muted">서버 강제 검수 · 고위험 내보내기 차단</div>
         </div>
         <a className="button primary" href="/packages">
           검수 화면 열기

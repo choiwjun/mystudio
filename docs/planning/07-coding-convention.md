@@ -13,31 +13,36 @@
 ```json
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "jsx": "react-jsx",
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    
+    "moduleResolution": "Bundler",
+
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
-    
+
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "declaration": false,
     "sourceMap": true,
     "esModuleInterop": true,
     "baseUrl": ".",
@@ -45,11 +50,18 @@
       "@/*": ["./*"],
       "@/app/*": ["./app/*"],
       "@/components/*": ["./components/*"],
-      "@/types/*": ["./types/*"],
-      "@/lib/*": ["./lib/*"]
-    }
+      "@/lib/*": ["./lib/*"],
+      "@/types/*": ["./types/*"]
+    },
+    "noEmit": true
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
 ```
@@ -61,87 +73,72 @@
 ```
 project/
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx               # Root layout
-│   ├── page.tsx                 # Home (HQ 메인)
-│   ├── (hq)/
+│   ├── layout.tsx
+│   ├── globals.css               # dark command-center token/style source
+│   ├── login/page.tsx
+│   ├── (app)/                    # authenticated app shell
 │   │   ├── layout.tsx
-│   │   ├── page.tsx             # HQ 메인
-│   │   ├── content/
-│   │   │   └── [id]/
-│   │   │       └── page.tsx     # 콘텐츠 상세
-│   │   ├── products/
-│   │   │   └── page.tsx         # 상품 관리
-│   │   ├── performance/
-│   │   │   └── page.tsx         # 성과 기록
-│   │   └── settings/
-│   │       └── page.tsx         # 설정
-│   ├── api/                     # API Routes
-│   │   ├── hq/
-│   │   │   ├── today/route.ts
-│   │   │   ├── decisions/route.ts
-│   │   │   └── decisions/[id]/route.ts
-│   │   ├── hermes/
-│   │   │   ├── scan/route.ts
-│   │   │   └── opportunity-memos/route.ts
-│   │   ├── content-packages/
-│   │   │   ├── route.ts
-│   │   │   ├── [id]/route.ts
-│   │   │   └── [id]/generate/route.ts
-│   │   ├── products/
-│   │   │   ├── route.ts
-│   │   │   └── [id]/route.ts
-│   │   ├── compliance/
-│   │   │   ├── check/route.ts
-│   │   │   └── checks/[id]/route.ts
-│   │   ├── performance-logs/
-│   │   │   └── route.ts
-│   │   └── memory/
-│   │       └── patterns/route.ts
-│   └── middleware.ts            # Auth middleware
-├── components/                  # React 컴포넌트
+│   │   ├── page.tsx              # HQ 메인
+│   │   ├── hermes/page.tsx
+│   │   ├── packages/[id]/page.tsx
+│   │   ├── products/page.tsx
+│   │   ├── compliance/page.tsx
+│   │   ├── performance/page.tsx
+│   │   ├── memory/page.tsx
+│   │   └── settings/page.tsx
+│   └── api/                      # API Routes
+│       ├── auth/
+│       ├── company-profile/
+│       ├── hq/
+│       ├── hermes/
+│       ├── content-packages/
+│       ├── drafts/
+│       ├── compliance/
+│       ├── optimizers/
+│       ├── products/
+│       ├── shopping-connect-links/
+│       ├── performance/
+│       ├── performance-logs/
+│       ├── revenue/
+│       └── memory/
+├── components/                   # React 컴포넌트
+│   ├── auth/
+│   ├── content/
 │   ├── hq/
-│   │   ├── OpportunityCard.tsx
-│   │   ├── KanbanBoard.tsx
-│   │   └── MainDashboard.tsx
-│   ├── common/
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   └── Modal.tsx
-│   └── ui/                      # 원시 UI (headless)
-│       ├── badge.tsx
-│       ├── tabs.tsx
-│       └── select.tsx
+│   ├── performance/
+│   ├── products/
+│   ├── AppHeader.tsx
+│   ├── CompanyProfileForm.tsx
+│   └── DepartmentNav.tsx
 ├── lib/
-│   ├── api.ts                   # API 클라이언트
-│   ├── db.ts                    # Prisma 클라이언트
-│   ├── auth/                    # jose signed-cookie session helpers
-│   ├── ai/
-│   │   ├── adapter.ts           # AI 어댑터 인터페이스
-│   │   ├── claude.ts            # Claude 구현 (미결)
-│   │   └── openai.ts            # OpenAI 구현 (미결)
-│   ├── services/
-│   │   ├── HermesService.ts
-│   │   ├── ContentEngine.ts
-│   │   ├── ComplianceEngine.ts
-│   │   └── AnalyticsService.ts
-│   └── utils/
-│       ├── date.ts
-│       ├── format.ts
-│       └── validators.ts
-├── types/
-│   ├── index.ts                 # 전체 타입 export
-│   ├── entities.ts              # DB 엔티티 타입
-│   ├── api.ts                   # API 요청/응답 타입
-│   └── services.ts              # 서비스 타입
-├── styles/
-│   ├── globals.css
-│   └── variables.css            # CSS 변수 (컬러 등)
+│   ├── api/                      # envelope, JSON body, request logging helpers
+│   ├── auth/                     # single-user no-login session + CSRF helpers
+│   ├── ai/                       # AIAdapter runtime + provider adapters
+│   ├── company-profile/
+│   ├── content/
+│   ├── compliance/
+│   ├── decisions/
+│   ├── export/
+│   ├── hermes/
+│   ├── hq/
+│   ├── logging/
+│   ├── memory/
+│   ├── naver/
+│   ├── performance/
+│   ├── products/
+│   ├── retention/
+│   ├── security/
+│   └── db.ts
+├── specs/
+├── tests/
 ├── prisma/
 │   ├── schema.prisma
-│   └── seed.ts
-├── .env.example
-├── next.config.js
+│   ├── seed.ts
+│   └── migrations/
+├── proxy.ts                      # Next 16 page/API session guard
+├── biome.json
+├── next.config.mjs
+├── tsconfig.json
 └── package.json
 ```
 
@@ -158,8 +155,8 @@ project/
 유틸/라이브러리:   camelCase.ts
   예: dateUtils.ts, apiClient.ts
 
-타입/인터페이스:   PascalCase.ts
-  예: types/Entities.ts
+도메인 타입:        도메인 파일 내부 export 또는 adapter/repository 타입
+  예: lib/content/statusTransitions.ts, lib/ai/adapter.ts
 
 API 라우트:        camelCase/route.ts
   예: app/api/hq/decisions/route.ts
@@ -334,12 +331,19 @@ export async function MainDashboard() {
 "use client";
 
 import { useState } from "react";
-import { OpportunityMemo } from "@/types/entities";
-import { Button } from "@/components/ui/Button";
+
+type OpportunityMemoCard = {
+  readonly id: string;
+  readonly topic: string;
+  readonly why_now: string;
+  readonly homefeed_score: number;
+  readonly search_score: number;
+  readonly revenue_score: number;
+};
 
 interface OpportunityCardProps {
-  memo: OpportunityMemo;
-  onSelect: (memo_id: string) => Promise<void>;
+  readonly memo: OpportunityMemoCard;
+  readonly onSelect: (memoId: string) => Promise<void>;
 }
 
 export function OpportunityCard({ memo, onSelect }: OpportunityCardProps) {
@@ -359,23 +363,19 @@ export function OpportunityCard({ memo, onSelect }: OpportunityCardProps) {
   };
 
   return (
-    <div className="opportunity-card">
-      <h3 className="card-title">{memo.topic}</h3>
-      <p className="card-body">{memo.whyNow}</p>
-      <div className="scores">
-        <ScoreChip label="HomeFeed" value={memo.homefeedFit} />
-        <ScoreChip label="Search" value={memo.searchFit} />
-        <ScoreChip label="Revenue" value={memo.shoppingConnectFit} />
+    <article className="card">
+      <h3>{memo.topic}</h3>
+      <p className="muted">{memo.why_now}</p>
+      <div className="severity-grid">
+        <span className="badge">HomeFeed {memo.homefeed_score}</span>
+        <span className="badge">Search {memo.search_score}</span>
+        <span className="badge">Revenue {memo.revenue_score}</span>
       </div>
-      <Button
-        onClick={handleSelect}
-        disabled={isLoading}
-        variant="primary"
-      >
+      <button className="button primary" disabled={isLoading} onClick={handleSelect} type="button">
         {isLoading ? "선택 중..." : "선택"}
-      </Button>
-      {error && <div className="error-message">{error}</div>}
-    </div>
+      </button>
+      {error === null ? null : <p className="form-error">{error}</p>}
+    </article>
   );
 }
 ```
@@ -389,218 +389,45 @@ export function OpportunityCard({ memo, onSelect }: OpportunityCardProps) {
 ```typescript
 // app/api/hq/today/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
-import { readSessionFromRequest } from "@/lib/auth/session";
-import { db } from "@/lib/db";
-import { ApiResponse } from "@/types/api";
+import { withAuthenticatedApi } from "@/lib/auth/guards";
+import { ok } from "@/lib/api/response";
+import { getHqToday } from "@/lib/hq/service";
 
-export async function GET(
-  req: NextRequest
-): Promise<NextResponse<ApiResponse<any>>> {
-  const requestId = crypto.randomUUID();
-
-  try {
-    // 인증 확인
-    const session = await readSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: {
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
-          },
-          timestamp: new Date().toISOString(),
-          request_id: requestId,
-        },
-        { status: 401 }
-      );
-    }
-
-    // 데이터 조회
-    const [
-      companyProfile,
-      todayMemos,
-      pendingDecisions,
-      revenueSnapshot,
-    ] = await Promise.all([
-      db.companyProfile.findFirst(),
-      db.opportunityMemo.findMany({
-        where: {
-          status: "opportunity_found",
-          created_at: {
-            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          },
-        },
-        orderBy: { created_at: "desc" },
-        take: 5,
-      }),
-      // ... 다른 조회들
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        company_profile,
-        today_memos,
-        pending_decisions,
-        revenue_snapshot,
-      },
-      error: null,
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
-    });
-  } catch (error) {
-    console.error(`[${requestId}] HQ today error:`, error);
-
-    // 에러 로깅
-    await db.errorLog.create({
-      data: {
-        error_code: error instanceof Error ? error.name : "UNKNOWN_ERROR",
-        message: error instanceof Error ? error.message : "Unknown error",
-        severity: "high",
-        context: {
-          request_id: requestId,
-          api_path: "/api/hq/today",
-        },
-      },
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch HQ data",
-        },
-        timestamp: new Date().toISOString(),
-        request_id: requestId,
-      },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withAuthenticatedApi("hq.today", async () => {
+  return ok(await getHqToday());
+});
 ```
+
+- 모든 API 응답은 `ok()` / `fail()`을 사용해 `success/data/error/timestamp/request_id` envelope를 유지한다.
+- `withApiErrorLogging(routeName, handler)`가 요청 시작 시 `request_id`를 1회 생성하고, 같은 요청 안의 `ok()`/`fail()` 응답 본문과 `error_logs.context.request_id`에 동일하게 전파한다.
+- single-user no-login API도 `withAuthenticatedApi()`를 사용한다. 이 가드는 자동 Owner 세션을 읽고 상태 변경 요청의 `x-csrf-token`을 검증한다.
 
 ### POST 라우트 (데이터 생성/수정)
 
 ```typescript
 // app/api/hq/decisions/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
-import { readSessionFromRequest } from "@/lib/auth/session";
-import { db } from "@/lib/db";
-import { validateDecisionRequest } from "@/lib/validators";
-import { PostHermesDecisionRequest } from "@/types/api";
+import { withAuthenticatedApi } from "@/lib/auth/guards";
+import { fail, ok } from "@/lib/api/response";
+import { readJsonBody } from "@/lib/api/json";
+import { createPaperclipDecision } from "@/lib/decisions/service";
+import { decisionCreateSchema } from "@/lib/decisions/schemas";
 
-export async function POST(
-  req: NextRequest
-): Promise<NextResponse> {
-  const requestId = crypto.randomUUID();
-
-  try {
-    const session = await readSessionFromRequest(req);
-    if (!session) return unauthorized(requestId);
-
-    // 요청 검증
-    const body = await req.json();
-    const validation = validateDecisionRequest(body);
-    if (!validation.valid) {
-      return badRequest(validation.errors, requestId);
-    }
-
-    const request = body as PostHermesDecisionRequest;
-
-    // 트랜잭션 처리
-    const result = await db.$transaction(async (tx) => {
-      // 1. OpportunityMemo 조회
-      const memo = await tx.opportunityMemo.findUnique({
-        where: { id: request.opportunity_memo_id },
-      });
-      if (!memo) throw new Error("Memo not found");
-
-      // 2. ContentPackage 생성
-      const contentPackage = await tx.contentPackage.create({
-        data: {
-          topic_id: memo.id,
-          status: "assigned",
-          publish_readiness: "not_ready",
-        },
-      });
-
-      // 3. PaperclipDecision 기록
-      const decision = await tx.paperclipDecision.create({
-        data: {
-          opportunity_memo_id: request.opportunity_memo_id,
-          decision: request.decision,
-          reason_json: request.reason || [],
-        },
-      });
-
-      return { contentPackage, decision };
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-      error: null,
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
-    });
-  } catch (error) {
-    // 에러 처리
-    return serverError(error, requestId);
-  }
-}
-
-// 헬퍼 함수들
-function unauthorized(requestId: string) {
-  return NextResponse.json(
-    {
-      success: false,
-      data: null,
-      error: { code: "UNAUTHORIZED", message: "Not authenticated" },
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
-    },
-    { status: 401 }
-  );
-}
-
-function badRequest(errors: Record<string, string>, requestId: string) {
-  return NextResponse.json(
-    {
-      success: false,
-      data: null,
-      error: {
+export const POST = withAuthenticatedApi("hq.decisions.create", async (request) => {
+  const parsed = decisionCreateSchema.safeParse(await readJsonBody(request));
+  if (!parsed.success) {
+    return fail(
+      {
         code: "VALIDATION_ERROR",
-        message: "Invalid request",
-        details: errors,
+        message: "Invalid decision payload.",
+        details: { issues: parsed.error.flatten().fieldErrors },
       },
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
-    },
-    { status: 400 }
-  );
-}
+      400,
+    );
+  }
 
-function serverError(error: unknown, requestId: string) {
-  return NextResponse.json(
-    {
-      success: false,
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
-    },
-    { status: 500 }
-  );
-}
+  return ok(await createPaperclipDecision(parsed.data), { status: 201 });
+});
 ```
 
 ---
@@ -1035,47 +862,44 @@ export async function POST(req: NextRequest) {
 ## 14. 상태 전이 서비스 규칙 (F4)
 
 ```typescript
-// lib/services/StatusTransitionService.ts
-export async function transitionStatus(
-  packageId: string,
-  toStatus: string,
-  actor: string // "system" | "user:123" | "cron"
-): Promise<{ success: boolean; error?: string }> {
-  return await db.$transaction(async (tx) => {
-    const pkg = await tx.contentPackage.findUnique({ where: { id: packageId } });
-    
-    // 유효한 전이인지 검증
-    const validTransitions: Record<string, string[]> = {
-      'assigned': ['brief_created'],
-      'brief_created': ['homefeed_packaged'],
-      // ... 전체 상태 그래프 정의
-    };
-    
-    if (!validTransitions[pkg.status]?.includes(toStatus)) {
-      return { success: false, error: 'Invalid transition' };
-    }
-    
-    // 상태 변경 + 이력 기록 (원자성)
-    await tx.contentPackage.update({
-      where: { id: packageId },
-      data: { status: toStatus },
+// lib/content/repository.ts
+import type { PackageStatus } from "@prisma/client";
+import { assertPackageStatusTransitionAllowed } from "@/lib/content/statusTransitions";
+import { prisma } from "@/lib/db";
+
+export async function transitionContentPackageStatus(input: {
+  readonly id: string;
+  readonly toStatus: PackageStatus;
+  readonly actor: string;
+  readonly reason?: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const contentPackage = await tx.contentPackage.findUniqueOrThrow({
+      where: { id: input.id },
     });
-    
+
+    assertPackageStatusTransitionAllowed(contentPackage.status, input.toStatus);
+
+    const updated = await tx.contentPackage.update({
+      where: { id: input.id },
+      data: { status: input.toStatus },
+    });
+
     await tx.statusTransition.create({
       data: {
-        package_id: packageId,
-        from_status: pkg.status,
-        to_status: toStatus,
-        actor,
-        created_at: new Date(),
+        contentPackageId: input.id,
+        fromStatus: contentPackage.status,
+        toStatus: input.toStatus,
+        actor: input.actor,
+        reason: input.reason ?? null,
       },
     });
-    
-    return { success: true };
+
+    return updated;
   });
 }
 
-// API 라우트: 이 함수만 호출 (직접 update 금지)
+// API 라우트: repository transition 함수만 호출 (직접 contentPackage.update 금지)
 ```
 
 ---
@@ -1086,21 +910,9 @@ export async function transitionStatus(
 // proxy.ts — 페이지/API 공통 세션 보호
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { readSessionFromRequest } from "@/lib/auth/session";
 
-export async function proxy(request: NextRequest) {
-  const session = await readSessionFromRequest(request); // jose signed paperclip_session 검증
-  if (session === null && request.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.json(
-      { success: false, error: { code: "UNAUTHORIZED" } },
-      { status: 401 },
-    );
-  }
-
-  if (session === null) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
+export function proxy(_request: NextRequest) {
+  // single-user no-login: 페이지/API를 로그인 화면으로 리다이렉트하지 않는다.
   return NextResponse.next();
 }
 
@@ -1120,9 +932,6 @@ function hasValidCsrf(request: NextRequest, session: OwnerSession): boolean {
 export function withAuthenticatedApi(routeName: string, handler: AuthenticatedHandler) {
   return withApiErrorLogging(routeName, async (request: NextRequest) => {
     const session = await readSessionFromRequest(request);
-    if (session === null) {
-      return fail({ code: "UNAUTHORIZED", message: "Authentication is required." }, 401);
-    }
 
     if (!hasValidCsrf(request, session)) {
       return fail({ code: "CSRF_TOKEN_INVALID", message: "A valid CSRF token is required." }, 403);
@@ -1132,7 +941,7 @@ export function withAuthenticatedApi(routeName: string, handler: AuthenticatedHa
   });
 }
 
-// API 라우트: Bearer token/next-auth 없이 쿠키 세션 + CSRF 가드만 사용
+// API 라우트: Bearer token/next-auth/login 없이 자동 Owner 세션 + CSRF 가드만 사용
 export const POST = withAuthenticatedApi("hq.decisions.create", async (req, session) => {
   if (!rateLimit(`decisions:${session.email}`, 5)) {
     return fail({ code: "RATE_LIMIT_EXCEEDED", message: "Too many requests." }, 429);
@@ -1149,35 +958,35 @@ export const POST = withAuthenticatedApi("hq.decisions.create", async (req, sess
 ### .env.example
 
 ```env
-# Database
-DATABASE_URL=postgresql://...@supabase.com/postgres
+# Database (local PostgreSQL)
+DATABASE_URL=postgresql://paperclip:paperclip@127.0.0.1:5432/paperclip
+DIRECT_URL=postgresql://paperclip:paperclip@127.0.0.1:5432/paperclip
 
-# Authentication
-NEXTAUTH_SECRET=... # legacy-compatible name; jose paperclip_session signing secret
-OWNER_EMAIL=owner@example.com
-OWNER_PASSWORD_HASH=...
+# Single-user access
+OWNER_EMAIL=owner@example.com # optional display email for single_owner_no_login
 
 # AI Models (Open Question)
-AI_ADAPTER=hybrid
+AI_ADAPTER=mock
+AI_ADAPTER_ALLOW_MOCK=true
 # CLAUDE_API_KEY=...
 # OPENAI_API_KEY=...
 
 # External APIs
-NAVER_BLOG_SEARCH_API_KEY=...
-NAVER_SHOPPING_API_KEY=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+NAVER_BLOG_SEARCH_URL=https://openapi.naver.com/v1/search/blog.json
+NAVER_SHOPPING_SEARCH_URL=https://openapi.naver.com/v1/search/shop.json
 
-# Supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_KEY=...
+# Local scheduler / API trigger guard
+CRON_SECRET=replace-with-random-secret
+
+# Local file storage
+LOCAL_STORAGE_DIR=./storage
 
 # Monitoring
-SENTRY_DSN=...
+COST_LOG_ENABLED=true
+ERROR_LOG_ENABLED=true
 LOG_LEVEL=info
-
-# Features
-ENABLE_CLIP_GENERATION=false
-ENABLE_SNS_POSTING=false
 ```
 
 ---

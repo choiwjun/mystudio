@@ -5,7 +5,7 @@ export default function HermesPage() {
     <>
       <header className="topbar">
         <div>
-          <h1 className="brand">Hermes Opportunity Desk</h1>
+          <h1 className="brand">기회 발굴</h1>
           <div className="muted">기회 메모, 4축 점수, 선택/보류/폐기 의사결정</div>
         </div>
       </header>

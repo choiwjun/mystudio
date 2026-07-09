@@ -24,7 +24,7 @@ import {
   summarizeRevenue,
 } from "@/lib/performance/metrics";
 import { directRevenueCategoryEntries } from "@/lib/performance/service";
-import { parseNaverProductFromUrl, productCreateSchema } from "@/lib/products/service";
+import { productCreateSchema } from "@/lib/products/service";
 import { isPrivateAddress } from "@/lib/security/productImport";
 
 const performanceServiceSource = readFileSync("lib/performance/service.ts", "utf8");
@@ -33,6 +33,13 @@ const memoryServiceSource = readFileSync("lib/memory/service.ts", "utf8");
 const productServiceSource = readFileSync("lib/products/service.ts", "utf8");
 const contentServiceSource = readFileSync("lib/content/service.ts", "utf8");
 const hqServiceSource = readFileSync("lib/hq/service.ts", "utf8");
+const shoppingConnectRevenueSummaryRouteSource = readFileSync(
+  "app/api/shopping-connect/revenue-summary/route.ts",
+  "utf8",
+);
+const reportServiceSource = readFileSync("lib/reports/service.ts", "utf8");
+const reportSummarySource = readFileSync("components/reports/ReportSummary.tsx", "utf8");
+const reportIntelligenceRouteSource = readFileSync("app/api/reports/intelligence/route.ts", "utf8");
 
 const fixtureDate = new Date("2026-07-06T00:00:00.000Z");
 
@@ -46,6 +53,10 @@ function productFixture(overrides: Partial<Product> = {}): Product {
     priceCheckedAt: null,
     imageUrl: null,
     category: null,
+    popularityScore: null,
+    popularityRank: null,
+    popularitySource: null,
+    popularityCheckedAt: null,
     memo: null,
     createdAt: fixtureDate,
     updatedAt: fixtureDate,
@@ -128,7 +139,8 @@ describe("P4 AI runtime adapter contract", () => {
     });
 
     expect(briefing.focus_categories).toEqual(["자취", "생활", "테크"]);
-    expect(hqServiceSource).toContain("createRuntimeAIAdapter().generateDailyBriefing");
+    expect(hqServiceSource).toContain("createRuntimeAIAdapterFromConfiguredCredentials");
+    expect(hqServiceSource).toContain("adapter.generateDailyBriefing");
     expect(hqServiceSource).toContain(
       "companyProfile: serializeDailyBriefingCompanyProfile(profile)",
     );
@@ -202,9 +214,11 @@ describe("P4 HQ status contract", () => {
       },
     }).data;
 
-    expect(formatHqStatusText(status, true)).toBe("Status Revenue · 미기록 2건");
+    expect(formatHqStatusText(status, true)).toBe(
+      "상태 수익 · 미기록 2건 · AI 예산 정상 42% · $2.10/$5.00",
+    );
     expect(formatHqStatusText(status, false)).toBe(
-      "Status Revenue · 성과 미기록 2건 · AI 42% · $2.10/$5.00",
+      "상태 수익 · 성과 미기록 2건 · AI 예산 정상 42% · $2.10/$5.00",
     );
     expect(hqStatusRefreshEvent).toBe("paperclip:hq-status-refresh");
   });
@@ -246,6 +260,22 @@ describe("P4 AI budget contract", () => {
 });
 
 describe("P4 performance contract", () => {
+  it("turns reports into Paperclip revenue intelligence instead of placeholder summaries", () => {
+    expect(reportServiceSource).toContain("weekly_review");
+    expect(reportServiceSource).toContain("monthly_pnl");
+    expect(reportServiceSource).toContain("next_month_calendar");
+    expect(reportServiceSource).toContain("rewrite_recommendations");
+    expect(reportServiceSource).toContain("link_refresh_recommendations");
+    expect(reportSummarySource).toContain("글별 ROI");
+    expect(reportSummarySource).toContain("다음 달 콘텐츠 캘린더");
+    expect(reportIntelligenceRouteSource).toContain("reports.intelligence");
+  });
+
+  it("exposes the documented ShoppingConnect revenue summary route", () => {
+    expect(shoppingConnectRevenueSummaryRouteSource).toContain("shopping-connect.revenue-summary");
+    expect(shoppingConnectRevenueSummaryRouteSource).toContain("getRevenueSummary");
+  });
+
   it("detects platform from URL", () => {
     expect(detectPlatformFromUrl("https://blog.naver.com/paperclip/1")).toBe("naver_blog");
     expect(detectPlatformFromUrl("https://example.com/post")).toBe("manual");
@@ -365,72 +395,25 @@ describe("P4 performance contract", () => {
 });
 
 describe("G008 product commerce contract", () => {
-  it("enriches product imports from deterministic URL metadata without network scraping", () => {
-    const product = parseNaverProductFromUrl(
-      new URL(
-        "https://search.shopping.naver.com/catalog/desk-42?query=%EC%8A%A4%ED%83%A0%EB%94%A9%20%EB%8D%B0%EC%8A%A4%ED%81%AC&price=129000&category=%ED%99%88%EC%98%A4%ED%94%BC%EC%8A%A4&image=https%3A%2F%2Fexample.com%2Fdesk.png",
-      ),
+  it("routes Naver product imports through the insane-search worker contract only", () => {
+    expect(productServiceSource).toContain("importProductWithInsaneSearch(validatedUrl.url)");
+    expect(productServiceSource).toContain(
+      "throw new ProductImportBlockedError(crawlerResult.reason",
     );
+    expect(productServiceSource).not.toContain("parseNaverProductFromUrl");
+    expect(productServiceSource).not.toContain("parseOptionalPrice(url)");
+    expect(productServiceSource).not.toContain("parseOptionalImageUrl(url)");
+    expect(productServiceSource).not.toContain("missing_product_metadata");
+    expect(productServiceSource).not.toContain("Naver Shopping Product");
+    expect(productServiceSource).not.toContain("placeholder");
+  });
 
-    expect(product).toEqual({
-      product_name: "스탠딩 데스크",
-      product_url:
-        "https://search.shopping.naver.com/catalog/desk-42?query=%EC%8A%A4%ED%83%A0%EB%94%A9%20%EB%8D%B0%EC%8A%A4%ED%81%AC&price=129000&category=%ED%99%88%EC%98%A4%ED%94%BC%EC%8A%A4&image=https%3A%2F%2Fexample.com%2Fdesk.png",
-      source: "naver_shopping",
-      price: 129000,
-      image_url: "https://example.com/desk.png",
-      category: "홈오피스",
-      memo: expect.stringContaining("URL import"),
-    });
-    expect(productServiceSource).toContain("parseOptionalPrice(url)");
-    expect(productServiceSource).toContain("parseOptionalImageUrl(url)");
+  it("keeps product import persistence free of in-process scraping dependencies", () => {
     expect(productServiceSource).not.toMatch(/\bfetch\s*\(/);
     expect(productServiceSource).not.toContain("axios");
     expect(productServiceSource).not.toContain("cheerio");
     expect(productServiceSource).not.toContain("jsdom");
-  });
-
-  it("keeps valid percent signs in deterministic import metadata", () => {
-    const product = parseNaverProductFromUrl(
-      new URL(
-        "https://search.shopping.naver.com/search/all?query=100%25%20cotton&category=%ED%8C%A8%EB%B8%8C%EB%A6%AD",
-      ),
-    );
-
-    expect(product).toMatchObject({
-      product_name: "100% cotton",
-      category: "패브릭",
-    });
-  });
-
-  it("bounds deterministic imports to explicit URL fields and path metadata", () => {
-    const product = parseNaverProductFromUrl(
-      new URL(
-        "https://shopping.naver.com/products/%EC%BB%B4%ED%8C%A9%ED%8A%B8-%EC%84%A0%EB%B0%98?thumbnail=not-a-url&lowPrice=45000&catName=%EC%88%98%EB%82%A9",
-      ),
-    );
-
-    expect(product).toEqual({
-      product_name: "컴팩트 선반",
-      product_url:
-        "https://shopping.naver.com/products/%EC%BB%B4%ED%8C%A9%ED%8A%B8-%EC%84%A0%EB%B0%98?thumbnail=not-a-url&lowPrice=45000&catName=%EC%88%98%EB%82%A9",
-      source: "naver_shopping",
-      price: 45000,
-      image_url: undefined,
-      category: "수납",
-      memo: expect.stringContaining("shopping.naver.com"),
-    });
-
-    const boundedProduct = parseNaverProductFromUrl(
-      new URL(`https://shopping.naver.com/products/1?query=${"x".repeat(220)}`),
-    );
-    expect(boundedProduct.product_name).toHaveLength(160);
-    expect(productServiceSource).toContain("cleaned.slice(0, maxLength).trim()");
-    expect(productServiceSource).toContain('source: "naver_shopping"');
-    expect(productServiceSource).toContain("product_url: url.toString()");
-    expect(productServiceSource).toContain("productUrlMaxLength");
-    expect(productServiceSource).toContain("new URL(imageUrl)");
-    expect(productServiceSource).toContain('["http:", "https:"].includes(parsedImageUrl.protocol)');
+    expect(productServiceSource).toContain('source: input.source ?? "manual"');
   });
 
   it("restricts manual product and image URL protocols", () => {
@@ -512,10 +495,11 @@ describe("G008 product commerce contract", () => {
     ).toEqual(["Active product"]);
   });
 
-  it("rejects metadata-poor imports instead of creating a generic product fallback", () => {
-    expect(() =>
-      parseNaverProductFromUrl(new URL("https://search.shopping.naver.com/search/all")),
-    ).toThrow(/PRODUCT_IMPORT_BLOCKED:missing_product_metadata/);
+  it("rejects metadata-poor imports through typed worker failure reasons instead of generic fallbacks", () => {
+    expect(productServiceSource).toContain(
+      'reason: InsaneSearchFailureReason = "metadata_missing"',
+    );
+    expect(productServiceSource).toContain("new ProductImportBlockedError(reason)");
     expect(productServiceSource).not.toContain('"Naver Shopping Product"');
     expect(productServiceSource).not.toContain("example.com");
     expect(productServiceSource).not.toContain("placeholder");

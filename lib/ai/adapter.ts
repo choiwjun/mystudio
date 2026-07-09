@@ -189,8 +189,23 @@ export type PromptTemplateGenerationContext = {
   readonly variables: unknown;
 };
 
+export type CompetitorBenchmarkPatternContext = {
+  readonly title: string;
+  readonly url: string;
+  readonly snippet?: string;
+  readonly patternSummary: string;
+  readonly originalityGuard: string;
+};
+
+export type CompetitorBenchmarkGenerationContext = {
+  readonly source: "naver_blog_raw_items";
+  readonly query: string;
+  readonly patterns: readonly CompetitorBenchmarkPatternContext[];
+};
+
 export type ContentGenerationContext = {
   readonly categoryPlaybooks: readonly CategoryPlaybookGenerationContext[];
+  readonly competitorBenchmark?: CompetitorBenchmarkGenerationContext;
   readonly promptTemplate?: PromptTemplateGenerationContext;
 };
 
@@ -199,6 +214,7 @@ export type ContentInput = {
   readonly products: readonly unknown[];
   readonly companyProfile: unknown;
   readonly generationContext?: ContentGenerationContext;
+  readonly sourceDraftMarkdown?: string;
 };
 
 export type CompliancePolicyRuleContext = {

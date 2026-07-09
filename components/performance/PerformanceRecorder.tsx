@@ -34,8 +34,8 @@ type WinningPatternsPayload = {
   };
 };
 
-
 const hookTypes = ["problem_empathy", "comparison_choice", "checklist", "seasonal_timing"] as const;
+const performanceRecordableStatuses = new Set(["exported", "published_manually"]);
 
 async function getApiData<T>(url: string): Promise<T> {
   const response = await ky.get(url).json<ApiResponse<T>>();
@@ -51,7 +51,7 @@ export function PerformanceRecorder() {
   const [views, setViews] = useState("");
   const [clicks, setClicks] = useState("");
   const [directRevenue, setDirectRevenue] = useState("");
-  const [hookType, setHookType] = useState("problem_empathy");
+  const [hookType, setHookType] = useState("");
   const [contentPackageId, setContentPackageId] = useState("");
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<SummaryPayload["summary"]>({
@@ -60,7 +60,9 @@ export function PerformanceRecorder() {
     average_revenue: 0,
     best_hook_type: null,
   });
-  const [contentPackages, setContentPackages] = useState<ContentPackagePayload["content_packages"]>([]);
+  const [contentPackages, setContentPackages] = useState<ContentPackagePayload["content_packages"]>(
+    [],
+  );
   const [winningPatterns, setWinningPatterns] = useState<WinningPatternsPayload | null>(null);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function PerformanceRecorder() {
         setWinningPatterns(patterns);
       } catch (error) {
         if (error instanceof HTTPError && error.response.status === 401) {
-          window.location.assign("/login?from=/performance");
+          setMessage("세션 확인에 실패했습니다.");
           return;
         }
         setMessage("성과 데이터를 불러오지 못했습니다.");
@@ -115,7 +117,7 @@ export function PerformanceRecorder() {
           views: parsedViews,
           clicks: parsedClicks,
           direct_revenue: parsedDirectRevenue,
-          hook_type: hookType,
+          ...(hookType === "" ? {} : { hook_type: hookType }),
         },
       });
       setMessage("성과 기록 저장됨");
@@ -145,13 +147,19 @@ export function PerformanceRecorder() {
         </label>
         <label>
           콘텐츠 패키지
-          <select onChange={(event) => setContentPackageId(event.target.value)} value={contentPackageId}>
+          <select
+            onChange={(event) => setContentPackageId(event.target.value)}
+            value={contentPackageId}
+          >
             <option value="">패키지 선택</option>
-            {contentPackages.slice(0, 20).map((contentPackage) => (
-              <option key={contentPackage.id} value={contentPackage.id}>
-                {contentPackage.topic.title} · {contentPackage.status}
-              </option>
-            ))}
+            {contentPackages
+              .filter((contentPackage) => performanceRecordableStatuses.has(contentPackage.status))
+              .slice(0, 20)
+              .map((contentPackage) => (
+                <option key={contentPackage.id} value={contentPackage.id}>
+                  {contentPackage.topic.title} · {contentPackage.status}
+                </option>
+              ))}
           </select>
         </label>
         <div className="form-row">
@@ -161,7 +169,11 @@ export function PerformanceRecorder() {
           </label>
           <label>
             클릭 수
-            <input onChange={(event) => setClicks(event.target.value)} type="number" value={clicks} />
+            <input
+              onChange={(event) => setClicks(event.target.value)}
+              type="number"
+              value={clicks}
+            />
           </label>
         </div>
         <div className="form-row">
@@ -176,6 +188,7 @@ export function PerformanceRecorder() {
           <label>
             Hook Type
             <select onChange={(event) => setHookType(event.target.value)} value={hookType}>
+              <option value="">Hook Type 미선택</option>
               {hookTypes.map((hook) => (
                 <option key={hook} value={hook}>
                   {hook}
@@ -195,7 +208,9 @@ export function PerformanceRecorder() {
         <div className="metric-grid">
           <span className="badge">평균 조회 {summary.average_views.toLocaleString("ko-KR")}</span>
           <span className="badge">평균 클릭 {summary.average_clicks.toLocaleString("ko-KR")}</span>
-          <span className="badge">평균 수익 {summary.average_revenue.toLocaleString("ko-KR")}원</span>
+          <span className="badge">
+            평균 수익 {summary.average_revenue.toLocaleString("ko-KR")}원
+          </span>
           <span className="badge">Best {summary.best_hook_type ?? "없음"}</span>
         </div>
         {winningPatterns === null ? null : (

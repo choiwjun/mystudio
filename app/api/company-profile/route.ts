@@ -17,7 +17,7 @@ export const PATCH = withAuthenticatedApi("company-profile.patch", async (reques
   if (!parsed.success) {
     return fail(
       {
-        code: "BAD_REQUEST",
+        code: "VALIDATION_ERROR",
         message: "Invalid company profile payload.",
         details: { issues: parsed.error.flatten().fieldErrors },
       },

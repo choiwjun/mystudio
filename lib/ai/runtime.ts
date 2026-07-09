@@ -1,6 +1,7 @@
 import type { AIAdapter } from "@/lib/ai/adapter";
 import { MockAIAdapter } from "@/lib/ai/mockAdapter";
 import { ClaudeAIAdapter, OpenAIAdapter } from "@/lib/ai/providerAdapters";
+import { getActiveApiCredentialSecret } from "@/lib/api-credentials/service";
 import { recordCostLog } from "@/lib/logging/costLogger";
 
 export class AIAdapterConfigurationError extends Error {
@@ -58,6 +59,21 @@ function requireEnvValue(env: RuntimeEnv, key: keyof RuntimeEnv, adapter: AIAdap
   return value;
 }
 
+async function resolveProviderApiKey(env: RuntimeEnv, mode: "openai" | "claude"): Promise<string> {
+  const envKey = mode === "openai" ? "OPENAI_API_KEY" : "CLAUDE_API_KEY";
+  const envValue = env[envKey]?.trim();
+  if (envValue !== undefined && envValue !== "") {
+    return envValue;
+  }
+  const storedValue = await getActiveApiCredentialSecret(mode);
+  if (storedValue !== null && storedValue.trim() !== "") {
+    return storedValue;
+  }
+  throw new AIAdapterConfigurationError(
+    `AI_ADAPTER=${mode} requires ${envKey} or an active ${mode} API credential in Settings.`,
+  );
+}
+
 function assertMockModeAllowed(env: RuntimeEnv): void {
   if (env.NODE_ENV === "production") {
     throw new AIAdapterConfigurationError(
@@ -96,6 +112,34 @@ export function createRuntimeAIAdapter(
   const apiKey = requireEnvValue(env, "CLAUDE_API_KEY", mode);
   return new ClaudeAIAdapter({
     apiKey,
+    fetch: options.fetch,
+    model: options.claudeModel,
+    costLogger: recordCostLog,
+  });
+}
+
+export async function createRuntimeAIAdapterFromConfiguredCredentials(
+  env: RuntimeEnv = process.env,
+  options: RuntimeAIAdapterOptions = {},
+): Promise<AIAdapter> {
+  const mode = readAdapterMode(env);
+
+  if (mode === "mock") {
+    assertMockModeAllowed(env);
+    return new MockAIAdapter();
+  }
+
+  if (mode === "openai") {
+    return new OpenAIAdapter({
+      apiKey: await resolveProviderApiKey(env, mode),
+      fetch: options.fetch,
+      model: options.openAIModel,
+      costLogger: recordCostLog,
+    });
+  }
+
+  return new ClaudeAIAdapter({
+    apiKey: await resolveProviderApiKey(env, mode),
     fetch: options.fetch,
     model: options.claudeModel,
     costLogger: recordCostLog,

@@ -26,6 +26,18 @@ async function parseJsonResponse<T>(response: Response, schema: z.ZodType<T>): P
   return schema.parse(await response.json());
 }
 
+async function hasDatabaseRequiredError(response: Response): Promise<boolean> {
+  if (response.status !== 503) {
+    return false;
+  }
+  const payload: unknown = await response.json().catch(() => null);
+  if (payload === null || typeof payload !== "object" || !("error" in payload)) {
+    return false;
+  }
+  const error = (payload as { readonly error?: { readonly code?: unknown } }).error;
+  return error?.code === "DATABASE_URL_REQUIRED";
+}
+
 export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButtonProps) {
   const [csrfToken, setCsrfToken] = useState("");
   const [profileSetupRequired, setProfileSetupRequired] = useState(false);
@@ -41,7 +53,7 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
         fetch("/api/company-profile"),
       ]);
       if (sessionResponse.status === 401 || profileResponse.status === 401) {
-        window.location.assign("/login?from=/");
+        onStatusMessage?.("세션 확인에 실패했습니다.");
         return;
       }
       if (!sessionResponse.ok || !profileResponse.ok) {
@@ -49,10 +61,7 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
       }
 
       const sessionPayload = await parseJsonResponse(sessionResponse, sessionResponseSchema);
-      const profilePayload = await parseJsonResponse(
-        profileResponse,
-        companyProfileResponseSchema,
-      );
+      const profilePayload = await parseJsonResponse(profileResponse, companyProfileResponseSchema);
       if (!active) {
         return;
       }
@@ -102,6 +111,14 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
         setProfileGuardOpen(true);
         return;
       }
+      if (response.status === 401) {
+        onStatusMessage?.("세션 확인에 실패했습니다.");
+        return;
+      }
+      if (await hasDatabaseRequiredError(response)) {
+        onStatusMessage?.("DATABASE_URL 설정이 없어 브리핑을 저장할 수 없습니다.");
+        return;
+      }
       if (!response.ok) {
         throw new Error("HQ_DAILY_BRIEFING_FAILED");
       }
@@ -127,9 +144,7 @@ export function HqDailyBriefingButton({ onStatusMessage }: HqDailyBriefingButton
       >
         오늘 브리핑 생성
       </button>
-      {profileGuardOpen ? (
-        <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} />
-      ) : null}
+      {profileGuardOpen ? <HqProfileSetupModal onClose={() => setProfileGuardOpen(false)} /> : null}
     </>
   );
 }

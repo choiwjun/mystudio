@@ -8,32 +8,56 @@ import {
 import { scanHermes } from "@/lib/hermes/service";
 import { hasCronCredentialAttempt, verifyCronSecret } from "@/lib/security/cron";
 
+function missingStableExecutionIdResponse(): Response {
+  return fail(
+    {
+      code: "STABLE_TRIGGER_EXECUTION_ID_REQUIRED",
+      message: "Cron-triggered Hermes scans require x-trigger-execution-id.",
+    },
+    428,
+  );
+}
+
+function stableTriggerExecutionId(request: Request, mode: "cron" | "session"): string | null {
+  const headerValue = request.headers.get("x-trigger-execution-id")?.trim();
+  if (headerValue !== undefined && headerValue !== "") {
+    return headerValue;
+  }
+  return mode === "session" ? crypto.randomUUID() : null;
+}
 async function handleHermesScan(
   request: Request,
   authMode: "cron" | "session-or-cron",
 ): Promise<Response> {
-  if (authMode === "cron" || hasCronCredentialAttempt(request.headers)) {
+  const isCronPath = authMode === "cron" || hasCronCredentialAttempt(request.headers);
+  if (isCronPath) {
     const cronGuard = verifyCronSecret(request.headers, process.env["CRON_SECRET"]);
     if (!cronGuard.allowed) {
       return cronGuard.response;
     }
   } else {
     const session = await readSessionFromRequest(request);
-    if (session === null) {
+    if (
+      request.method !== "GET" &&
+      request.method !== "HEAD" &&
+      request.method !== "OPTIONS" &&
+      request.headers.get("x-csrf-token") !== session.csrfToken
+    ) {
       return fail(
         {
-          code: "UNAUTHORIZED",
-          message: "Authentication is required.",
+          code: "CSRF_TOKEN_INVALID",
+          message: "A valid CSRF token is required.",
         },
-        401,
+        403,
       );
     }
   }
 
-  const triggerExecutionId =
-    request.headers.get("x-trigger-execution-id") ??
-    request.headers.get("x-vercel-id") ??
-    crypto.randomUUID();
+  const triggerExecutionId = stableTriggerExecutionId(request, isCronPath ? "cron" : "session");
+  if (triggerExecutionId === null) {
+    return missingStableExecutionIdResponse();
+  }
+
   try {
     const result = await scanHermes(triggerExecutionId);
     switch (result.kind) {
